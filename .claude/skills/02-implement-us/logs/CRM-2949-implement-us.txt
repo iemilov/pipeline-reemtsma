@@ -1,0 +1,159 @@
+================================================================================
+CRM-2949 - Implementation Log
+================================================================================
+Date: 2026-02-05
+Skill: /implement-us
+Story Key: CRM-2949
+Branch: feature/CRM-2949 (from release/1.9.9)
+
+================================================================================
+STORY DETAILS
+================================================================================
+Context:
+Extension of the cancellation process from CRM-2610 with missing workflow logic
+and documentation capabilities.
+
+Requirements:
+1. Automatic Status Reset on Changes by RD
+   - When the RD (Regionaldirektor) makes ANY adjustment to a termination case
+     (Kündigungsvorgang), the Case should automatically be reset to the status
+     "Übergeben an VO" (Handed over to VO)
+   - Goal: The VO (Vertriebsorganisation) is actively informed about changes
+     and can react accordingly (e.g., send a new confirmation letter)
+
+================================================================================
+CODEBASE ANALYSIS
+================================================================================
+Key Findings:
+1. RD Identification:
+   - RD users are identified by Profile.Name = "STLGS_Sales"
+   - This pattern is established in existing flow STLGS_AdaptTermination (CRM-2737)
+
+2. Termination Cases:
+   - Identified by: STLGS_Type__c = "Kündigung"
+   - Record Types: STLGS_EditCase, STLGS_ReadOnlyCase (prefix "STLGS_")
+   - Relevant status values:
+     * New (default)
+     * In Progress RD
+     * In Progress VO
+     * Übergeben an RD (Handed over to RD)
+     * Übergeben an VO (Handed over to VO) ← TARGET STATUS
+     * Cancelled (closed)
+     * Closed (closed)
+
+3. Existing Infrastructure:
+   - STLGS_CounterHandoverVO__c field tracks handover count
+   - Business Process: STLGS_EditProcess includes all relevant statuses
+   - Validation Rules exist for termination workflow (e.g., STLGS_TerminationEloRDHandover)
+
+================================================================================
+IMPLEMENTATION APPROACH
+================================================================================
+Chosen: Record-Triggered Flow (Declarative)
+
+Rationale:
+- Follows project convention: prefer declarative solutions over code
+- Consistent with existing patterns (STLGS_AdaptTermination uses similar logic)
+- No complex business logic requiring Apex
+- Easier maintenance and modification by admins
+
+Alternative Considered: Trigger Action (Apex)
+- Rejected: Would add unnecessary code complexity for simple status change logic
+
+================================================================================
+FILES CREATED
+================================================================================
+Flows:
+- force-app/main/default/flows/STLGS_ResetTerminationOnRDChange.flow-meta.xml
+
+================================================================================
+IMPLEMENTATION DETAILS
+================================================================================
+Flow: STLGS_ResetTerminationOnRDChange
+Type: Record-Triggered Flow (Before Save)
+Object: Case
+Trigger: Update
+API Version: 64.0
+Status: Active
+
+Entry Conditions (all must be true):
+1. STLGS_Type__c = "Kündigung" (is termination case)
+2. Status != "Übergeben an VO" (not already in target status)
+3. Status != "Closed" (not closed)
+4. Status != "Cancelled" (not cancelled)
+
+Flow Logic:
+1. START: Case update triggers flow with entry conditions
+2. Get Running User: Query User where Id = $User.Id to get profile
+3. Decision: Is User RD?
+   - Condition: Get_Running_User.Profile.Name = "STLGS_Sales"
+   - If Yes → Continue to assignment
+   - If No → End (no action)
+4. Assignment (Set Status to Handover VO):
+   - $Record.Status = "Übergeben an VO"
+   - $Record.STLGS_CounterHandoverVO__c = IncrementedHandoverCounter (formula)
+
+Formula:
+- IncrementedHandoverCounter:
+  IF(ISBLANK({!$Record.STLGS_CounterHandoverVO__c}), 1,
+     {!$Record.STLGS_CounterHandoverVO__c} + 1)
+
+================================================================================
+DEPLOYMENT INSTRUCTIONS
+================================================================================
+1. Deploy the flow:
+   sf project deploy start \
+     --source-dir force-app/main/default/flows/STLGS_ResetTerminationOnRDChange.flow-meta.xml \
+     -o <target-org>
+
+2. Verify flow is active in Setup → Flows
+
+3. Test the implementation:
+   a. Log in as a user with STLGS_Sales profile (RD)
+   b. Open an existing termination case (STLGS_Type__c = "Kündigung")
+   c. Make any field change and save
+   d. Verify status changes to "Übergeben an VO"
+   e. Verify STLGS_CounterHandoverVO__c is incremented
+
+================================================================================
+MANUAL CONFIGURATION STEPS (POST-DEPLOYMENT)
+================================================================================
+None required. Flow is set to Active status and will trigger automatically.
+
+Optional: If flow needs to be initially deployed as Inactive:
+1. Change <status>Active</status> to <status>Draft</status> in XML
+2. Deploy
+3. Activate manually in Setup → Flows
+
+================================================================================
+OPEN QUESTIONS / ASSUMPTIONS
+================================================================================
+1. ASSUMPTION: All RD users have exactly Profile.Name = "STLGS_Sales"
+   - Verified against existing STLGS_AdaptTermination flow logic
+
+2. ASSUMPTION: The status "Übergeben an VO" is the correct target status
+   - Consistent with existing flow behavior when handover counter >= 1
+
+3. ASSUMPTION: Incrementing STLGS_CounterHandoverVO__c on each RD change is desired
+   - This allows tracking how many times a case was handed over
+
+4. NOTE: Flow triggers on ANY field change by RD, not just termination-specific fields
+   - This matches the requirement "egal was" (doesn't matter what)
+
+5. NOTE: Flow does not trigger if status is already "Übergeben an VO" (prevents no-op)
+
+================================================================================
+GIT STATUS
+================================================================================
+Branch: feature/CRM-2949
+Base: release/1.9.9
+
+Files Added:
+- force-app/main/default/flows/STLGS_ResetTerminationOnRDChange.flow-meta.xml
+
+Note: Commit and push could not be completed due to workspace permissions.
+File has been created locally and is ready for manual commit/push.
+
+================================================================================
+END OF LOG
+================================================================================

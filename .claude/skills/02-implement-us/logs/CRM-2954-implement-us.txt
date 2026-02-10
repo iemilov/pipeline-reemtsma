@@ -1,0 +1,94 @@
+================================================================================
+  SKILL EXECUTION LOG: /implement-us CRM-2954
+  Date: 2026-02-05 (re-run)
+================================================================================
+
+## Story Details
+- Key: CRM-2954
+- Summary: Kündigungsprozess // Validierung der Checkbox ELO bei Übergabe an RD
+- Status: In Progress
+- Assignee: Joachim Lintl
+- Epic: N/A (no parent epic linked)
+
+## Requirements
+In the termination process, a "Kündigung durch Lotto" (termination initiated by
+Lotto) must not be handed over to the Regionaldirektion (RD) unless the checkbox
+"Kündigung in ELO abgelegt" (STLGS_IsTerminationElo__c) is true.
+
+Currently, the handover to RD can happen without the ELO checkbox being set,
+which causes a downstream problem: the RD cannot hand the case back to VO
+because the RD does not have edit permissions on the checkbox.
+
+## Implementation Approach
+**Declarative: Extend existing Validation Rule** — Rather than creating a new
+rule, extended the existing `STLGS_TerminationMandatoryFields` which already
+validates the same ELO checkbox for VO-related statuses.
+
+### Rationale
+- The existing rule already checks the exact same condition (ELO checkbox on
+  Kündigung cases) for "Übergeben an VO" and "In Progress VO" statuses
+- Adding "Übergeben an RD" to the same rule keeps all ELO validation logic
+  in one place
+- The Lotto-only condition is nested within the RD status check since the
+  story specifies "Betrifft ausschließlich eine Kündigung durch Lotto"
+
+## Files Modified
+
+### Validation Rule (extended)
+- force-app/main/default/objects/Case/validationRules/STLGS_TerminationMandatoryFields.validationRule-meta.xml
+
+### Formula Logic (before)
+  NOT(bypass) && ISPICKVAL(Type, "Kündigung") && !IsTerminationElo &&
+  (ISPICKVAL(Status, "Übergeben an VO") || ISPICKVAL(Status, "\tIn Progress VO"))
+
+### Formula Logic (after)
+  NOT(bypass) && ISPICKVAL(Type, "Kündigung") && !IsTerminationElo &&
+  (ISPICKVAL(Status, "Übergeben an VO") ||
+   ISPICKVAL(Status, "In Progress VO") ||
+   (ISPICKVAL(Status, "Übergeben an RD") && ISPICKVAL(TerminatedBy, "Lotto")))
+
+### Changes Made
+1. Added third OR condition: (Status = "Übergeben an RD" && TerminatedBy = "Lotto")
+2. Updated error message to match CRM-2954 specification
+3. Added description referencing CRM-2954
+4. Fixed stray tab character in "In Progress VO" picklist value reference
+
+### Key Design Decisions
+1. Extended existing rule instead of creating a new one — single source of
+   truth for ELO validation on termination cases
+2. The RD handover condition is scoped to TerminatedBy = "Lotto" as specified
+   in the story ("Betrifft ausschließlich eine Kündigung durch Lotto")
+3. VO-related checks remain unchanged (apply to all terminations)
+4. Error message updated to: "Bitte die Kündigung in ELO ablegen und am
+   Kündigungsvorgang bestätigen."
+
+## Git Operations
+- Branch: feature/CRM-2954 (based on release/1.10.3)
+- Commit: 8ef885ee - CRM-2954 Extend ELO validation to RD handover for Lotto terminations [skip ci]
+- Pushed to: origin/feature/CRM-2954
+
+## PR Creation
+- Azure DevOps CLI not available — PR must be created manually
+- Target branch: release/1.10.3
+- Source branch: feature/CRM-2954
+- PR URL: https://dev.azure.com/LottoBW/Salesforce%20CICD/_git/Salesforce%20CICD/pullrequestcreate?sourceRef=feature/CRM-2954&targetRef=release/1.10.3
+
+## Deployment Instructions
+1. Deploy the validation rule:
+   sf project deploy start --source-dir force-app/main/default/objects/Case/validationRules/STLGS_TerminationMandatoryFields.validationRule-meta.xml -o <org>
+
+2. No post-deployment configuration needed — rule is already active.
+
+## Manual Configuration Steps
+- None required.
+
+## Open Questions / Assumptions
+- The existing error message was changed from "Bitte bestätigen, dass der
+  Nachweis in ELO abgelegt wurde." to the CRM-2954 specified message. This
+  new message now applies to ALL status checks (VO + RD). If separate messages
+  are needed, a separate validation rule would be required.
+- Fixed a tab character bug in the original formula ("\tIn Progress VO" → "In Progress VO")
+
+================================================================================
+  END OF LOG
+================================================================================

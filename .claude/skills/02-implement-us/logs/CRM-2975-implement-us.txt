@@ -1,0 +1,106 @@
+============================================================
+CRM-2975 - Implement User Story Log
+============================================================
+Date: 2026-02-05
+Story: CRM-2975 - Anonymisierung anpassen auf Messaging Session
+Epic: CRM-1968 - Aktivierung Messaging in App und Web
+Component: B2C
+Type: Bug
+Branch: feature/CRM-2975 (from release/1.10.3)
+
+============================================================
+STEP 1: READ USER STORY
+============================================================
+Jira Key: CRM-2975
+Summary: Anonymisierung anpassen auf Messaging Session
+Description:
+  In der Apex Klasse STLG_SkyvvaAnonymizeRecords.cls wird aktuell
+  die Methode "deleteChatTranscripts" aufgerufen. Hier gibt es keine
+  Behandlung der Messaging Sessions. Das muss angepasst werden und
+  es soll genauso gehandhabt werden, wie auch bei den ChatTranscripts.
+
+Requirements:
+  - Add MessagingSession deletion to the anonymization process
+  - Handle MessagingSessions the same way as LiveChatTranscripts
+  - MessagingSessions are linked to Cases via CaseId field
+
+============================================================
+STEP 2: EXPLORE CODEBASE PATTERNS
+============================================================
+Existing Class: STLG_SkyvvaAnonymizeRecords.cls
+  - Global class extending skyvvasolutions.V3OutboundStepProcessing
+  - Uses 'without sharing' context
+  - Has @SuppressWarnings for PMD.ApexCRUDViolation, PMD.CyclomaticComplexity
+  - Pattern: query related records -> Database.delete(list, false) -> log results
+  - deleteChatTranscripts method queries LiveChatTranscript WHERE CaseId IN caseSet
+
+Existing Test: STLG_SkyvvaAnonymizeRecordsTest.cls
+  - Uses STLG_TestDataFactory for Account, Contact, Case creation
+  - Tests via handler.beforeMapping(mr) which triggers anonymizeRecords in test mode
+  - 3 existing test methods: anonymizeAccount, anonymizeCase, deleteFiles
+
+MessagingSession Pattern (from STLG_OmniChannelCustControllerTest.cls):
+  - Requires MessagingChannel (queried from org)
+  - Requires MessagingEndUser (created with channel reference)
+  - MessagingSession created with CaseId, Status, MessagingChannelId, MessagingEndUserId
+
+============================================================
+STEP 3: IMPLEMENTATION APPROACH
+============================================================
+Approach: Programmatic (Apex)
+Rationale: This is a modification to an existing Apex class. The anonymization
+  logic is already implemented in Apex code, so the new MessagingSession
+  handling must follow the same pattern within the same class.
+
+============================================================
+STEP 4: FEATURE BRANCH
+============================================================
+Created: feature/CRM-2975 from origin/release/1.10.3
+
+============================================================
+STEP 5: IMPLEMENTATION
+============================================================
+Files Modified:
+  1. force-app/main/default/classes/STLG_SkyvvaAnonymizeRecords.cls
+     - Added version history entry (v1.3) with @see CRM-1968
+     - Added deleteMessagingSessions(caseSet) call in anonymizeRecords() method
+       (after deleteChatTranscripts call)
+     - Added new private static method deleteMessagingSessions(Set<Id> caseSet)
+       following exact same pattern as deleteChatTranscripts:
+       * Early return check for empty caseSet
+       * SOQL query: SELECT Id, CaseId, Name FROM MessagingSession WHERE CaseId IN: caseSet
+       * Database.delete(msgList, false) with partial success handling
+       * Logger.error for failures, System.debug for success/failure
+
+  2. force-app/main/default/classes/STLG_SkyvvaAnonymizeRecordsTest.cls
+     - Added version history entry (v1.2) with @see CRM-1968
+     - Added new test method: deleteMessagingSessions()
+       * Creates test data: Account, Contact, Case via STLG_TestDataFactory
+       * Creates MessagingChannel (queried from org), MessagingEndUser, MessagingSession
+       * Triggers anonymization via handler.beforeMapping(mr)
+       * Asserts MessagingSession is deleted after anonymization
+
+============================================================
+STEP 6: SUMMARY
+============================================================
+Implementation Approach:
+  - Apex code modification (extending existing anonymization class)
+  - New method follows identical pattern to deleteChatTranscripts
+  - No new metadata types or declarative components needed
+
+Files Created/Modified:
+  [Modified] force-app/main/default/classes/STLG_SkyvvaAnonymizeRecords.cls
+  [Modified] force-app/main/default/classes/STLG_SkyvvaAnonymizeRecordsTest.cls
+
+Deployment:
+  sf project deploy start --source-dir force-app/main/default/classes/STLG_SkyvvaAnonymizeRecords.cls force-app/main/default/classes/STLG_SkyvvaAnonymizeRecords.cls-meta.xml force-app/main/default/classes/STLG_SkyvvaAnonymizeRecordsTest.cls force-app/main/default/classes/STLG_SkyvvaAnonymizeRecordsTest.cls-meta.xml -o <org>
+
+Post-Deployment:
+  - No manual configuration needed
+  - No flows to activate, no jobs to schedule
+  - The change takes effect immediately as part of the existing Skyvva outbound processing
+
+Assumptions:
+  - MessagingSession records should be hard-deleted (same as ChatTranscripts)
+  - MessagingSession.CaseId is the correct relationship field (confirmed from STLG_OmniChannelCustomizationController)
+  - Test requires at least one MessagingChannel record in the org (same dependency as STLG_OmniChannelCustControllerTest)
