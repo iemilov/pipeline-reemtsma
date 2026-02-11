@@ -30,7 +30,7 @@ Generate release notes from the latest merge commit on the `master` branch. If a
 ### Step 3: Determine Version
 
 1. If `$ARGUMENTS` is provided, use it as the version
-2. Otherwise, check the `deployment/` folder for the latest version directory (sorted by semver)
+2. Otherwise, list all version directories in `deployment/` (exclude non-version folders like `CRM-*` and `Archive`), sort them by semantic version (use `sort -V` or equivalent to correctly order versions like 1.9.0 < 1.10.0 < 1.10.2), and pick the latest
 3. Use this version as the release title
 
 ### Step 4: Generate Release Notes
@@ -110,5 +110,11 @@ Present:
 - Use the Atlassian MCP tools for all Jira operations
 - The cloudId for Jira is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
 - If no Jira keys are found in the merge commit, inform the user and abort
-- ALWAYS create a log file named `<current date>-<version>-06-release-notes.txt` in `.claude/skills/06-release-notes/logs/` following the pattern from CLAUDE.md
+- ALWAYS create a log file named `<YYYY-MM-DD>-<version>-release-notes.txt` in `.claude/skills/06-release-notes/logs/` — copy the complete output as text into this file
 - If a story cannot be fetched from Jira (e.g. permissions), list it with just the key and note that details were unavailable
+
+## Error Handling
+- If no merge commit with Jira keys is found in the last 10 commits on master, inform the user and abort
+- If a specific Jira story cannot be fetched (permissions, deleted), list it with just the key and note that details were unavailable
+- If the deployment version folder does not exist, ask the user for the version or offer to create the folder
+- If `git log master` fails (e.g., no master branch locally), suggest running `git fetch origin master` first

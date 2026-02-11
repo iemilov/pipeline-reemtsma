@@ -10,7 +10,7 @@ Execute the following steps for Epic **$ARGUMENTS**:
 
 ### Step 1: Gather Epic & Story Data
 1. Fetch the Epic details from Jira using `getJiraIssue` with key `$ARGUMENTS`
-2. Search for all user stories linked to the epic using `searchJiraIssuesUsingJql` with JQL: `"Epic Link" = $ARGUMENTS ORDER BY key ASC`
+2. Search for all user stories linked to the epic using `searchJiraIssuesUsingJql` with JQL: `parent = $ARGUMENTS ORDER BY key ASC`
 3. For each story, fetch full details (summary, description, status, acceptance criteria) using `getJiraIssue`
 4. Read any relevant implementation files referenced in the stories by exploring the codebase (Apex classes, Flows, Custom Metadata, Custom Fields, etc.)
 
@@ -64,6 +64,12 @@ Present:
 - Use the Atlassian MCP tools for all Jira and Confluence operations
 - The cloudId for Jira/Confluence is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
 - If no Confluence space is obvious, ask the user which space to use
-- ALWAYS create a log file named `<current date>-`$ARGUMENTS`-04-document-us` in the corresponding sub folder `/skills/<skill name>/logs` following the pattern from CLAUDE.md
+- ALWAYS create a log file named `<YYYY-MM-DD>-$ARGUMENTS-document-us.txt` in `.claude/skills/04-document-us/logs/` — copy the complete output as text into this file
 - Link epic with title `$ARGUMENTS` into the Confluence page
-- ALWAYS add new Confluence Page as a subpage of folder "Projekt: Einführung Salesforce/Architect"
+- ALWAYS add the page as a subpage of folder "Projekt: Einführung Salesforce/Architect"
+
+## Error Handling
+- If the Epic cannot be fetched from Jira, inform the user with the error details and abort
+- If no stories are found linked to the epic, inform the user (the epic may have no children yet) and abort
+- If Confluence page creation or update fails, save the generated Markdown content locally in the logs folder and inform the user
+- If a specific story cannot be fetched, skip it with a warning but continue documenting the other stories
