@@ -232,7 +232,9 @@ Pipeline uses `sfdx-git-delta` plugin for intelligent delta deployments. JWT aut
 - ALWAYS create a log file for each execution of a skill in this pattern: `<YYYY-MM-DD>-<identifier>-<skill-name>.txt` where `<identifier>` is the story key, epic key, or version depending on the skill. Copy the complete output as text into this file and store it under the `logs/` subfolder of each skill's directory (e.g., `.claude/skills/02-implement-us/logs/`)
 
 ### Atlassian Integration
-- Jira cloudId: `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
+- **Jira URL:** `https://kommit.atlassian.net` (NOT lottobw.atlassian.net)
+- **Jira cloudId:** `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
+- **Confluence URL:** `https://kommit.atlassian.net/wiki`
 - Stories are created in the **CRM** project with component **B2C** or **B2B** based on context
 - Epic linking uses `Parent` field on user story
 
