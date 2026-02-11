@@ -8,6 +8,17 @@ Salesforce DX (SFDX) CI/CD repository for a multi-environment Salesforce org dep
 
 **API Version:** 64.0 (per `sfdx-project.json`; some components use 65.0)
 
+## Glossary
+
+Common abbreviations used throughout the codebase and documentation:
+- **ASt** - Annahmestelle (Sales Point / Store)
+- **ASten** - Annahmestellen (plural)
+- **RD** - Regionaldirektion (Regional Management)
+- **VO** - Vertriebsorganisation (Sales Organization)
+- **VS** - Vertriebssteuerung (Sales Control)
+- **TK** - Testkauf (Test Purchase / Mystery Shopping)
+- **VDE** - Verband der Elektrotechnik (Electrical Safety Inspection)
+
 ## Key Commands
 
 ### Linting & Formatting
@@ -88,6 +99,73 @@ Example: A class `STLGS_TA_SetFileVisibilityProServices` is registered via `Trig
   - `aura/` - Legacy Aura components with `stlg_*` prefix
   - `flows/`, `objects/`, `triggers/`, `pages/` - Standard metadata
 - `deployment/<version>/` - Versioned release packages with `package.xml` and `destructiveChanges.xml`
+
+## Domain-Specific Business Logic
+
+### Testkauf (TK) - Test Purchase / Mystery Shopping
+
+**Batch Processing:** `STLGS_UpdateTestPurchaseBatch`
+
+- **Manual execution:** `Database.executeBatch(new STLGS_UpdateTestPurchaseBatch(), 200);`
+- Processes TK cases with status "TK durchgeführt" from previous calendar week
+- **Important:** Lotto billing week runs Saturday-Saturday (not standard Mon-Sun Salesforce week)
+- Code uses `isDateInLastWeek()` logic: `Date.today().toStartOfWeek().addDays(-7)` to calculate the previous week
+
+**Key Validation Rules:**
+
+- `STLGS_PreventStatusChange2ndLevelSD`: Status "Zugewiesen an 2nd Level" requires `STLGS_ChecksToKBDone__c=true`
+
+**Processing Logic:**
+
+- TK result "nicht bestanden" → Status: "Testkaufergebnis nicht geprüft" (manual review required)
+- TK result "bestanden" + no other open TKs → Full automation to "Abrechnung"
+- TK result "bestanden" + other open TKs exist → Only to "nicht geprüft" (manual review)
+- TK-Art "Nachschulung" → Always to "nicht geprüft" (CRM-2497)
+- TK result "Fehlanfahrt" → To "nicht geprüft" (no Ampelstatus calculation)
+
+### VDE Prüfung (Electrical Safety Inspection)
+
+**Asset Creation:**
+
+- Flow-based automated asset creation based on `Account.STLGS_SalesType__c`:
+  - "Vollannahmestelle" → 12 standard assets
+  - "Lotto Kompakt" → 7 standard assets
+
+**Custom Asset Fields:**
+
+- `Case__c` (Lookup to Case)
+- `STLGS_Type__c` (e.g., "Terminal & Drucker", "Lottowand", "weitere Geräte")
+- `STLGS_ErrorFound__c`, `STLGS_InspectionStickerApplied__c`, `STLGS_InspectionDate__c`
+
+### Common Field Name Pitfalls
+
+Frequently confused field names (use correct spelling to avoid deployment errors):
+
+- ✅ `STLGS_RegionalDirectorate__c` (NOT RegionalDirection)
+- ✅ `STLGS_SubjectSD__c` (NOT SubjectDescription)
+- ✅ `STLG_TMFTicketId__c` (NOT T_MFTicketId)
+- ✅ `STLGS_ProServicesCase__c` (means "Sichtbar für ProServices")
+- ✅ `STLG_FollowupDate__c` (NOT FollowUpDate)
+
+### Bulk Data Operations Best Practices
+
+**Preferred Approach: Composite Tree API**
+
+```bash
+# Use Composite Tree API for bulk operations
+POST /services/data/v65.0/composite/tree/Case
+```
+
+- Maximum 200 records per request
+- Each record requires `referenceId` in `attributes`
+- Add 2-second pause between batches for rate limiting
+
+**Avoid:** `sf data import bulk` has persistent line ending issues on macOS - prefer Composite Tree API
+
+### Important Record IDs (Production)
+
+- **RecordType STLGS_ServiceDeskCase:** `012Tr000003l2pRIAQ`
+- **Queue ProServices:** `00GTr000005KTsfMAG`
 
 ## CI/CD Pipeline (Azure Pipelines)
 
