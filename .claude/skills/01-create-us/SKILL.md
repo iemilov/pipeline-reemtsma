@@ -84,18 +84,94 @@ Execute the following steps for Epic **$ARGUMENTS**:
 - Output text in stories is **ALWAYS in German**
 - Reference other stories in the epic for dependencies (e.g., "Abhängigkeit: Story XYZ muss zuerst implementiert werden")
 
-### Step 4: Summary
+### Step 4: Generate Implementation Notes
+
+**After creating all stories**, generate an implementation notes markdown file for each story:
+
+1. **Create the folder** `implementation-design/<story-key>/` (e.g., `implementation-design/CRM-3001/`)
+
+2. **Create the file** `implementation-design/<story-key>/implementation-notes.md` with the following structure:
+
+   ```markdown
+   # Implementation Notes: <Story-Key> — <Story Title>
+
+   **Epic:** <Epic-Key>
+   **Story:** <Story-Key>
+   **Created:** <YYYY-MM-DD>
+
+   ## Summary
+
+   <Brief 2-3 sentence summary of what this story implements>
+
+   ## Requirements
+
+   <Key functional requirements extracted from the transcript, as bullet points>
+
+   ## Proposed Implementation Approach
+
+   ### Salesforce Tools
+   <List which Salesforce tools/features will be used and why>
+   - e.g., Record-Triggered Flow for ...
+   - e.g., Apex Trigger Action for ...
+   - e.g., Custom Fields on <Object> for ...
+   - e.g., Permission Set for ...
+
+   ### Declarative vs Programmatic
+   | Component | Type | Rationale |
+   |-----------|------|-----------|
+   | <component name> | Flow / Apex / Validation Rule / LWC / ... | <why this approach> |
+
+   ## Affected Objects & Fields
+
+   | Object | Field / Component | Action (New/Modify/Read) | Details |
+   |--------|-------------------|--------------------------|---------|
+   | <Object API Name> | <Field or component> | New / Modify / Read | <description> |
+
+   ## Dependencies
+
+   <List dependencies on other stories, existing metadata, or external systems>
+   - Depends on: <Story-Key> (if applicable)
+   - Requires existing: <metadata or config>
+
+   ## Acceptance Criteria Mapping
+
+   | # | Acceptance Criterion | Implementation Component |
+   |---|---------------------|--------------------------|
+   | 1 | <criterion from story> | <which component fulfills it> |
+
+   ## Open Questions / Assumptions
+
+   <Any unresolved questions or assumptions made during story creation>
+
+   ## Notes for `/implement-us`
+
+   <Specific hints for the implementation skill, e.g.:>
+   - Naming prefix: STLG_ or STLGS_
+   - Relevant existing classes/flows to reference
+   - Test data considerations
+   - Known pitfalls or edge cases
+   ```
+
+3. **Content guidelines:**
+   - Write in **German** for business-facing sections (Summary, Requirements), **English** for technical sections
+   - Be specific about Salesforce API names, not just labels
+   - Reference existing codebase patterns discovered during transcript analysis
+   - Include enough detail so `/implement-us` can generate code without re-reading the transcripts
+
+### Step 5: Summary
 
 Present a summary of:
 
 - Number of stories created
 - Story keys and links
+- Implementation notes file paths created
 - Dependency graph (if applicable)
 - Key requirements extracted from the transcripts
 - **Suggested next step**:
   - If stories have dependencies: Start with Story XYZ (no dependencies)
   - If stories are independent: Can be implemented in parallel
   - Command to run: `/implement-us <story-key>` to generate implementation code
+  - Implementation notes available at: `implementation-design/<story-key>/implementation-notes.md`
 
 ## Important Rules
 

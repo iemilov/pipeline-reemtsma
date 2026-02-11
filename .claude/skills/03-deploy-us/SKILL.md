@@ -14,12 +14,14 @@ Parse `$ARGUMENTS` as a space-separated string: the **first word** is the story 
 
 ### Step 1: Identify Story Context
 1. Fetch the story details from Jira using `getJiraIssue` with the story key
-2. Identify all files related to this story by:
+2. Check if `implementation-design/<story-key>/implementation-notes.md` exists — if so, read it and use it as additional context to understand the expected implementation scope (affected objects, components, dependencies, and acceptance criteria mapping). This helps verify that the deployed files match the intended implementation.
+3. Identify all files related to this story by:
    - Searching for the story key in `@see` tags and comments across Apex classes
    - Checking `git status` and `git diff` for uncommitted changes that may belong to this story
    - Searching for related Custom Metadata Types, custom fields, flows, validation rules, LWC, and other metadata created for this story
    - Looking at recently modified files that match the story's naming patterns
-3. Present the list of identified files to the user and ask for confirmation before proceeding
+4. Present the list of identified files to the user and ask for confirmation before proceeding
+5. If implementation notes were found, cross-reference the identified files against the **Affected Objects & Fields** and **Proposed Implementation Approach** sections — warn the user if any expected components appear to be missing from the deployment
 
 ### Step 2: PMD Check (Pre-Deploy)
 1. Run PMD on all identified Apex classes (not test classes) using the project's `apex-rules.xml`:

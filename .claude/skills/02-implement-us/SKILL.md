@@ -11,6 +11,7 @@ Generate an implementation for Jira story **$ARGUMENTS**:
 ### Step 1: Read User Story
 1. Fetch the story details from Jira using `getJiraIssue` with key `$ARGUMENTS`
 2. Extract all requirements, acceptance criteria, and technical details from the description
+3. Check if `implementation-design/$ARGUMENTS/implementation-notes.md` exists — if so, read it and use it as additional context for implementation decisions (proposed approach, affected objects, acceptance criteria mapping, and technical hints)
 
 ### Step 2: Explore Codebase Patterns
 Before implementing, explore the existing codebase to understand:
