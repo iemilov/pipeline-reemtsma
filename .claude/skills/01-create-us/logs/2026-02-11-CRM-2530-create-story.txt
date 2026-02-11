@@ -1,0 +1,46 @@
+Workflow Log: /01-create-us CRM-2530
+Date: 2026-02-11
+Status: Completed (Überarbeitung mit Implementation Notes)
+
+=== STEP 1: GATHER CONTEXT ===
+- Epic CRM-2530 "Umstellung auf EntraID" abgerufen
+- Keine Transcript-Dateien im business/input Ordner (gearbeitet mit Epic-Beschreibung)
+- Bestehende Stories abgerufen: CRM-2998 bis CRM-3002
+
+=== STEP 2: PROPOSE STORY SPLIT ===
+- 5 Stories wurden bereits in vorherigem Durchlauf erstellt
+- Keine neuen Stories notwendig
+- Fokus auf Schritt 1 des Epics: EntraID als 2FA parallel zu RSA
+
+=== STEP 3: CREATE JIRA USER STORIES ===
+- SKIPPED - Stories bereits vorhanden
+- CRM-2998: Anforderung und Umsetzung EntraID
+- CRM-2999: EntraID als SAML Identity Provider konfigurieren
+- CRM-3000: My Domain Authentication Configuration - EntraID Login-Option
+- CRM-3001: Federation IDs auf RD 01 Testusern setzen (Apex Batch)
+- CRM-3002: Rollback-Strategie und Notfallplan für EntraID
+
+=== STEP 4: GENERATE IMPLEMENTATION NOTES (NEU) ===
+Created implementation-design folders:
+- implementation-design/CRM-2998/
+- implementation-design/CRM-2999/
+- implementation-design/CRM-3000/
+- implementation-design/CRM-3001/
+- implementation-design/CRM-3002/
+
+Created implementation notes files:
+- implementation-design/CRM-2998/implementation-notes.md
+- implementation-design/CRM-2999/implementation-notes.md
+- implementation-design/CRM-3000/implementation-notes.md
+- implementation-design/CRM-3001/implementation-notes.md
+- implementation-design/CRM-3002/implementation-notes.md
+
+=== STEP 5: SUMMARY ===
+Number of stories: 5 (bereits vorhanden)
+Story keys: CRM-2998, CRM-2999, CRM-3000, CRM-3001, CRM-3002
+Implementation notes created: 5 files
+
+Dependency graph:
+CRM-2998 → CRM-2999 → CRM-3000 → CRM-3001 → CRM-3002
+
+=== END OF LOG ===
