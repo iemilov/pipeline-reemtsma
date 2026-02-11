@@ -6,7 +6,8 @@
       "mcp__atlassian__getAccessibleAtlassianResources",
       "mcp__atlassian__search",
       "mcp__atlassian__getJiraIssue",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "mcp__atlassian__editJiraIssue"
     ]
   }
 }
