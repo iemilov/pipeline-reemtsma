@@ -98,12 +98,12 @@ Based on the chosen approach, create the appropriate metadata files:
 - Import Apex via `@salesforce/apex/ClassName.methodName`
 
 #### For all metadata
-- Create all `-meta.xml` files with apiVersion `62.0`
+- Create all `-meta.xml` files with apiVersion `64.0` (per `sfdx-project.json`)
 
-### Step 5: Create a pull request
+### Step 6: Create a pull request
 - Create a pull request from the feature branch into the release branch you created the feature branch from
 
-### Step 6: Summary
+### Step 7: Summary
 Present a summary of:
 - Implementation approach chosen and rationale (why declarative vs code)
 - All files created (grouped by type)
@@ -114,9 +114,13 @@ Present a summary of:
 ## Important Rules
 - Follow all conventions from CLAUDE.md
 - Prefer declarative solutions over code when both can meet the requirement
-- Do NOT deploy or commit — only create files locally
-- Do NOT push to any remote
 - Use the Atlassian MCP tools for all Jira operations
 - The cloudId for Jira is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
-- Add always the epic id in the header with @see, so the code can be tracked backed and linked to a user story in jira
-- ALWAYS Add the log files in the folder /02-implement-us/logs
+- Add always the epic id in the header with @see, so the code can be tracked back and linked to a user story in Jira
+- ALWAYS create a log file named `<YYYY-MM-DD>-$ARGUMENTS-implement-us.txt` in `.claude/skills/02-implement-us/logs/` — copy the complete output as text into this file
+
+## Error Handling
+- If the Jira issue cannot be fetched, inform the user with the error details and abort
+- If branch creation fails (e.g., branch already exists), ask the user whether to reuse the existing branch or choose a different name
+- If PMD check finds Priority 1 violations, fix them before committing
+- If PR creation fails (e.g., Azure DevOps CLI not available), ensure the branch is pushed and provide the manual PR creation URL

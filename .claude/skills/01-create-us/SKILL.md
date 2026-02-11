@@ -106,7 +106,13 @@ Present a summary of:
 - **Be interactive**: Ask questions to clarify requirements, story cuts, and priorities
 - **Quality over speed**: Better to ask 3 questions than to create 1 wrong story
 - **Implementation-ready**: Each story should be detailed enough for `/implement-us` to generate working code
-- **Create log file**: `$ARGUMENTS-create-story.txt` in `.claude/skills/01-create-us/logs/`
+- ALWAYS create a log file named `<YYYY-MM-DD>-$ARGUMENTS-create-story.txt` in `.claude/skills/01-create-us/logs/` — copy the complete output as text into this file
+
+## Error Handling
+- If the Epic cannot be fetched from Jira, inform the user with the error details and abort
+- If the `business/input/$ARGUMENTS/` folder does not exist or is empty, inform the user and abort
+- If `.docx` conversion via `textutil` fails, try reading the file as plain text or inform the user
+- If Jira story creation fails (API error), display the error and offer to retry or save the story content locally
 
 ## Story Quality Checklist
 

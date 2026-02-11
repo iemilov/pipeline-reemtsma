@@ -8,6 +8,13 @@ argument-hint: [confluence-space-key (optional)]
 
 Generate a complete technical architecture and functionality overview of this Salesforce repository, tailored for Lotto Baden-Württemberg as a customer.
 
+**Scope Guidance:** This skill analyzes a large repository. Prioritize breadth over depth:
+- Read at most 5 representative classes per functional group (service classes, batch jobs, controllers)
+- Skip test classes, DTOs, and simple wrapper classes during analysis
+- For objects with many custom fields, summarize field counts and highlight only key fields
+- For Flows, read the metadata to determine type and trigger but do not trace full logic paths
+- Aim for a complete overview rather than exhaustive detail on any single component
+
 ### Step 1: Analyze Repository Structure
 1. Explore the full `force-app/main/default/` directory structure to identify all metadata types present
 2. Count and categorize all components:
@@ -138,8 +145,14 @@ Present:
 - Output text in the Confluence page is ALWAYS in German
 - Use the Atlassian MCP tools for all Confluence operations
 - The cloudId for Jira/Confluence is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
-- ALWAYS create a log file named `<current date>-05-architecture-overview.txt` in the corresponding sub folder `.claude/skills/05-architecture-overview/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-architecture-overview.txt` in `.claude/skills/05-architecture-overview/logs/` — copy the complete output as text into this file
 - Be thorough but concise — group similar components rather than listing every single file
 - Focus on business value and customer relevance for Lotto BW
 - When reading classes, focus on understanding purpose rather than implementation details
 - If the repository is very large, prioritize reading service classes, batch jobs, and controllers over test classes and simple DTOs
+
+## Error Handling
+- If the repository structure cannot be read, inform the user and abort
+- If Confluence page creation or update fails, save the generated Markdown content locally in the logs folder and inform the user
+- If specific metadata directories are missing (e.g., no `flows/` folder), note the absence and continue with available metadata types
+- If the analysis is taking too long or generating too much output, summarize remaining sections at a higher level

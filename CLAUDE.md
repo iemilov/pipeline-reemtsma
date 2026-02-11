@@ -209,10 +209,12 @@ Pipeline uses `sfdx-git-delta` plugin for intelligent delta deployments. JWT aut
 3. `/implement-us <story-key>` — Reads the Jira story, explores codebase patterns, and generates a first draft of implementation code (Apex, Flows, Validation Rules, LWC, Custom Metadata, etc.)
 4. `/deploy-us <story-key> <org-alias>` — Deploys all story-related metadata to an org, runs PMD checks and Apex tests, and presents a deployment report
 5. `/document-us <epic-id>` — Fetches the epic and all linked stories from Jira, generates a Confluence page with business and technical documentation in German
+6. `/architecture-overview [space-key]` — Analyzes the full repository and publishes a comprehensive technical architecture overview to Confluence
+7. `/release-notes [version]` — Generates release notes from the latest master merge commit by resolving all referenced Jira stories
 
 ## Additional Skill Remarks
 
-- ALWAYS create a log file for each execution of a skill in this pattern: `<user story id>-<skill name>.txt` --> Copy & Paste the complete output as text into this file and store it under the /logs subfolder of each skill
+- ALWAYS create a log file for each execution of a skill in this pattern: `<YYYY-MM-DD>-<identifier>-<skill-name>.txt` where `<identifier>` is the story key, epic key, or version depending on the skill. Copy the complete output as text into this file and store it under the `logs/` subfolder of each skill's directory (e.g., `.claude/skills/02-implement-us/logs/`)
 
 ### Atlassian Integration
 - Jira cloudId: `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
