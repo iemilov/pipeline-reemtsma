@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Repository Structure (CRITICAL)
+
+**Main Project:** `Salesforce CICD` (parent repository)
+
+- Customer has **READ ACCESS** to this repository
+- Contains all Salesforce metadata, code, and deployment configuration
+
+**Submodule:** `ai-project` (this repository)
+
+- Customer has **NO ACCESS** to this submodule
+- Contains CLAUDE.md, custom skills, and internal AI workflow documentation
+- This separation ensures sensitive workflows, prompts, and automation details remain confidential
+
+⚠️ **Important:** Never commit sensitive information (API keys, internal processes, skill prompts) to the main `Salesforce CICD` repository - only to this submodule.
+
 ## Project Overview
 
 Salesforce DX (SFDX) CI/CD repository for a multi-environment Salesforce org deployment. Uses Lightning Web Components (60+), Apex classes (240+), and various Salesforce metadata types with delta-based deployments via Azure Pipelines.
