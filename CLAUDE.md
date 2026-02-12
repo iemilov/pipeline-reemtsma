@@ -139,7 +139,7 @@ Pipeline uses `sfdx-git-delta` plugin for intelligent delta deployments. JWT aut
 1. Place meeting transcripts (`.docx`, `.xlsx`) into the transcript input folder (see `customer.config.md`)
 2. `/create-story <epic-id>` — Reads all transcripts, synthesizes requirements, creates Jira user stories linked to the epic, and generates implementation notes
 3. `/implement-us <story-key>` — Reads the Jira story, explores codebase patterns, and generates a first draft of implementation code (Apex, Flows, Validation Rules, LWC, Custom Metadata, etc.)
-4. `/deploy-us <story-key> <org-alias>` — Deploys all story-related metadata to an org, runs PMD checks and Apex tests, and presents a deployment report
+4. `/promote-us <story-key> <target-env>` — Promotes a story through environments (INT/UAT/PROD): validates locally, generates deployment packages, pushes to trigger the CI/CD pipeline, monitors the result
 5. `/document-us <epic-id>` — Fetches the epic and all linked stories from Jira, generates a Confluence page with business and technical documentation
 6. `/architecture-overview [space-key]` — Analyzes the full repository and publishes a comprehensive technical architecture overview to Confluence
 7. `/release-notes [version]` — Generates release notes from the latest master merge commit by resolving all referenced Jira stories

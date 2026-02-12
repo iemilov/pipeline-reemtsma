@@ -44,6 +44,7 @@
 
 | Alias | Username | Purpose |
 |-------|----------|---------|
+| `<DEV Alias>` | `<username>` | DEV sandbox (default development org) |
 | `<UAT Alias>` | `<username>` | UAT testing sandbox |
 | `<PROD Alias>` | — | Production (validation target) |
 

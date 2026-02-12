@@ -141,8 +141,8 @@ After setup, the following slash commands are available:
 | Command | Description |
 |---------|-------------|
 | `/create-story <epic-id>` | Creates Jira user stories from meeting transcripts |
-| `/implement-us <story-key>` | Generates a first implementation draft for a user story |
-| `/deploy-us <story-key> <org>` | Deploys metadata to a Salesforce org and runs tests |
+| `/implement-us <story-key>` | Implements a user story end-to-end: reads Jira story, checks dependencies, explores codebase & existing automations, generates code, deploys to DEV, creates test data, opens PR |
+| `/promote-us <story-key> <env>` | Promotes a story through environments (INT/UAT/PROD): validates locally, generates packages, pushes to trigger CI/CD pipeline, monitors result |
 | `/document-us <epic-id>` | Creates a Confluence documentation page for an epic |
 | `/architecture-overview` | Generates a technical architecture overview on Confluence |
 | `/release-notes <version>` | Creates release notes from the latest master merge commit |
@@ -171,7 +171,7 @@ pipeline/
         │   ├── SKILL.md               # Skill definition
         │   └── logs/                  # Execution logs
         ├── 02-implement-us/
-        ├── 03-deploy-us/
+        ├── 03-promote-us/
         ├── 04-document-us/
         ├── 05-architecture-overview/
         ├── 06-release-notes/
@@ -201,8 +201,19 @@ Skills are **generic** — they contain no customer-specific values. All custome
 
 1. Place meeting transcripts (`.docx`, `.xlsx`) into the transcript input folder (see `customer.config.md`)
 2. `/create-story <epic-id>` — reads transcripts, creates Jira user stories linked to the epic
-3. `/implement-us <story-key>` — reads the Jira story, explores codebase, generates implementation code
-4. `/deploy-us <story-key> <org>` — deploys metadata, runs PMD checks and Apex tests
+3. `/implement-us <story-key>` — full implementation workflow:
+   - Reads Jira story, transitions to "In Progress", checks for blocking dependencies
+   - Explores codebase patterns and scans for conflicting automations (triggers, flows, validation rules)
+   - Creates feature branch, generates implementation code
+   - Deploys to DEV org, runs PMD + Apex tests
+   - Creates test data in DEV org for manual verification
+   - Opens a pull request with Jira story reference
+   - Saves any manual deployment steps to `deployment/<version>/Release-<version>-Manual-Deployment-Steps.md`
+4. `/promote-us <story-key> <env>` — promotes through environments:
+   - `INT`: validates feature branch, pushes to trigger INT pipeline
+   - `UAT`: validates locally (PMD + tests), generates delta package, pushes release branch to trigger UAT2 pipeline + DEV sync, validates against PROD
+   - `PROD`: confirms with user, pushes master to trigger PROD validation pipeline
+   - Monitors pipeline status, comments on Jira story, surfaces manual deployment steps
 5. `/document-us <epic-id>` — generates Confluence documentation
 6. `/release-notes <version>` — generates release notes from the latest master merge
 

@@ -14,8 +14,10 @@ Generate an implementation for Jira story **$ARGUMENTS**:
 
 ### Step 1: Read User Story
 1. Fetch the story details from Jira using `getJiraIssue` with key `$ARGUMENTS` and the **Cloud ID** from config
-2. Extract all requirements, acceptance criteria, and technical details from the description
-3. Check if `implementation-design/$ARGUMENTS/implementation-notes.md` exists — if so, read it and use it as additional context for implementation decisions (proposed approach, affected objects, acceptance criteria mapping, and technical hints)
+2. **Transition the story to "In Progress"** — update the Jira status via `transitionJiraIssue` (find the appropriate transition ID for the "In Progress" status)
+3. Extract all requirements, acceptance criteria, and technical details from the description
+4. Check if `implementation-design/$ARGUMENTS/implementation-notes.md` exists — if so, read it and use it as additional context for implementation decisions (proposed approach, affected objects, acceptance criteria mapping, and technical hints)
+5. **Check story dependencies** — read the `issuelinks` field from the Jira response. If the story has "is blocked by" links to stories that are not in status "Done"/"Closed", warn the user that blockers exist and list them. Ask whether to proceed anyway or abort
 
 ### Step 2: Explore Codebase Patterns
 Before implementing, explore the existing codebase to understand:
@@ -23,6 +25,11 @@ Before implementing, explore the existing codebase to understand:
 2. Existing similar implementations for the same type of solution
 3. Relevant existing fields, objects, and metadata on affected sObjects
 4. Test patterns (use the **test data factory** class from config) if Apex is involved
+5. **Check for conflicting automations** — for each sObject affected by the implementation:
+   - Search for existing **Trigger Actions** on that object (check `Trigger_Action__mdt` custom metadata and any trigger handler classes)
+   - Search for existing **Flows** on that object (Record-Triggered Flows in `force-app/main/default/flows/`)
+   - Search for existing **Validation Rules** on that object
+   - If conflicts or order-of-execution concerns are found, document them and factor them into the implementation approach (e.g., adjust trigger action order, avoid duplicate logic, account for field value changes by other automations)
 
 ### Step 3: Choose Implementation Approach
 Analyze the requirements and determine which Salesforce tools are most appropriate. Use declarative tools where possible, code where necessary:
@@ -50,8 +57,6 @@ Analyze the requirements and determine which Salesforce tools are most appropria
 - **Aura Components** — only if extending existing Aura components
 
 ### Step 4: Generate feature branch
-- Run APEX Test Classes when APEX code is involved
-- Run PMD Check when APEX code is involved
 - Create based on the latest release branch (release/...) a feature branch (feature/<story-key>)
 - Do a checkout of this feature branch
 
@@ -105,16 +110,103 @@ Based on the chosen approach, create the appropriate metadata files:
 #### For all metadata
 - Create all `-meta.xml` files with the **API version** from config
 
-### Step 6: Create a pull request
-- Create a pull request from the feature branch into the release branch you created the feature branch from
+### Step 6: Deploy to DEV Org
+Deploy all created/modified metadata to the **DEV org** (alias from config):
 
-### Step 7: Summary
+1. **Generate `package.xml`** covering all metadata created or modified in Step 5:
+   - Collect all files by metadata type (ApexClass, LightningComponentBundle, Flow, CustomField, ValidationRule, CustomObject, PermissionSet, etc.)
+   - Write a `package.xml` with the **API version** from config to a temporary location (e.g., `/tmp/<story-key>/package.xml`)
+
+2. **Run PMD check** on any new/modified Apex classes:
+   ```bash
+   pmd check -d <apex-files> -R apex-rules.xml -f text
+   ```
+   - If Priority 1 violations are found, fix them before deploying
+
+3. **Deploy to DEV org**:
+   ```bash
+   sf project deploy start --source-dir <all-source-dirs> -o <DEV-alias-from-config> --wait 10
+   ```
+   - If deployment fails, analyze the error, fix the issue, and retry
+
+4. **Run Apex tests** (if Apex classes were created):
+   ```bash
+   sf apex run test --class-names <TestClassName> --result-format human --code-coverage --synchronous --wait 10 -o <DEV-alias-from-config>
+   ```
+   - Present code coverage results in a table
+   - If tests fail, fix the issue and redeploy
+
+### Step 7: Create Test Data in DEV Org
+Create realistic test data in the **DEV org** so the implementation can be manually verified:
+
+1. **Analyze data requirements** — based on the implementation, determine what records are needed:
+   - Which sObjects are involved (Accounts, Contacts, Cases, custom objects, etc.)
+   - What field values trigger the implemented logic (e.g., specific Record Types, Status values, picklist values)
+   - What relationships between records are required
+   - What volume is appropriate for manual testing (typically 1-5 records per type)
+
+2. **Generate an Anonymous Apex script** that creates the test data:
+   - Use descriptive names that reference the story key (e.g., `'Test Account for <story-key>'`)
+   - Set all fields needed to trigger the implemented logic
+   - Create records in the correct order (parent before child)
+   - Include `System.debug()` statements to output created record IDs
+   - Handle potential duplicates gracefully (check before insert or use upsert where appropriate)
+
+3. **Execute the script** against the DEV org:
+   ```bash
+   sf apex run -f /tmp/<story-key>-testdata.apex -o <DEV-alias-from-config>
+   ```
+   - If execution fails, fix the script and retry
+
+4. **Verify the data** — query key records to confirm they were created:
+   ```bash
+   sf data query -q "SELECT Id, Name FROM <Object> WHERE Name LIKE '%<story-key>%' LIMIT 10" -o <DEV-alias-from-config>
+   ```
+
+5. **Present a summary** of created test data (object type, record count, key field values)
+
+### Step 8: Create a pull request
+- Create a pull request from the feature branch into the release branch you created the feature branch from
+- Include a reference to the Jira story in the PR description (e.g., `Implements $ARGUMENTS`)
+
+### Step 9: Summary
 Present a summary of:
 - Implementation approach chosen and rationale (why declarative vs code)
 - All files created (grouped by type)
 - How to deploy the solution
-- Any manual configuration steps needed post-deployment (e.g. activating Flows, scheduling jobs)
 - Any open questions or assumptions made
+
+If there are **manual configuration steps** needed post-deployment (e.g., activating Flows, scheduling Batch jobs, assigning Permission Sets, enabling Custom Metadata, configuring Named Credentials):
+1. **Present the steps to the user** and ask for confirmation using `AskUserQuestion`:
+   - Show the full list of manual steps as a numbered list
+   - Ask: "Should these manual steps be saved to the release deployment file?"
+   - Option 1: "Yes, save as shown"
+   - Option 2: "Edit steps first" — if selected, ask the user to provide the corrected steps via free text, then present the updated list for final confirmation
+   - Option 3: "No, display here only"
+2. If confirmed (after any edits), save them to a **manual deployment steps file**:
+   - Fetch the story using `getJiraIssue` and read the `fixVersions` field to get the release name (e.g., `1.10.3`)
+   - If no Fix Version is set, **fallback**: derive the version from the current branch name (`git branch --show-current`) — extract the version from a `release/<version>` pattern
+   - If neither Fix Version nor a release branch is available, inform the user and skip
+   - Create or update the file `deployment/<fix-version>/Release-<fix-version>-Manual-Deployment-Steps.md`
+   - If the file **already exists**, append the new story's steps below the existing content
+   - If the file **does not exist**, create it with the following structure:
+     ```markdown
+     # Manual Deployment Steps — Release <fix-version>
+
+     ## $ARGUMENTS
+     1. <step 1>
+     2. <step 2>
+     ...
+     ```
+   - When appending to an existing file, add a new section:
+     ```markdown
+
+     ## $ARGUMENTS
+     1. <step 1>
+     2. <step 2>
+     ...
+     ```
+   - Confirm to the user that the steps were saved to `deployment/<fix-version>/Release-<fix-version>-Manual-Deployment-Steps.md`
 
 ## Important Rules
 - Follow all conventions from CLAUDE.md

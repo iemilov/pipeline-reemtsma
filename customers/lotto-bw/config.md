@@ -46,10 +46,9 @@
 
 | Alias | Username | Purpose |
 |-------|----------|---------|
+| `LottoDEV` | `system.user@lotto-bw.de.dev` | DEV sandbox (default development org) |
 | `LottoUAT2` | `system.user@lotto-bw.de.uat2` | UAT2 testing sandbox |
 | `LottoPROD` | — | Production (validation target) |
-
-The default org is typically the DEV sandbox.
 
 ## Locale & Language
 
@@ -57,7 +56,7 @@ The default org is typically the DEV sandbox.
 |-----|-------|
 | Story Language | German |
 | Documentation Language | German |
-| Release Notes Language | English |
+| Release Notes Language | German |
 | Validation Rule Messages | German |
 | Date Format (Release Notes) | `DD.MM.YYYY` |
 
