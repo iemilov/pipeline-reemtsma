@@ -4,6 +4,10 @@ description: Safely commit and push changes to both repositories (submodule + ma
 argument-hint: [commit-message]
 ---
 
+## Configuration
+
+Before executing, read `pipeline/customer.config.md` for all customer-specific values (CI skip pattern, co-author policy, submodule branch, branch patterns).
+
 ## Workflow: Two-Repo Commit & Push
 
 Commit and push changes across the two-repo architecture (submodule `pipeline/` and main repo `Salesforce CICD`), enforcing all project conventions automatically.
@@ -24,18 +28,7 @@ The `$ARGUMENTS` string is the commit message. If empty, ask the user for a comm
    ```
    Keine Änderungen gefunden. Beide Repos sind clean.
    ```
-5. Present a clear summary of all changes to the user:
-   ```
-   Änderungen erkannt:
-
-   📁 Submodule (pipeline/):
-     - modified: .claude/skills/07-commit/SKILL.md
-     - new file: .claude/skills/07-commit/logs/...
-
-   📁 Hauptrepo (Salesforce CICD):
-     - modified: force-app/main/default/classes/MyClass.cls
-     - new file: implementation-design/CRM-XXXX/...
-   ```
+5. Present a clear summary of all changes to the user
 
 ### Step 2: Security Check (Main Repo Only)
 
@@ -66,7 +59,7 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
    ```
    - If this fails (detached HEAD), recover:
      ```bash
-     git checkout main
+     git checkout <submodule-branch-from-config>
      git merge <detached-commit-hash>
      ```
    - Inform the user: `Detached HEAD im Submodule erkannt und automatisch behoben.`
@@ -84,18 +77,18 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
    git commit -m "<commit-message>"
    ```
    - The commit message is `$ARGUMENTS` as provided by the user
-   - Do NOT append `[skip ci]` to submodule commits (no CI pipeline on submodule)
-   - Do NOT add `Co-Authored-By` lines
+   - Do NOT append the CI skip pattern to submodule commits (no CI pipeline on submodule)
+   - Follow the **co-author policy** from config
 
 4. **Pull with rebase** (handle remote-ahead):
    ```bash
-   git pull --rebase origin main
+   git pull --rebase origin <submodule-branch-from-config>
    ```
    - If conflicts occur, inform the user and abort (do not auto-resolve)
 
 5. **Push**:
    ```bash
-   git push origin main
+   git push origin <submodule-branch-from-config>
    ```
 
 ### Step 4: Commit & Push Main Repo (if changes exist)
@@ -112,14 +105,13 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
 
 3. **Prepare commit message**:
    - Use `$ARGUMENTS` as the base message
-   - **Automatically append `[skip ci]`** if not already present in the message
-   - Do NOT add `Co-Authored-By` lines
-   - Example: `CRM-2992 Datenmodell angepasst [skip ci]`
+   - **Automatically append the CI skip pattern** from config if not already present
+   - Follow the **co-author policy** from config
 
 4. **Stage and commit**:
    ```bash
    git add <files>
-   git commit -m "<message> [skip ci]"
+   git commit -m "<message> <ci-skip-pattern>"
    ```
 
 5. **Push**:
@@ -137,28 +129,16 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
 
 1. Run `git status` on both repos to confirm clean state
 2. Run `git log -1 --oneline` on both repos to show the new commits
-3. Present a summary:
-
-   ```
-   ✅ Commit & Push abgeschlossen
-
-   Submodule (pipeline/):
-     Commit: abc1234 — <message>
-     Push: origin/main ✅
-
-   Hauptrepo (Salesforce CICD):
-     Commit: def5678 — <message> [skip ci]
-     Push: origin/<branch> ✅
-   ```
-
+3. Present a summary with commit hashes and push status for both repos
 4. If only one repo had changes, adjust the summary accordingly
 
 ## Important Rules
 
 - Follow all conventions from CLAUDE.md
+- Read all CI/CD and policy values from `customer.config.md` — do not hardcode
 - **Order matters**: ALWAYS commit submodule FIRST, then main repo
-- **`[skip ci]`**: ALWAYS append to main repo commits (auto-added if missing)
-- **No `Co-Authored-By`**: NEVER add co-author attribution to any commit
+- **CI skip pattern**: ALWAYS append to main repo commits (auto-added if missing)
+- **Co-author policy**: Follow the policy from config
 - **No sensitive data in main repo**: Always run the security check before committing to the main repo
 - **Interactive**: Always ask the user for confirmation before committing. Show exactly which files will be included
 - **Submodule pointer**: When the submodule is updated, always stage `pipeline` in the main repo too
@@ -168,7 +148,7 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
 ## Error Handling
 
 - **No changes detected**: Inform the user and exit gracefully — do not create empty commits
-- **Detached HEAD in submodule**: Auto-recover by checking out `main` and merging. If merge conflicts occur, inform the user and abort
+- **Detached HEAD in submodule**: Auto-recover by checking out the submodule branch from config and merging. If merge conflicts occur, inform the user and abort
 - **Push rejected (non-fast-forward)**: Automatically attempt `git pull --rebase` once. If rebase conflicts occur, inform the user with details and abort
 - **Merge conflicts**: Display the conflicting files and abort. Do NOT attempt to auto-resolve merge conflicts
 - **Sensitive content detected**: List the files/patterns and ask the user how to proceed. Never auto-commit sensitive content

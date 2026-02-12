@@ -4,6 +4,10 @@ description: Create one or multiple Jira user stories from meeting transcripts i
 argument-hint: [epic-id]
 ---
 
+## Configuration
+
+Before executing, read `pipeline/customer.config.md` for all customer-specific values (Cloud ID, project key, components, epic link field, locale settings, folder paths).
+
 ## Workflow: Transcript → User Stories (Interactive)
 
 This skill creates well-structured Jira user stories from meeting transcripts. It supports creating **multiple stories** and uses an **interactive approach** to ensure story quality and optimal implementation readiness.
@@ -12,8 +16,8 @@ Execute the following steps for Epic **$ARGUMENTS**:
 
 ### Step 1: Gather Context
 
-1. Read the Epic details from Jira using the Atlassian tools (use `getJiraIssue` with key `$ARGUMENTS`)
-2. Read **all files** in the `business/input/$ARGUMENTS/` folder (use `textutil -convert txt -stdout` for `.docx` files, `openpyxl` for `.xlsx` files)
+1. Read the Epic details from Jira using the Atlassian tools (use `getJiraIssue` with key `$ARGUMENTS` and the **Cloud ID** from config)
+2. Read **all files** in the **transcript input folder** from config (e.g., `business/input/$ARGUMENTS/`). Use `textutil -convert txt -stdout` for `.docx` files, `openpyxl` for `.xlsx` files
 3. Synthesize the transcripts into structured requirements: functional requirements, technical details, acceptance criteria, and volume/configuration data
 
 ### Step 2: Propose Story Split (Interactive)
@@ -78,17 +82,17 @@ Execute the following steps for Epic **$ARGUMENTS**:
 
 **Story creation best practices:**
 
-- Link to Epic using `additional_fields: {"customfield_10014": "$ARGUMENTS"}`
-- Set component based on context (B2B or B2C)
+- Link to Epic using the **epic link field** from config (e.g., `additional_fields: {"customfield_10014": "$ARGUMENTS"}`)
+- Set component based on context using the **components** from config
 - Use descriptive titles (max 70 characters)
-- Output text in stories is **ALWAYS in German**
-- Reference other stories in the epic for dependencies (e.g., "Abhängigkeit: Story XYZ muss zuerst implementiert werden")
+- Output text in stories uses the **story language** from config
+- Reference other stories in the epic for dependencies
 
 ### Step 4: Generate Implementation Notes
 
 **After creating all stories**, generate an implementation notes markdown file for each story:
 
-1. **Create the folder** `implementation-design/<story-key>/` (e.g., `implementation-design/CRM-3001/`)
+1. **Create the folder** using the **implementation design path** from config (e.g., `implementation-design/<story-key>/`)
 
 2. **Create the file** `implementation-design/<story-key>/implementation-notes.md` with the following structure:
 
@@ -111,10 +115,6 @@ Execute the following steps for Epic **$ARGUMENTS**:
 
    ### Salesforce Tools
    <List which Salesforce tools/features will be used and why>
-   - e.g., Record-Triggered Flow for ...
-   - e.g., Apex Trigger Action for ...
-   - e.g., Custom Fields on <Object> for ...
-   - e.g., Permission Set for ...
 
    ### Declarative vs Programmatic
    | Component | Type | Rationale |
@@ -130,8 +130,6 @@ Execute the following steps for Epic **$ARGUMENTS**:
    ## Dependencies
 
    <List dependencies on other stories, existing metadata, or external systems>
-   - Depends on: <Story-Key> (if applicable)
-   - Requires existing: <metadata or config>
 
    ## Acceptance Criteria Mapping
 
@@ -145,15 +143,11 @@ Execute the following steps for Epic **$ARGUMENTS**:
 
    ## Notes for `/implement-us`
 
-   <Specific hints for the implementation skill, e.g.:>
-   - Naming prefix: STLG_ or STLGS_
-   - Relevant existing classes/flows to reference
-   - Test data considerations
-   - Known pitfalls or edge cases
+   <Specific hints for the implementation skill>
    ```
 
 3. **Content guidelines:**
-   - Write in **German** for business-facing sections (Summary, Requirements), **English** for technical sections
+   - Use the **story language** from config for business-facing sections, English for technical sections
    - Be specific about Salesforce API names, not just labels
    - Reference existing codebase patterns discovered during transcript analysis
    - Include enough detail so `/implement-us` can generate code without re-reading the transcripts
@@ -171,14 +165,13 @@ Present a summary of:
   - If stories have dependencies: Start with Story XYZ (no dependencies)
   - If stories are independent: Can be implemented in parallel
   - Command to run: `/implement-us <story-key>` to generate implementation code
-  - Implementation notes available at: `implementation-design/<story-key>/implementation-notes.md`
 
 ## Important Rules
 
 - Follow all conventions from CLAUDE.md
-- Output text in user stories is **ALWAYS in German**
+- Output text in user stories uses the **story language** from config
 - Use the Atlassian MCP tools for all Jira operations
-- The cloudId for Jira is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
+- Read **Cloud ID** from `customer.config.md` — do not hardcode
 - **Be interactive**: Ask questions to clarify requirements, story cuts, and priorities
 - **Quality over speed**: Better to ask 3 questions than to create 1 wrong story
 - **Implementation-ready**: Each story should be detailed enough for `/implement-us` to generate working code
@@ -186,7 +179,7 @@ Present a summary of:
 
 ## Error Handling
 - If the Epic cannot be fetched from Jira, inform the user with the error details and abort
-- If the `business/input/$ARGUMENTS/` folder does not exist or is empty, inform the user and abort
+- If the transcript input folder does not exist or is empty, inform the user and abort
 - If `.docx` conversion via `textutil` fails, try reading the file as plain text or inform the user
 - If Jira story creation fails (API error), display the error and offer to retry or save the story content locally
 
@@ -200,4 +193,4 @@ Before creating each story, verify:
 - [ ] Dependencies are documented (if any)
 - [ ] Scope is clear and bounded (not too large, not too small)
 - [ ] Can be implemented with `/implement-us` skill
-- [ ] Written in German (except code examples)
+- [ ] Written in the story language from config

@@ -4,21 +4,25 @@ description: Generate a first draft of implementation for an existing Jira user 
 argument-hint: [story-key]
 ---
 
+## Configuration
+
+Before executing, read `pipeline/customer.config.md` for all customer-specific values (Cloud ID, naming prefixes, API version, org aliases, test data factory class, folder paths) and `pipeline/customer.domain.md` for domain-specific business logic and field name pitfalls.
+
 ## Workflow: User Story → Implementation Draft
 
 Generate an implementation for Jira story **$ARGUMENTS**:
 
 ### Step 1: Read User Story
-1. Fetch the story details from Jira using `getJiraIssue` with key `$ARGUMENTS`
+1. Fetch the story details from Jira using `getJiraIssue` with key `$ARGUMENTS` and the **Cloud ID** from config
 2. Extract all requirements, acceptance criteria, and technical details from the description
 3. Check if `implementation-design/$ARGUMENTS/implementation-notes.md` exists — if so, read it and use it as additional context for implementation decisions (proposed approach, affected objects, acceptance criteria mapping, and technical hints)
 
 ### Step 2: Explore Codebase Patterns
 Before implementing, explore the existing codebase to understand:
-1. Naming conventions (STLG_ vs STLGS_ prefix)
+1. Naming conventions (check **naming prefixes** from config)
 2. Existing similar implementations for the same type of solution
 3. Relevant existing fields, objects, and metadata on affected sObjects
-4. Test patterns (STLG_TestDataFactory usage) if Apex is involved
+4. Test patterns (use the **test data factory** class from config) if Apex is involved
 
 ### Step 3: Choose Implementation Approach
 Analyze the requirements and determine which Salesforce tools are most appropriate. Use declarative tools where possible, code where necessary:
@@ -56,13 +60,13 @@ Based on the chosen approach, create the appropriate metadata files:
 
 #### For Flows
 - Create `.flow-meta.xml` files in `force-app/main/default/flows/`
-- Follow naming: `STLG_<DescriptiveName>` or `STLGS_<DescriptiveName>`
+- Follow naming using the **naming prefixes** from config
 - Use subflows for reusable logic
 - Add fault paths for error handling
 
 #### For Validation Rules
 - Create files in `force-app/main/default/objects/<Object>/validationRules/`
-- Include clear `errorMessage` in German where appropriate
+- Include clear `errorMessage` in the **validation rule message language** from config
 - Use `errorDisplayField` to show errors on the relevant field
 
 #### For Formula Fields
@@ -87,19 +91,19 @@ Based on the chosen approach, create the appropriate metadata files:
   - Class names max 40 characters
 - Create a **Scheduled wrapper** if the class is a Batch
 - Create a **Test class** with:
-  - Use `STLG_TestDataFactory` where possible
+  - Use the **test data factory** class from config where possible
   - Wrap User DML before Account/Case DML or use `System.runAs()` to avoid MIXED_DML_OPERATION errors
   - Multiple test methods covering happy path, edge cases, and error scenarios
   - Target 80%+ code coverage
 
 #### For Lightning Web Components
 - Create in `force-app/main/default/lwc/`
-- Follow naming: `stlg_<componentName>` or `stlgs_<componentName>`
+- Follow naming using the **LWC prefixes** from config
 - Include `.js`, `.html`, `.css` (if needed), `.js-meta.xml`
 - Import Apex via `@salesforce/apex/ClassName.methodName`
 
 #### For all metadata
-- Create all `-meta.xml` files with apiVersion `64.0` (per `sfdx-project.json`)
+- Create all `-meta.xml` files with the **API version** from config
 
 ### Step 6: Create a pull request
 - Create a pull request from the feature branch into the release branch you created the feature branch from
@@ -116,7 +120,7 @@ Present a summary of:
 - Follow all conventions from CLAUDE.md
 - Prefer declarative solutions over code when both can meet the requirement
 - Use the Atlassian MCP tools for all Jira operations
-- The cloudId for Jira is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
+- Read **Cloud ID** from `customer.config.md` — do not hardcode
 - Add always the epic id in the header with @see, so the code can be tracked back and linked to a user story in Jira
 - ALWAYS create a log file named `<YYYY-MM-DD>-$ARGUMENTS-implement-us.txt` in `.claude/skills/02-implement-us/logs/` — copy the complete output as text into this file
 

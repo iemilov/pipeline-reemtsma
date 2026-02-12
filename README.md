@@ -1,114 +1,234 @@
 # Pipeline
 
-Repository fuer alle Toolsets und Skills zur AI-gestuetzten Projektimplementierung mit Claude Code.
+Repository for all toolsets and skills for AI-assisted project implementation with Claude Code.
 
-## Voraussetzungen
+## Prerequisites
 
-- Git (mit Submodule-Support)
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installiert (`npm install -g @anthropic-ai/claude-code`)
-- Zugriff auf dieses Repository (GitHub: `Lintlinger/ai-project`)
+- Git (with submodule support)
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed (`npm install -g @anthropic-ai/claude-code`)
+- Access to this repository (GitHub: `Lintlinger/ai-project`)
 
-## Setup als Submodule
+## Submodule Setup
 
-### Erstmaliges Einrichten
+### First-Time Setup
 
-Dieses Repository wird als Git-Submodule im Salesforce CICD Hauptrepo unter dem Pfad `pipeline/` eingebunden.
+This repository is embedded as a Git submodule in the Salesforce CICD main repo under the path `pipeline/`.
 
 ```bash
-# 1. Hauptrepo klonen (falls noch nicht geschehen)
+# 1. Clone the main repo (if not already done)
 git clone https://dev.azure.com/LottoBW/Salesforce%20CICD/_git/Salesforce%20CICD
 cd "Salesforce CICD"
 
-# 2. Submodule initialisieren und pullen
+# 2. Initialize and pull the submodule
 git submodule init
 git submodule update
 
-# 3. Setup-Skript ausfuehren (erstellt Symlinks fuer Claude Code)
+# 3. Run the setup script (creates symlinks for Claude Code)
 cd pipeline
 ./setup.sh
 ```
 
-Das Setup-Skript erstellt drei Symlinks im Hauptrepo:
+The setup script creates symlinks in the main repo:
 
-| Symlink | Ziel | Zweck |
-|---------|------|-------|
-| `CLAUDE.md` | `pipeline/CLAUDE.md` | Projektdokumentation fuer Claude Code |
-| `.claude/settings.local.json` | `pipeline/.claude/settings.local.json` | Berechtigungen und Einstellungen |
-| `.claude/skills` | `pipeline/.claude/skills` | Custom Skills (Slash Commands) |
+| Symlink | Target | Purpose |
+|---------|--------|---------|
+| `CLAUDE.md` | `pipeline/CLAUDE.md` | Project documentation for Claude Code |
+| `.claude/settings.local.json` | `pipeline/.claude/settings.local.json` | Permissions and settings |
+| `.claude/skills` | `pipeline/.claude/skills` | Custom skills (slash commands) |
+| `pipeline/customer.config.md` | `pipeline/customers/<name>/config.md` | Customer-specific configuration |
+| `pipeline/customer.domain.md` | `pipeline/customers/<name>/domain-knowledge.md` | Customer domain knowledge |
 
-Diese Symlinks sind in der `.gitignore` des Hauptrepos eingetragen und werden nicht mitcommittet.
+These symlinks are listed in the main repo's `.gitignore` and are not committed.
 
-### Bestehendes Repo aktualisieren
+### Switching Customers
+
+The setup script accepts an optional customer name argument:
 
 ```bash
-# Submodule auf den neuesten Stand bringen
+# Default (lotto-bw)
+cd pipeline && ./setup.sh
+
+# Explicit customer
+cd pipeline && ./setup.sh lotto-bw
+```
+
+This updates the `customer.config.md` and `customer.domain.md` symlinks to point to the specified customer folder.
+
+### Creating a New Customer
+
+1. Copy the template folder:
+   ```bash
+   cp -r pipeline/customers/_template pipeline/customers/<new-customer>
+   ```
+2. Fill in `config.md` with the customer's Atlassian credentials, naming conventions, org aliases, etc.
+3. Fill in `domain-knowledge.md` with business glossary, process logic, and field name pitfalls
+4. Run setup with the new customer name:
+   ```bash
+   cd pipeline && ./setup.sh <new-customer>
+   ```
+
+### Updating an Existing Repo
+
+The `.gitmodules` file tracks the `main` branch. To pull the latest version:
+
+```bash
 git submodule update --remote pipeline
 ```
 
-## Claude Code einrichten
-
-### 1. Claude Code starten
+After updating, commit the new submodule pointer in the main repo:
 
 ```bash
-# Im Root des Salesforce CICD Repos ausfuehren
+git add pipeline
+git commit -m "update pipeline submodule [skip ci]"
+```
+
+## Setting Up Claude Code
+
+### 1. Start Claude Code
+
+```bash
+# Run from the Salesforce CICD repo root
 claude
 ```
 
-Claude Code erkennt automatisch die `CLAUDE.md`, Einstellungen und Skills ueber die Symlinks.
+Claude Code automatically detects `CLAUDE.md`, settings, and skills via the symlinks.
 
-### 2. Atlassian-Plugin aktivieren
+### 2. Activate the Atlassian Plugin
 
-Fuer die Jira/Confluence-Integration muss das Atlassian-Plugin einmalig aktiviert werden:
+For Jira/Confluence integration, activate the Atlassian plugin once:
 
 ```
 /plugin
 ```
 
-Anschliessend den Anweisungen zur Authentifizierung folgen.
+Then follow the authentication instructions.
 
-### 3. Verfuegbare Skills
+### 3. Configure macOS Notifications (Optional)
 
-Nach dem Setup stehen folgende Slash Commands zur Verfuegung:
+To receive macOS notifications when Claude Code needs your attention, install `terminal-notifier` and add it to `~/.claude/settings.json`:
 
-| Command | Beschreibung |
+```json
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Applications/terminal-notifier.app/Contents/MacOS/terminal-notifier -title 'Claude Code' -message 'Needs your attention' -sound Glass"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+To install `terminal-notifier`:
+
+```bash
+curl -sL "https://github.com/julienXX/terminal-notifier/releases/download/2.0.0/terminal-notifier-2.0.0.zip" -o /tmp/terminal-notifier.zip
+unzip -o /tmp/terminal-notifier.zip -d /tmp/terminal-notifier
+cp -R /tmp/terminal-notifier/terminal-notifier.app /Applications/
+```
+
+Then find "terminal-notifier" in **System Settings > Notifications** to configure alert style and sounds.
+
+### 4. Available Skills
+
+After setup, the following slash commands are available:
+
+| Command | Description |
 |---------|-------------|
-| `/create-story <epic-id>` | Erstellt Jira User Stories aus Meeting-Transkripten |
-| `/implement-us <story-key>` | Generiert einen ersten Implementierungsentwurf fuer eine User Story |
-| `/deploy-us <story-key> <org>` | Deployed Metadata zu einer Salesforce Org und fuehrt Tests aus |
-| `/document-us <epic-id>` | Erstellt eine Confluence-Dokumentationsseite fuer ein Epic |
-| `/architecture-overview` | Generiert eine technische Architekturuebersicht auf Confluence |
-| `/release-notes <version>` | Erstellt Release Notes aus dem letzten Master-Merge-Commit |
+| `/create-story <epic-id>` | Creates Jira user stories from meeting transcripts |
+| `/implement-us <story-key>` | Generates a first implementation draft for a user story |
+| `/deploy-us <story-key> <org>` | Deploys metadata to a Salesforce org and runs tests |
+| `/document-us <epic-id>` | Creates a Confluence documentation page for an epic |
+| `/architecture-overview` | Generates a technical architecture overview on Confluence |
+| `/release-notes <version>` | Creates release notes from the latest master merge commit |
+| `/commit <message>` | Commits and pushes changes to both repos safely |
 
-## Verzeichnisstruktur
+## Directory Structure
 
 ```
 pipeline/
-├── CLAUDE.md                          # Projektdokumentation fuer Claude Code
-├── README.md                          # Diese Datei
-├── setup.sh                           # Symlink-Setup-Skript
+├── CLAUDE.md                          # Project documentation for Claude Code
+├── README.md                          # This file
+├── setup.sh                           # Symlink setup script
+├── customer.config.md                 # Symlink → customers/<active>/config.md
+├── customer.domain.md                 # Symlink → customers/<active>/domain-knowledge.md
+├── customers/
+│   ├── lotto-bw/
+│   │   ├── config.md                  # All Lotto BW-specific values
+│   │   └── domain-knowledge.md        # Business logic context
+│   └── _template/
+│       ├── config.md                  # Blank template for new customers
+│       └── domain-knowledge.md        # Template with section structure
 └── .claude/
-    ├── settings.local.json            # Berechtigungen und Einstellungen
+    ├── settings.local.json            # Permissions and settings
     └── skills/
         ├── 01-create-us/
-        │   ├── SKILL.md               # Skill-Definition
-        │   └── logs/                  # Ausfuehrungsprotokolle
+        │   ├── SKILL.md               # Skill definition
+        │   └── logs/                  # Execution logs
         ├── 02-implement-us/
         ├── 03-deploy-us/
         ├── 04-document-us/
         ├── 05-architecture-overview/
-        └── 06-release-notes/
+        ├── 06-release-notes/
+        └── 07-commit/
 ```
 
-## Hinweise
+## How It Works
 
-- **Vertraulichkeit:** Der Kunde hat keinen Zugriff auf dieses Submodule. Sensible Informationen (Skill-Prompts, interne Prozesse) gehoeren ausschliesslich hierher, nicht ins Hauptrepo.
-- **Logs:** Jede Skill-Ausfuehrung erzeugt ein Protokoll unter `.claude/skills/<skill>/logs/` im Format `<YYYY-MM-DD>-<identifier>-<skill-name>.txt`.
-- **Aenderungen committen:** Aenderungen an Skills oder Einstellungen muessen im Submodule committet und gepusht werden. Anschliessend muss im Hauptrepo die Submodule-Referenz aktualisiert werden:
+### Architecture
+
+The pipeline submodule acts as a private layer on top of the customer-visible Salesforce CICD repository. The separation ensures that AI tooling, skill prompts, and internal workflows remain confidential while the main repo stays clean.
+
+```
+Salesforce CICD (Azure DevOps)     pipeline/ (GitHub, private)
+├── force-app/                     ├── CLAUDE.md (generic)
+├── deployment/                    ├── setup.sh
+├── scripts/                       ├── customers/<name>/config.md
+├── .gitignore (ignores .claude/)  ├── customers/<name>/domain-knowledge.md
+└── .gitmodules (→ pipeline)       └── .claude/
+         ↑                               ├── settings.local.json
+         └── symlinks by setup.sh ───────└── skills/ (generic)
+```
+
+Skills are **generic** — they contain no customer-specific values. All customer-specific configuration (Atlassian credentials, naming prefixes, org aliases, language settings, etc.) lives in `customers/<name>/config.md`. Switching customers only requires changing the symlink target.
+
+### Workflow: From Transcript to Deployment
+
+1. Place meeting transcripts (`.docx`, `.xlsx`) into the transcript input folder (see `customer.config.md`)
+2. `/create-story <epic-id>` — reads transcripts, creates Jira user stories linked to the epic
+3. `/implement-us <story-key>` — reads the Jira story, explores codebase, generates implementation code
+4. `/deploy-us <story-key> <org>` — deploys metadata, runs PMD checks and Apex tests
+5. `/document-us <epic-id>` — generates Confluence documentation
+6. `/release-notes <version>` — generates release notes from the latest master merge
+
+### Submodule Pointer Management
+
+Git submodules always pin to a specific commit. The `.gitmodules` file is configured with `branch = main` so that `git submodule update --remote` fetches from the `main` branch.
+
+After any change inside `pipeline/`, two commits are needed:
 
 ```bash
-# Im pipeline/ Verzeichnis
-git add . && git commit -m "Beschreibung" && git push
+# 1. Commit inside the submodule
+cd pipeline
+git add . && git commit -m "description" && git push
 
-# Im Hauptrepo-Root
-git add pipeline && git commit -m "Update pipeline submodule" && git push
+# 2. Update the submodule pointer in the main repo
+cd ..
+git add pipeline
+git commit -m "update pipeline submodule [skip ci]"
 ```
+
+If only step 1 is done, the main repo will show `pipeline` as modified (displayed as `pipeline.diff` in VS Code). This is harmless but should be committed to keep things clean.
+
+## Important Notes
+
+- **Confidentiality:** The customer has no access to this submodule. Sensitive information (skill prompts, internal processes) must only be committed here, never to the main repo.
+- **Logs:** Each skill execution creates a log file under `.claude/skills/<skill>/logs/` in the format `<YYYY-MM-DD>-<identifier>-<skill-name>.txt`.
+- **No AI attribution:** Never include `Co-Authored-By: Claude` or similar AI attribution in commits to the main repo.
+- **`.gitignore` in main repo:** The entries for `CLAUDE.md`, `.claude/`, and `pipeline/.env` ensure that symlinks and sensitive files are never committed to the main repo.
+- **Customer config symlinks:** `customer.config.md` and `customer.domain.md` are local symlinks inside `pipeline/` — they are gitignored and not committed.

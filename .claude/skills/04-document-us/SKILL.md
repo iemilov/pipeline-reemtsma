@@ -4,12 +4,16 @@ description: Create a Confluence documentation page for an epic and all its link
 argument-hint: [epic-id]
 ---
 
+## Configuration
+
+Before executing, read `pipeline/customer.config.md` for all customer-specific values (Cloud ID, Confluence parent page, documentation language, customer identity).
+
 ## Workflow: Epic → Confluence Documentation
 
 Execute the following steps for Epic **$ARGUMENTS**:
 
 ### Step 1: Gather Epic & Story Data
-1. Fetch the Epic details from Jira using `getJiraIssue` with key `$ARGUMENTS`
+1. Fetch the Epic details from Jira using `getJiraIssue` with key `$ARGUMENTS` and the **Cloud ID** from config
 2. Search for all user stories linked to the epic using `searchJiraIssuesUsingJql` with JQL: `parent = $ARGUMENTS ORDER BY key ASC`
 3. For each story, fetch full details (summary, description, status, acceptance criteria) using `getJiraIssue`
 4. Read any relevant implementation files referenced in the stories by exploring the codebase (Apex classes, Flows, Custom Metadata, Custom Fields, etc.)
@@ -50,7 +54,8 @@ Structure the Confluence page in **Markdown** format with the following sections
 1. Use `searchConfluenceUsingCql` to check if a page with title `$ARGUMENTS` already exists in the target space
 2. If it exists, update the page using `updateConfluencePage`
 3. If it does not exist, create a new page using `createConfluencePage` in the appropriate space
-4. Present the Confluence page URL to the user
+4. ALWAYS add the page as a subpage of the **Confluence parent page** from config
+5. Present the Confluence page URL to the user
 
 ### Step 4: Summary
 Present:
@@ -60,13 +65,12 @@ Present:
 
 ## Important Rules
 - Follow all conventions from CLAUDE.md
-- Output text in the Confluence page is ALWAYS in German
+- Output text in the Confluence page uses the **documentation language** from config
 - Use the Atlassian MCP tools for all Jira and Confluence operations
-- The cloudId for Jira/Confluence is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
+- Read **Cloud ID** from `customer.config.md` — do not hardcode
 - If no Confluence space is obvious, ask the user which space to use
 - ALWAYS create a log file named `<YYYY-MM-DD>-$ARGUMENTS-document-us.txt` in `.claude/skills/04-document-us/logs/` — copy the complete output as text into this file
 - Link epic with title `$ARGUMENTS` into the Confluence page
-- ALWAYS add the page as a subpage of folder "Projekt: Einführung Salesforce/Architect"
 
 ## Error Handling
 - If the Epic cannot be fetched from Jira, inform the user with the error details and abort

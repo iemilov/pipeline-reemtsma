@@ -4,16 +4,20 @@ description: Deploy all metadata related to a user story to a Salesforce org, ru
 argument-hint: [story-key] [org-alias]
 ---
 
+## Configuration
+
+Before executing, read `pipeline/customer.config.md` for all customer-specific values (Cloud ID, org aliases, PMD rules file, naming prefixes, deployment folder paths).
+
 ## Workflow: Deploy, Test & Validate
 
 Deploy all implementation artifacts for a Jira story to a Salesforce org.
 
 **Usage:** `/deploy-us <story-key> <org-alias>`
 
-Parse `$ARGUMENTS` as a space-separated string: the **first word** is the story key (e.g. `CRM-2961`), the **second word** is the org alias (e.g. `LottoUAT2`).
+Parse `$ARGUMENTS` as a space-separated string: the **first word** is the story key (e.g. `CRM-2961`), the **second word** is the org alias (e.g. the UAT alias from config).
 
 ### Step 1: Identify Story Context
-1. Fetch the story details from Jira using `getJiraIssue` with the story key
+1. Fetch the story details from Jira using `getJiraIssue` with the story key and the **Cloud ID** from config
 2. Check if `implementation-design/<story-key>/implementation-notes.md` exists — if so, read it and use it as additional context to understand the expected implementation scope (affected objects, components, dependencies, and acceptance criteria mapping). This helps verify that the deployed files match the intended implementation.
 3. Identify all files related to this story by:
    - Searching for the story key in `@see` tags and comments across Apex classes
@@ -24,9 +28,9 @@ Parse `$ARGUMENTS` as a space-separated string: the **first word** is the story 
 5. If implementation notes were found, cross-reference the identified files against the **Affected Objects & Fields** and **Proposed Implementation Approach** sections — warn the user if any expected components appear to be missing from the deployment
 
 ### Step 2: PMD Check (Pre-Deploy)
-1. Run PMD on all identified Apex classes (not test classes) using the project's `apex-rules.xml`:
+1. Run PMD on all identified Apex classes (not test classes) using the **PMD rules file** from config:
    ```
-   pmd check -d <comma-separated-class-files> -R apex-rules.xml -f text
+   pmd check -d <comma-separated-class-files> -R <pmd-rules-file> -f text
    ```
    If `pmd` is not available, try alternative paths or inform the user to run it manually.
 2. If PMD violations are found:
@@ -44,11 +48,11 @@ Parse `$ARGUMENTS` as a space-separated string: the **first word** is the story 
    - **Second:** Custom Metadata records, Permission Sets, Sharing Rules
    - **Third:** Apex Classes, Triggers, Flows, Validation Rules, LWC
 3. If deployment fails, analyze the error and suggest fixes
-4. ALWAYS do a deploy validate against LottoPROD for the deployment
+4. ALWAYS do a deploy validate against the **production org** from config
 
 ### Step 4: Run Apex Tests
 1. Identify all test classes related to the deployment:
-   - Test classes with matching naming (e.g. `STLG_QNovaSubmissionBatchTest` for `STLG_QNovaSubmissionBatch`)
+   - Test classes with matching naming pattern
    - Search for `@see` references to the story key in test classes
 2. Run the tests with code coverage:
    ```
@@ -78,13 +82,13 @@ If any step failed:
 ## Important Rules
 - Follow all conventions from CLAUDE.md
 - Always confirm the file list with the user before deploying
-- Never deploy to production (`master` org) without explicit user confirmation
+- Never deploy to production without explicit user confirmation
 - Do NOT commit or push — this skill only deploys
 - Use the Atlassian MCP tools for all Jira operations
-- The cloudId for Jira is `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4`
+- Read **Cloud ID** from `customer.config.md` — do not hardcode
 - When test classes are executed, always return the code coverage from the test run in a table
 - ALWAYS comment on the related user story in Jira on successful deployment and validation
-- ALWAYS create a package.xml containing all metadata files and store it under `/deployment/<story-key>/`
+- ALWAYS create a package.xml containing all metadata files and store it under the **deployment folder** from config (e.g., `/deployment/<story-key>/`)
 - ALWAYS create a log file named `<YYYY-MM-DD>-<story-key>-deploy-us.txt` in `.claude/skills/03-deploy-us/logs/` — copy the complete output as text into this file
 
 ## Error Handling
