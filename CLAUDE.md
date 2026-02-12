@@ -230,6 +230,7 @@ Pipeline uses `sfdx-git-delta` plugin for intelligent delta deployments. JWT aut
 ## Additional Skill Remarks
 
 - ALWAYS create a log file for each execution of a skill in this pattern: `<YYYY-MM-DD>-<identifier>-<skill-name>.txt` where `<identifier>` is the story key, epic key, or version depending on the skill. Copy the complete output as text into this file and store it under the `logs/` subfolder of each skill's directory (e.g., `.claude/skills/02-implement-us/logs/`)
+- NEVER State in any metadata that it was co-authored by Claude Code
 
 ### Atlassian Integration
 - **Jira URL:** `https://kommit.atlassian.net` (NOT lottobw.atlassian.net)

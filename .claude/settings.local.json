@@ -11,7 +11,8 @@
       "Bash(source:*)",
       "Bash(pip install:*)",
       "mcp__atlassian__createJiraIssue",
-      "mcp__atlassian__atlassianUserInfo"
+      "mcp__atlassian__atlassianUserInfo",
+      "mcp__plugin_atlassian_atlassian__getJiraIssue"
     ]
   }
 }

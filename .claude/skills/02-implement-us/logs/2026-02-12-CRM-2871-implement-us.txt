@@ -1,0 +1,104 @@
+================================================================================
+CRM-2871 Implementation Log
+Date: 2026-02-12
+Skill: /implement-us CRM-2871
+================================================================================
+
+## Jira Story
+- Key: CRM-2871
+- Title: E-Mail Log erweitern mit allen Emails + Pagening
+- Epic: CRM-2707
+
+## Implementation Approach
+- **Declarative vs Code:** LWC (code) — required to replace existing Aura component
+  with client-side pagination and dynamic Skyvva callout integration
+- **No new Apex needed:** Directly imports existing `STLG_SkyvvaCallout.invokeCalloutVariant1`
+  which is already `@AuraEnabled`
+
+## Branch & PR
+- Base branch: release/1.10.3
+- Feature branch: feature/CRM-2871
+- PR #1476: CRM-2871: Add stlg_emailLog LWC replacing STLG_SendLogSearch Aura
+- PR URL: https://dev.azure.com/LottoBW/Salesforce%20CICD/_git/Salesforce%20CICD/pullrequest/1476
+- Target: release/1.10.3
+
+## Files Created (6 files, 881 insertions)
+
+### LWC Component: stlg_emailLog
+1. force-app/main/default/lwc/stlg_emailLog/stlg_emailLog.js
+   - Main component class with @wire(getRecord) for dynamic field loading
+   - Client-side pagination (first/prev/next/last)
+   - Skyvva JSON response parsing (replicates STLG_SendLogSearchHelper.js logic)
+   - Debug mode with manual Record ID search
+   - 14 configurable @api properties matching original Aura design attributes
+
+2. force-app/main/default/lwc/stlg_emailLog/stlg_emailLog.html
+   - Custom HTML table (not lightning-datatable) matching existing Aura design
+   - Pagination controls with lightning-button-icon
+   - Loading, empty, error, and debug states
+
+3. force-app/main/default/lwc/stlg_emailLog/stlg_emailLog.css
+   - Ported from Aura STLG_SendLogSearch.css
+   - Lotto-BW brand color #b0251f for preview buttons
+   - Pagination control styles
+
+4. force-app/main/default/lwc/stlg_emailLog/stlg_emailLog.js-meta.xml
+   - apiVersion 64.0, target lightning__RecordPage
+   - 14 configurable design properties with defaults
+   - masterLabel: "Email Log (Skyvva)"
+
+### Restored Config
+5. force-app/main/default/lwc/.eslintrc.json
+   - Restored from git history (commit 349dd387) - was accidentally deleted
+   - Extends @salesforce/eslint-config-lwc/recommended
+
+### Design Documentation
+6. implementation-design/CRM-2871/implementation-notes.md
+   - Full implementation plan, current state analysis, architecture decisions
+   - Resolved open questions documented
+
+## Key Design Decisions
+1. **Skyvva-only data source** — No Salesforce EmailMessages, only Marketing Cloud via Skyvva
+2. **Generic component** — Same LWC serves both Email Log and Kundenzufriedenheit via config
+3. **Client-side pagination** — Skyvva returns all data in one JSON response
+4. **No wrapper Apex** — STLG_SkyvvaCallout.invokeCalloutVariant1 already @AuraEnabled
+5. **@wire with optionalFields** — Dynamic field loading for Account (Id) vs Case (AccountId)
+6. **Page size default 5** — Configurable via design attribute
+
+## ESLint Issues Resolved
+- Restored missing .eslintrc.json (was deleted from repo)
+- Fixed @lwc/lwc/no-leading-uppercase-api-name — all @api properties lowercase
+- Updated HTML template references to match lowercase property names
+- Updated js-meta.xml property names to match lowercase JS properties
+
+## Use Case Configurations
+
+### Email Log (Account/Case pages)
+- integration: MarketingCloud
+- interfaceName: GetCustomObjectData-Request
+- fieldAPIName: Id (Account) / AccountId (Case)
+- itemKeys: emailsubject,send_date,view_email_url
+- columnHeaders: Email Betreff,Sende Datum,Ansicht
+
+### Kundenzufriedenheit (Case pages)
+- integration: MarketingCloud
+- interfaceName: GetCustomerFeedback-Request
+- fieldAPIName: AccountId
+- itemKeys: frage1,frage2,frage3,frage4,submissiondate
+- columnHeaders: (configured per use case)
+
+## Post-Deployment Steps
+1. Replace STLG_SendLogSearch Aura component with stlg_emailLog LWC on FlexiPages:
+   - STLG_PersonAccountRecordPage
+   - STLG_ProspectPersonAccountRecordPage
+   - STLG_StandardCaseRecordPage (Email Log config)
+   - STLG_CustomCaseRecordPage (Email Log + Kundenzufriedenheit configs)
+2. Configure design attributes per use case in Lightning App Builder
+3. Verify Skyvva callout works with the new component
+4. Optionally remove old STLG_SendLogSearch Aura component after validation
+
+## Pre-commit Hooks
+- prettier: PASSED
+- eslint: PASSED
+- lint-staged: PASSED
+================================================================================
