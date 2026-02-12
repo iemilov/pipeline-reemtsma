@@ -7,7 +7,8 @@
       "mcp__atlassian__search",
       "mcp__atlassian__getJiraIssue",
       "Bash(python3:*)",
-      "mcp__atlassian__editJiraIssue"
+      "mcp__atlassian__editJiraIssue",
+      "mcp__plugin_atlassian_atlassian__getJiraIssue"
     ]
   }
 }
