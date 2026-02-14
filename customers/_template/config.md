@@ -18,35 +18,7 @@
 |-----|-------|
 | Full Name | <Customer Full Name> |
 | Short Name | <Customer Short Name> |
-| Architecture Page Title | `Technische Architektur – Salesforce <Short Name>` |
-
-## Naming Conventions
-
-| Key | Value |
-|-----|-------|
-| Primary Apex/Flow Prefix | `<PREFIX_>` |
-| Secondary Apex/Flow Prefix | `<PREFIX2_>` (if applicable) |
-| Primary LWC Prefix | `<prefix_>` |
-| Secondary LWC Prefix | `<prefix2_>` (if applicable) |
-| Test Data Factory | `<PREFIX_TestDataFactory>` |
-| Apex Class Name Max Length | 40 characters |
-
-## Salesforce Project
-
-| Key | Value |
-|-----|-------|
-| API Version | `<version>` |
-| PMD Rules File | `apex-rules.xml` |
-| Source Path | `force-app/main/default/` |
-| Project Config | `sfdx-project.json` |
-
-## Org Aliases
-
-| Alias | Username | Purpose |
-|-------|----------|---------|
-| `<DEV Alias>` | `<username>` | DEV sandbox (default development org) |
-| `<UAT Alias>` | `<username>` | UAT testing sandbox |
-| `<PROD Alias>` | — | Production (validation target) |
+| Architecture Page Title | `<title>` |
 
 ## Locale & Language
 
@@ -57,22 +29,6 @@
 | Release Notes Language | <language> |
 | Validation Rule Messages | <language> |
 | Date Format (Release Notes) | `<format>` |
-
-## Functional Domains
-
-### Domain 1 — <Label>
-
-- **Prefix:** `<PREFIX_>`
-- **Scope:** <description>
-- **Component (Jira):** `<component>`
-- **Release Notes Section Header:** `<header>`
-
-### Domain 2 — <Label> (if applicable)
-
-- **Prefix:** `<PREFIX2_>`
-- **Scope:** <description>
-- **Component (Jira):** `<component>`
-- **Release Notes Section Header:** `<header>`
 
 ## Folder Paths
 

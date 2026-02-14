@@ -4,7 +4,7 @@
 
 | Key | Value |
 |-----|-------|
-| API Version | `<version>` |
+| API Version | `64.0` |
 | PMD Rules File | `apex-rules.xml` |
 | Source Path | `force-app/main/default/` |
 | Project Config | `sfdx-project.json` |
@@ -13,36 +13,38 @@
 
 | Key | Value |
 |-----|-------|
-| Primary Apex/Flow Prefix | `<PREFIX_>` |
-| Secondary Apex/Flow Prefix | `<PREFIX2_>` (if applicable) |
-| Primary LWC Prefix | `<prefix_>` |
-| Secondary LWC Prefix | `<prefix2_>` (if applicable) |
-| Test Data Factory | `<PREFIX_TestDataFactory>` |
+| B2C Apex/Flow Prefix | `STLG_` |
+| B2B Apex/Flow Prefix | `STLGS_` |
+| B2C LWC Prefix | `stlg_` |
+| B2B LWC Prefix | `stlgs_` |
+| B2C Aura Prefix | `stlg_` |
+| B2B Aura Prefix | `stlgs_` |
+| Test Data Factory | `STLG_TestDataFactory` |
 | Apex Class Name Max Length | 40 characters |
 
 ## Org Aliases
 
 | Alias | Username | Purpose |
 |-------|----------|---------|
-| `<DEV Alias>` | `<username>` | DEV sandbox (default development org) |
-| `<UAT Alias>` | `<username>` | UAT testing sandbox |
-| `<PROD Alias>` | — | Production (validation target) |
+| `LottoDEV` | `system.user@lotto-bw.de.dev` | DEV sandbox (default development org) |
+| `LottoUAT2` | `system.user@lotto-bw.de.uat2` | UAT2 testing sandbox |
+| `LottoPROD` | — | Production (validation target) |
 
 ## Functional Domains
 
-### Domain 1 — <Label>
+### B2C — Kundenservice (Service Desk & Customer Management)
 
-- **Prefix:** `<PREFIX_>`
-- **Scope:** <description>
-- **Component (Jira):** `<component>`
-- **Release Notes Section Header:** `<header>`
+- **Prefix:** `STLG_`
+- **Scope:** Case management, person accounts, service desk, customer communication
+- **Component (Jira):** `B2C`
+- **Release Notes Section Header:** `B2C (Kundenservice)`
 
-### Domain 2 — <Label> (if applicable)
+### B2B — Vertrieb (Sales & Store Management)
 
-- **Prefix:** `<PREFIX2_>`
-- **Scope:** <description>
-- **Component (Jira):** `<component>`
-- **Release Notes Section Header:** `<header>`
+- **Prefix:** `STLGS_`
+- **Scope:** Retail store management, visit reports, test purchases (Testkauf), inspections (VDE), store onboarding
+- **Component (Jira):** `B2B`
+- **Release Notes Section Header:** `B2B (Vertrieb)`
 
 ## Key Commands
 
@@ -95,7 +97,7 @@ Uses the [Apex Trigger Actions Framework](https://github.com/mitchspano/apex-tri
 
 ### Test Data Factory
 
-The test data factory class name is defined above under **Naming Conventions**. Key methods (all insert internally):
+The test data factory class is `STLG_TestDataFactory`. Key methods (all insert internally):
 - `createSalesAccount(String name, String recordTypeDevName)` - Creates and inserts a Store/Business account
 - `createContacts(Integer count, String recordTypeName, Id accountId)` - Creates and inserts contacts
 - `createCases(Integer count, String recordTypeName, Id accountId, Id contactId)` - Creates cases

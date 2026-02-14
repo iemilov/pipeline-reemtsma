@@ -1,42 +1,42 @@
-# Customer Configuration: <Customer Name>
+# Customer Configuration: CloudRise Solutions
 
 ## Atlassian
 
 | Key | Value |
 |-----|-------|
-| Jira URL | `https://<instance>.atlassian.net` |
-| Confluence URL | `https://<instance>.atlassian.net/wiki` |
-| Cloud ID | `<uuid>` |
-| Jira Project Key | `<PROJECT>` |
-| Components | `<Component1>`, `<Component2>` |
+| Jira URL | `https://kommit.atlassian.net` |
+| Confluence URL | `https://kommit.atlassian.net/wiki` |
+| Cloud ID | `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4` |
+| Jira Project Key | `CR` |
+| Components | — |
 | Epic Link Field | `customfield_10014` (via `Parent` on story) |
-| Confluence Parent Page | `<parent page path>` |
+| Confluence Parent Page | — |
 
 ## Customer Identity
 
 | Key | Value |
 |-----|-------|
-| Full Name | <Customer Full Name> |
-| Short Name | <Customer Short Name> |
-| Architecture Page Title | `Technische Architektur – Salesforce <Short Name>` |
+| Full Name | CloudRise Solutions GmbH |
+| Short Name | CloudRise |
+| Architecture Page Title | `Technische Architektur – CloudRise CRM` |
 
 ## Locale & Language
 
 | Key | Value |
 |-----|-------|
-| Story Language | <language> |
-| Documentation Language | <language> |
-| Release Notes Language | <language> |
-| Validation Rule Messages | <language> |
-| Date Format (Release Notes) | `<format>` |
+| Story Language | German |
+| Documentation Language | German |
+| Release Notes Language | German |
+| Validation Rule Messages | — |
+| Date Format (Release Notes) | `DD.MM.YYYY` |
 
 ## Folder Paths
 
 | Key | Path |
 |-----|------|
 | Transcript Input | `business/input/<epic-id>/` |
-| Implementation Design | `implementation-design/<story-key>/` |
-| Deployment Packages | `deployment/<version>/` |
+| Implementation Design | `projects/crm/implementation-design/` |
+| Deployment Packages | — |
 | Skills Logs | `.claude/skills/<skill>/logs/` |
 
 ## Repository & CI/CD
@@ -46,9 +46,9 @@
 | Submodule Path | `pipeline/` |
 | Submodule Branch | `main` |
 | Branch Pattern: Feature | `feature/<story-key>` |
-| Branch Pattern: Release | `release/<version>` |
-| Branch Pattern: Production | `master` |
-| CI Skip Pattern | `[skip ci]` |
+| Branch Pattern: Release | — |
+| Branch Pattern: Production | `main` |
+| CI Skip Pattern | — |
 | Co-Author Policy | **Never** — do not add `Co-Authored-By` lines to any commit |
 | AI Attribution Policy | **Never** — do not reference Claude or AI in customer-visible commits or metadata |
 
@@ -56,6 +56,4 @@
 
 | Branch | Target Environment |
 |--------|-------------------|
-| `feature/*` | <environment> |
-| `release/*` | <environment> |
-| `master` | <environment> |
+| `main` | Cloudflare Pages (Production) |
