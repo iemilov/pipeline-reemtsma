@@ -6,7 +6,7 @@ argument-hint: [confluence-space-key (optional)]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for all customer-specific values (Cloud ID, customer identity, naming prefixes, functional domains, Confluence parent page) and `pipeline/customer.domain.md` for domain-specific business logic.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, customer identity, Confluence parent page, documentation language), `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases, functional domains, source path, code quality rules), and `pipeline/customer.domain.md` for domain-specific business logic.
 
 ## Workflow: Repository → Architecture & Functionality Overview
 

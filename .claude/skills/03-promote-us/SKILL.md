@@ -6,7 +6,7 @@ argument-hint: [story-key] [target-env]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for all customer-specific values (Cloud ID, org aliases, PMD rules file, naming prefixes, deployment folder paths) and review `azure-pipelines.yaml` for pipeline stage structure.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, CI skip pattern, branch patterns), `pipeline/stack.config.md` for Salesforce-specific values (org aliases, PMD rules file, naming prefixes, deployment folder paths, API version), and review `azure-pipelines.yaml` for pipeline stage structure.
 
 ## Workflow: Promote & Deploy
 

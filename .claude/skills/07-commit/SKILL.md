@@ -6,7 +6,7 @@ argument-hint: [commit-message]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for all customer-specific values (CI skip pattern, co-author policy, submodule branch, branch patterns).
+Before executing, read `pipeline/customer.config.md` for customer-specific values (CI skip pattern, co-author policy, submodule branch, branch patterns), and `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases).
 
 ## Workflow: Two-Repo Commit & Push
 

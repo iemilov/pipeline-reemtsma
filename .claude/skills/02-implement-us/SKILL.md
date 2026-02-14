@@ -6,7 +6,7 @@ argument-hint: [story-key]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for all customer-specific values (Cloud ID, naming prefixes, API version, org aliases, test data factory class, folder paths) and `pipeline/customer.domain.md` for domain-specific business logic and field name pitfalls.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, locale settings, CI skip pattern, folder paths), `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases, test data factory class, functional domains, source path), and `pipeline/customer.domain.md` for domain-specific business logic and field name pitfalls.
 
 ## Workflow: User Story → Implementation Draft
 
