@@ -121,12 +121,12 @@ Structure the Confluence page in **Markdown** format using the **architecture pa
 1. **Always save locally:** Save the generated Markdown to `<project-dir>/architecture/<YYYY-MM-DD>-architecture-overview.md`. Create the `architecture/` directory if it does not exist.
 2. **Check Atlassian connection:** If `Cloud ID` or `Confluence URL` in `customer.config.md` is empty or set to `—`, skip Confluence publishing. Inform the user that the overview was saved locally only because no Atlassian connection is configured.
 3. If Atlassian is configured, use `searchConfluenceUsingCql` to check if a page with the **architecture page title** from config already exists
-3. If it exists, update the page using `updateConfluencePage`
-4. If it does not exist, create a new page using `createConfluencePage`
+4. If it exists, update the page using `updateConfluencePage`
+5. If it does not exist, create a new page using `createConfluencePage`
    - If `$ARGUMENTS` is provided, use it as the space key
    - Otherwise, ask the user which Confluence space to use
-5. ALWAYS add the page as a subpage of the **Confluence parent page** from config
-6. Present the Confluence page URL to the user
+6. ALWAYS add the page as a subpage of the **Confluence parent page** from config
+7. Present the Confluence page URL to the user
 
 ### Step 8: Summary
 Present:
