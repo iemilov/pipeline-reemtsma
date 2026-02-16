@@ -1,69 +1,80 @@
-Code Review — Lotto BW 16.02.2026
-====================================
-Skill: /code-review lotto-bw customer
+Code Review — CloudRise CRM 16.02.2026
+========================================
+Skill: /code-review
+Customer: CloudRise Solutions GmbH
+Project: CRM (projects/crm/)
 Date: 2026-02-16
 
 REVIEW SCOPE
-- Stack: Salesforce DX (API Version 64.0)
-- Customer: Lotto Baden-Württemberg
-- Source: force-app/main/default/
+- Stack: React 19, Vite 7, Cloudflare Workers/Pages, D1 SQLite
+- Customer: CloudRise Solutions GmbH
+- Source: projects/crm/src/ (frontend), projects/crm/functions/ (backend)
 
 ANALYSIS PERFORMED
-1. Apex Security Review (SOQL injection, sharing model, CRUD/FLS, PMD suppressions)
-2. Apex Quality Review (large classes, complexity, error handling, dead code, naming, duplication)
-3. LWC Component Review (security, error handling, accessibility, CSS, conventions)
-4. Automated ESLint execution (253 errors, 0 warnings)
-5. PMD rule analysis via @SuppressWarnings audit (pmd CLI not available locally)
+1. Frontend React Component Review (hooks, state management, accessibility, CSS)
+2. Backend API & Database Review (API design, DB access, validation, error handling)
+3. Security & Migration Review (auth, cookies, JWT, CORS, secrets, migrations)
+4. Automated ESLint execution (8 errors, 64 warnings)
 
 FINDINGS SUMMARY
 | Severity    | Count |
 |-------------|-------|
-| Critical    | 6     |
-| Important   | 9     |
-| Improvement | 5     |
+| Critical    | 5     |
+| Important   | 14    |
+| Improvement | 10    |
 
 CRITICAL FINDINGS (HIGH)
-K1: SOQL Injection risk — 5 classes with Database.query() + string concatenation
-K2: Missing .catch() handlers on imperative Apex calls in 6+ LWC
-K3: Unsafe error access without null checks in 8+ LWC
-K4: Duplicate class members (no-dupe-class-members) — 3 real bugs
-K5: 80+ PMD @SuppressWarnings annotations (28x CRUD, 6x SOQL Injection, 22x Complexity)
-K6: Silent exception swallowing in 6+ Apex classes
+K1: Rate-Limiting bypass (in-memory Map resets on Worker restart/isolate change)
+K2: Shared JWT secret for admin and portal tokens
+K3: No audit logging for any security-relevant operations
+K4: N+1 query in kanban (200+ queries for 100 cards)
+K5: Hardcoded username 'Joachim Lintl' in InvoicesPage and TimecardsPage
 
 IMPORTANT FINDINGS (MEDIUM)
-W1: 253 ESLint errors (no clean build)
-W2: API version inconsistency across 60+ LWC (56.0 to 65.0)
-W3: 65+ classes with `without sharing` — overuse
-W4: Code duplication (3 trigger action groups, backup class)
-W5: Inconsistent logging (mix of Nebula Logger and System.debug)
-W6: Missing CRUD/FLS enforcement in several SOQL queries
-W7: 30+ hardcoded color values in CSS
-W8: 8 large classes (>300 lines)
-W9: Duplicate progressRing file with space in name
+W1: Auth check only on mount, not on navigation (expired sessions stay active)
+W2: No try-catch on any DB operations (unhandled 500 errors)
+W3: FK CASCADE without safety net (deleting contact removes all financial records)
+W4: Portal settings endpoint lacks FK reference validation
+W5: VAT rounding error with many small line items
+W6: Invoice finalization uses current rates, not historical rates
+W7: Project completion check ignores draft invoices and unbilled time entries
+W8: Missing FK existence validation on POST endpoints (invoices, projects)
+W9: Large React components (InvoicesPage 648 lines, DashboardPage 482 lines)
+W10: Prop drilling in ProjectsPage (10+ props to ProjectDetail)
+W11: Missing ARIA attributes in modal dialogs
+W12: Missing form label associations (htmlFor/id)
+W13: Potentially missing DB indexes for frequent query patterns
+W14: portal_sessions table created but never used
 
 IMPROVEMENT SUGGESTIONS (LOW)
-V1: 13 Apex classes + 7 LWC without naming prefix
-V2: console.log in production (15+ LWC)
-V3: Hardcoded URLs (lotto-bw.de)
-V4: Aura parsing errors (8 components with ES6 syntax)
-V5: Method naming convention violations in trigger actions
+V1: Hardcoded colors mixed with CSS variables in DashboardPage
+V2: Excessive inline styles instead of CSS classes
+V3: Inconsistent DELETE status codes (200 vs 204)
+V4: Weak email validation regex
+V5: Inconsistent string length validation across endpoints
+V6: Missing date range upper/lower bounds
+V7: Inconsistent error handling (alert() vs state-based)
+V8: Admin token 8h expiry (consider reducing to 4h)
+V9: Missing Content Security Policy header
+V10: Settings endpoint accepts arbitrary keys without whitelist
 
 TOP 3 RECOMMENDATIONS
-1. Fix ESLint errors — especially 3 no-dupe-class-members (real bugs) and 39 no-api-reassignments
-2. Eliminate SOQL injection risks — convert 5 classes from dynamic to static SOQL with bind variables
-3. Add .catch() handlers to all imperative Apex calls in LWC
+1. Implement persistent rate limiting (KV/Durable Objects)
+2. Add audit logging for all security-relevant operations
+3. Split large page components (InvoicesPage, DashboardPage)
 
-OVERALL HEALTH: YELLOW (improvement needed)
+OVERALL HEALTH: YELLOW (funktional solide, kritische Sicherheitslücken)
 
 OUTPUT
-- Local report: code-review/2026-02-16-code-review.md
-- Confluence: NOT PUBLISHED (Atlassian token expired during session)
+- Local report: projects/crm/code-review/2026-02-16-code-review.md
+- Confluence: NOT PUBLISHED (Cloud ID = —, no Atlassian connection configured)
 
 AUTOMATED CHECKS
-- ESLint: 253 errors, 0 warnings, 11 auto-fixable
-- PMD: not executed (CLI not available locally)
+- ESLint: 8 errors, 64 warnings
+  - 8 errors: react-hooks/set-state-in-effect (all page components)
+  - 64 warnings: mostly no-unused-vars (ESLint flat config JSX detection)
 
 PARALLEL AGENTS USED
-- Agent a1b9095: Apex security review
-- Agent a701000: Apex quality/patterns review
-- Agent a56c13c: LWC component review
+- Agent ae5ad3e: Frontend React component analysis
+- Agent a11e7b9: Backend API and database analysis
+- Agent ae845d2: Security and migration quality analysis
