@@ -1,0 +1,69 @@
+Code Review — Lotto BW 16.02.2026
+====================================
+Skill: /code-review lotto-bw customer
+Date: 2026-02-16
+
+REVIEW SCOPE
+- Stack: Salesforce DX (API Version 64.0)
+- Customer: Lotto Baden-Württemberg
+- Source: force-app/main/default/
+
+ANALYSIS PERFORMED
+1. Apex Security Review (SOQL injection, sharing model, CRUD/FLS, PMD suppressions)
+2. Apex Quality Review (large classes, complexity, error handling, dead code, naming, duplication)
+3. LWC Component Review (security, error handling, accessibility, CSS, conventions)
+4. Automated ESLint execution (253 errors, 0 warnings)
+5. PMD rule analysis via @SuppressWarnings audit (pmd CLI not available locally)
+
+FINDINGS SUMMARY
+| Severity    | Count |
+|-------------|-------|
+| Critical    | 6     |
+| Important   | 9     |
+| Improvement | 5     |
+
+CRITICAL FINDINGS (HIGH)
+K1: SOQL Injection risk — 5 classes with Database.query() + string concatenation
+K2: Missing .catch() handlers on imperative Apex calls in 6+ LWC
+K3: Unsafe error access without null checks in 8+ LWC
+K4: Duplicate class members (no-dupe-class-members) — 3 real bugs
+K5: 80+ PMD @SuppressWarnings annotations (28x CRUD, 6x SOQL Injection, 22x Complexity)
+K6: Silent exception swallowing in 6+ Apex classes
+
+IMPORTANT FINDINGS (MEDIUM)
+W1: 253 ESLint errors (no clean build)
+W2: API version inconsistency across 60+ LWC (56.0 to 65.0)
+W3: 65+ classes with `without sharing` — overuse
+W4: Code duplication (3 trigger action groups, backup class)
+W5: Inconsistent logging (mix of Nebula Logger and System.debug)
+W6: Missing CRUD/FLS enforcement in several SOQL queries
+W7: 30+ hardcoded color values in CSS
+W8: 8 large classes (>300 lines)
+W9: Duplicate progressRing file with space in name
+
+IMPROVEMENT SUGGESTIONS (LOW)
+V1: 13 Apex classes + 7 LWC without naming prefix
+V2: console.log in production (15+ LWC)
+V3: Hardcoded URLs (lotto-bw.de)
+V4: Aura parsing errors (8 components with ES6 syntax)
+V5: Method naming convention violations in trigger actions
+
+TOP 3 RECOMMENDATIONS
+1. Fix ESLint errors — especially 3 no-dupe-class-members (real bugs) and 39 no-api-reassignments
+2. Eliminate SOQL injection risks — convert 5 classes from dynamic to static SOQL with bind variables
+3. Add .catch() handlers to all imperative Apex calls in LWC
+
+OVERALL HEALTH: YELLOW (improvement needed)
+
+OUTPUT
+- Local report: code-review/2026-02-16-code-review.md
+- Confluence: NOT PUBLISHED (Atlassian token expired during session)
+
+AUTOMATED CHECKS
+- ESLint: 253 errors, 0 warnings, 11 auto-fixable
+- PMD: not executed (CLI not available locally)
+
+PARALLEL AGENTS USED
+- Agent a1b9095: Apex security review
+- Agent a701000: Apex quality/patterns review
+- Agent a56c13c: LWC component review
