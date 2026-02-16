@@ -4,12 +4,12 @@
 
 | Key | Value |
 |-----|-------|
-| Jira URL | `https://kommit.atlassian.net` |
-| Confluence URL | `https://kommit.atlassian.net/wiki` |
-| Cloud ID | `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4` |
+| Jira URL | - |
+| Confluence URL | - |
+| Cloud ID | - |
 | Jira Project Key | `CR` |
 | Components | — |
-| Epic Link Field | `customfield_10014` (via `Parent` on story) |
+| Epic Link Field | - |
 | Confluence Parent Page | — |
 
 ## Customer Identity

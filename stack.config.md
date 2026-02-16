@@ -1,1 +1,0 @@
-customers/cloudrise/stack.config.md
