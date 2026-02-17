@@ -13,6 +13,8 @@ Common abbreviations used throughout the codebase and documentation:
 | **VS** | Vertriebssteuerung | Sales Control |
 | **TK** | Testkauf | Test Purchase / Mystery Shopping |
 | **VDE** | Verband der Elektrotechnik | Electrical Safety Inspection |
+| **LMS** | Learning Management System | External training platform for online courses |
+| **AST-Leiter** | Annahmestellenleiter | Store Manager (responsible for mandatory training) |
 
 ## Testkauf (TK) — Test Purchase / Mystery Shopping
 
@@ -59,6 +61,70 @@ Flow-based automated asset creation based on `Account.STLGS_SalesType__c`:
 | `STLGS_ErrorFound__c` | Checkbox | Error discovered during inspection |
 | `STLGS_InspectionStickerApplied__c` | Checkbox | Inspection sticker applied |
 | `STLGS_InspectionDate__c` | Date | Date of inspection |
+
+## Pflichtschulung Jugend- und Spielerschutz (Mandatory Training)
+
+### Overview
+
+Each ASt-Leiter must complete mandatory youth/player protection training annually. Training is tracked via Cases of type `Pflichtschulung Jugend- und Spielerschutz` with two training types:
+
+| Training Type | Description | Created by |
+| ------------- | ----------- | ---------- |
+| **Präsenz** | In-person classroom training | Flow `STLGS_UpdateAccStatusOnCreateUpdateRequest` |
+| **Online** | E-learning via external LMS | Flow `STLGS_CreateTrainingOnGeprueft` (CRM-2568) |
+
+### Key Fields on Training Cases
+
+| Field | Description |
+| ----- | ----------- |
+| `STLGS_TrainingType__c` | "Präsenz" or "Online" |
+| `STLGS_TrainingYear__c` | Training year (e.g., "2025", "2026") |
+| `STLGS_Type__c` | "Pflichtschulung Jugend- und Spielerschutz" |
+| `STLGS_TrainingModulesCompleted__c` | Number of completed online modules |
+| `STLGS_TrainingModulesTotal__c` | Total online modules (currently 6) |
+| `STLGS_TrainingModulesProgress__c` | Formula field: `Completed/Total * 100` (read-only) |
+| `STLGS_LastUpdatedLMS__c` | Timestamp of last LMS sync (auto-set by flow `STLG_CaseSetLastUpdatedLMS`) |
+| `STLGS_LeadingRequest__c` | Lookup to the Request that triggered case creation |
+
+### Flow Architecture
+
+**Case Creation:**
+
+- **Präsenz-Flow** (`STLGS_UpdateAccStatusOnCreateUpdateRequest`): Creates case WITH `ContactId` (via formula from Request's BranchManager/AccountLead)
+- **Online-Flow** (`STLGS_CreateTrainingOnGeprueft`): Creates case when Request reaches status "Geprüft durch Zentrale". Triggers on `STLGS_Request__c` AfterSave.
+
+**ContactId Logic:**
+
+The ContactId is determined by the Request's record type:
+
+- Business Account → `STLGS_BranchManager__r.Id` (Filialleiter)
+- Person Account → `STLGS_AccountLead__r.Id`
+
+Formula used in Präsenz-Flow:
+
+```text
+IF(CONTAINS({!$Record.STLGS_RecordTypeDeveloperName__c}, "Business"),
+   {!$Record.STLGS_BranchManager__r.Id},
+   {!$Record.STLGS_AccountLead__r.Id})
+```
+
+**BeforeSave Trigger** (`STLGS_UpdateLeadingRequestOnCase`): Sets `STLGS_LeadingRequest__c` and `ContactId` on new Cases — but only if `STLGS_LeadingRequest__c` is NULL. If the creating flow already sets `STLGS_LeadingRequest__c`, this trigger is skipped entirely.
+
+### Known Issue: Online Cases Missing ContactId (fixed 2026-02-17)
+
+**Root Cause:** The Online-Flow sets `STLGS_LeadingRequest__c` but NOT `ContactId`. The BeforeSave trigger that should compensate doesn't fire because its entry condition requires `STLGS_LeadingRequest__c = null`.
+
+**Data Fix:** 194 existing cases (77 from 2025, 117 from 2026) were corrected via script. ContactId was copied from matching Präsenz cases (same Account + Training Year).
+
+**Permanent Fix:** CRM-3019 — Add ContactId formula to the Online-Flow (temporary until CRM-2992 migrates to Training/TrainingMember model).
+
+### LMS Integration
+
+- External LMS provides online training modules for ASt-Leiter
+- Progress data available as CSV export (`lernstand.csv`)
+- 6 total modules per training; percentage maps to module count (100%=6, 33%=2, 16%=1)
+- Sync script: `business/docs/LMS/sync-lernstand.py` (dry-run default, `--apply` for Prod updates)
+- Flow `STLG_CaseSetLastUpdatedLMS` auto-sets `STLGS_LastUpdatedLMS__c` when module fields change
 
 ## Common Field Name Pitfalls
 
