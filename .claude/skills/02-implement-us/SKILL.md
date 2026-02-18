@@ -137,33 +137,17 @@ Deploy all created/modified metadata to the **DEV org** (alias from config):
    - If tests fail, fix the issue and redeploy
 
 ### Step 7: Create Test Data in DEV Org
-Create realistic test data in the **DEV org** so the implementation can be manually verified:
+Create test data in the **DEV org** so the implementation can be manually verified. This step follows the workflow defined in `skills/09-create-testdata/SKILL.md`:
 
-1. **Analyze data requirements** — based on the implementation, determine what records are needed:
-   - Which sObjects are involved (Accounts, Contacts, Cases, custom objects, etc.)
-   - What field values trigger the implemented logic (e.g., specific Record Types, Status values, picklist values)
-   - What relationships between records are required
-   - What volume is appropriate for manual testing (typically 1-5 records per type)
+1. **Read the test data configuration** from `pipeline/customers/<customer>/testdata.config.md`
+2. **Query existing metadata** — resolve Record Type IDs, Profile IDs, and Queue IDs as needed by the test data config
+3. **Create records in dependency order** (parents before children) using the **Composite Tree API**, replacing placeholder tokens (`{{RecordTypeId:...}}`, `{{Ref:...}}`, `{{Today}}`, `{{Year}}`, `{{OrgAlias}}`)
+4. **Add a 2-second pause** between API batches to respect rate limits
+5. **Check for duplicates** — before creating, query for existing records with the same name pattern and warn the user if found
+6. **Verify created records** — query the org to confirm all records were created successfully
+7. **Present a summary** table of created test data (sObject, Name, Record Type, Id, total count)
 
-2. **Generate an Anonymous Apex script** that creates the test data:
-   - Use descriptive names that reference the story key (e.g., `'Test Account for <story-key>'`)
-   - Set all fields needed to trigger the implemented logic
-   - Create records in the correct order (parent before child)
-   - Include `System.debug()` statements to output created record IDs
-   - Handle potential duplicates gracefully (check before insert or use upsert where appropriate)
-
-3. **Execute the script** against the DEV org:
-   ```bash
-   sf apex run -f /tmp/<story-key>-testdata.apex -o <DEV-alias-from-config>
-   ```
-   - If execution fails, fix the script and retry
-
-4. **Verify the data** — query key records to confirm they were created:
-   ```bash
-   sf data query -q "SELECT Id, Name FROM <Object> WHERE Name LIKE '%<story-key>%' LIMIT 10" -o <DEV-alias-from-config>
-   ```
-
-5. **Present a summary** of created test data (object type, record count, key field values)
+> **Rules:** Prefer Composite Tree API over individual record creation. Avoid `sf data import bulk` (macOS line ending issues). If a required parent record fails, skip dependent children and inform the user. See `skills/09-create-testdata/SKILL.md` for full error handling details.
 
 ### Step 8: Create a pull request
 - Create a pull request from the feature branch into the release branch you created the feature branch from
