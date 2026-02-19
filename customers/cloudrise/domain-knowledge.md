@@ -41,12 +41,20 @@ General-purpose task management board with:
 - Tags, subtasks, and project linking
 - Drag-and-drop reordering within and across columns
 
-### Dashboard & Profitability
+### Dashboard Metrics
 
-Dashboard provides three key metrics:
-- **Revenue** — Aggregated from invoices
-- **Utilization** — Based on timecards
+The dashboard provides key financial and operational metrics:
+
+- **Revenue** (`revenue_cents`) — Sum of `hours * project_contacts.hourly_rate` for billable time entries on **paid** invoices
+- **Outstanding** (`outstanding_cents`) — Sum of `invoices.total_cents` for all invoices in **draft** or **sent** status. Uses the baked-in invoice totals which include all line item types (time + manual) with billing rates applied at finalization.
+- **Unbilled** (`unbilled_cents`) — Sum of `hours * project_contacts.hourly_rate` for billable time entries **not yet assigned** to any invoice
+- **Utilization** — Based on timecards (billable vs total hours)
 - **Profitability** — Revenue minus external costs per project
+
+**Important distinction — billing rates vs cost rates:**
+- `project_contacts.hourly_rate` = **billing rate** (what we charge the client) → used for revenue, outstanding, unbilled
+- `external_project_contacts.hourly_rate` = **cost rate** (what we pay the contractor) → used only for profitability/cost calculations
+- These must never be mixed: outstanding/revenue metrics use billing rates only, profitability uses both
 
 ### Contacts & Projects
 
