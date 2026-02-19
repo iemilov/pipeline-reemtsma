@@ -156,8 +156,12 @@ This step follows the workflow defined in `skills/09-create-testdata/SKILL.md`:
 
 > **Rules:** Prefer Composite Tree API over individual record creation. Avoid `sf data import bulk` (macOS line ending issues). If a required parent record fails, skip dependent children and inform the user. See `skills/09-create-testdata/SKILL.md` for full error handling details.
 
-### Step 8: Create a pull request
-- Create a pull request from the feature branch into the release branch you created the feature branch from
+### Step 8: Commit & Create a pull request
+- **Commit** all created/modified files to the feature branch with message `$ARGUMENTS <summary>`
+  - **Do NOT append `[skip ci]`** — feature branches should trigger the CI pipeline (feature/* → INT deployment)
+  - Follow the **co-author policy** from config
+- **Push** the feature branch to the remote
+- **Create a pull request** from the feature branch into the release branch you created the feature branch from
 - Include a reference to the Jira story in the PR description (e.g., `Implements $ARGUMENTS`)
 
 ### Step 9: Summary
