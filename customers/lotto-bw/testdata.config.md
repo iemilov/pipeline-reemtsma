@@ -8,6 +8,22 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 
 ---
 
+### 0. Internal Company Account
+
+#### 0a. Lotto BW Company Account (Staatliche Toto-Lotto GmbH)
+
+This is the internal Lotto BW company account — a prerequisite for B2B processes. Unlike test records, this uses a fixed name (no `{{Today}}` suffix) because it represents the real company entity. The skill should **skip creation if an account with this exact name already exists**.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Account` |
+| RecordType | `STLGS_BusinessAccount` |
+| Name | `Staatliche Toto-Lotto GmbH Baden-Württemberg` |
+| BillingState | `Baden-Württemberg` |
+| referenceId | `lottoBWCompanyAccount` |
+
+---
+
 ### 1. B2C Person Accounts
 
 #### 1a. B2C Prospect Account (Interessent)
@@ -705,9 +721,13 @@ B2C and B2B are **independent paths** — they share no dependencies.
 1. **Person Accounts** (`STLG_StandardPersonAccount`) — these ARE the contacts (PersonAccount model)
 2. **B2C Cases** — Need Person Account IDs from step 1
 
+### Prerequisite (both paths)
+
+0. **Lotto BW Company Account** (`STLGS_BusinessAccount`) — internal company account, created once (skip if already exists)
+
 ### B2B Path (Business Accounts + Sales Contacts)
 
-1. **Business Account** (`STLGS_BusinessAccount`) — only needed for juristische Person (GBV)
+1. **Business Account** (`STLGS_BusinessAccount`) — test business customer for juristische Person (GBV)
 2. **Stores** (`STLGS_Store`, `STLGS_PotentialStore`) — juristische Person needs BusinessAccount as `ParentId`; natürliche Person has NO parent
 3. **Sales Contacts** (`STLGS_SalesContact`) — Need Store/BusinessAccount IDs from steps 1–2
 4. **ACR Updates** — Need Account IDs + Contact IDs from steps 1–3 (query existing ACR, then update custom fields)
@@ -726,6 +746,7 @@ B2C and B2B are **independent paths** — they share no dependencies.
 - Record Type DeveloperNames are verified against the repository metadata — the skill queries the actual RecordType IDs at runtime
 - Field API names follow domain knowledge from `domain-knowledge.md` — use exact spelling to avoid deployment errors
 - **ACR records** (section 4) are UPDATE operations, not inserts — Salesforce auto-creates ACRs when Contacts are linked to Accounts
+- **Section 0 (Company Account)** uses a fixed name — the skill must query for an existing account with the same name before creating, and skip if found (storing the existing Id as `lottoBWCompanyAccount` reference)
 - **VDE Cases** (7b, 7c) trigger the Flow `STLGS_CreateAssetsVDECases` which auto-creates Assets — the manual Assets in section 9 are independent test records
 - The Request field `STLGS_Store__c` is a MasterDetail to Account (filtered to Store record types)
 - The standard `Type` field (without prefix) on Case is used for B2C case categorization; `STLGS_Type__c` is used for B2B case categorization

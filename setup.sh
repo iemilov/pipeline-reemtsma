@@ -34,9 +34,11 @@ ln -sf "../$SUBMODULE_NAME/.claude/skills" "$REPO_ROOT/.claude/skills"
 # Symlink CLAUDE.md
 ln -sf "$SUBMODULE_NAME/CLAUDE.md" "$REPO_ROOT/CLAUDE.md"
 
-# Symlink customer config and domain knowledge
+# Symlink customer config files
 ln -sf "customers/$CUSTOMER/config.md" "$SCRIPT_DIR/customer.config.md"
 ln -sf "customers/$CUSTOMER/domain-knowledge.md" "$SCRIPT_DIR/customer.domain.md"
+ln -sf "customers/$CUSTOMER/stack.config.md" "$SCRIPT_DIR/stack.config.md"
+ln -sf "customers/$CUSTOMER/testdata.config.md" "$SCRIPT_DIR/testdata.config.md"
 
 echo "Claude Code symlinks created (customer: $CUSTOMER):"
 echo "  CLAUDE.md -> $SUBMODULE_NAME/CLAUDE.md"
@@ -44,3 +46,5 @@ echo "  .claude/settings.local.json -> ../$SUBMODULE_NAME/.claude/settings.local
 echo "  .claude/skills -> ../$SUBMODULE_NAME/.claude/skills"
 echo "  $SUBMODULE_NAME/customer.config.md -> customers/$CUSTOMER/config.md"
 echo "  $SUBMODULE_NAME/customer.domain.md -> customers/$CUSTOMER/domain-knowledge.md"
+echo "  $SUBMODULE_NAME/stack.config.md -> customers/$CUSTOMER/stack.config.md"
+echo "  $SUBMODULE_NAME/testdata.config.md -> customers/$CUSTOMER/testdata.config.md"
