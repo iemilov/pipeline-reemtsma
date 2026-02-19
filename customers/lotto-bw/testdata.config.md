@@ -24,6 +24,32 @@ This is the internal Lotto BW company account — a prerequisite for B2B process
 
 ---
 
+### 0b. Test Users (Lookup existing)
+
+These are NOT created — the skill queries existing active users by their role name and stores the Id as a reference. If no user with the specified role is found, the skill logs a warning and skips the OwnerId assignment (fallback: running user remains owner).
+
+#### 0b-i. User: Regionaldirektion 1
+
+| Field | Value |
+|-------|-------|
+| sObject | `User` |
+| operation | `lookup` |
+| lookupQuery | `SELECT Id FROM User WHERE UserRole.Name LIKE 'RD%' AND IsActive = true ORDER BY UserRole.Name ASC LIMIT 1` |
+| referenceId | `userRD1` |
+
+#### 0b-ii. User: Regionaldirektion 2
+
+| Field | Value |
+|-------|-------|
+| sObject | `User` |
+| operation | `lookup` |
+| lookupQuery | `SELECT Id FROM User WHERE UserRole.Name LIKE 'RD%' AND IsActive = true ORDER BY UserRole.Name ASC LIMIT 1 OFFSET 1` |
+| referenceId | `userRD2` |
+
+> **Note:** Queries two distinct active users whose role starts with "RD" (e.g., "RD Stuttgart" and "RD Karlsruhe"). Uses ORDER BY + OFFSET to get deterministic, different results. If only one RD user exists, `userRD2` falls back to the running user. Adjust the LIKE filter per org if needed.
+
+---
+
 ### 1. B2C Person Accounts
 
 #### 1a. B2C Prospect Account (Interessent)
@@ -79,6 +105,7 @@ This is the internal Lotto BW company account — a prerequisite for B2B process
 | BillingPostalCode | `70173` |
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
+| OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bBusinessAccount` |
 
 #### 2b. B2B Potential Store (Potenzielle Annahmestelle — ohne Business Account)
@@ -96,6 +123,7 @@ This is the internal Lotto BW company account — a prerequisite for B2B process
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
 | STLGS_StoreStatus__c | `Potentielle Ast` |
+| OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bPotentialStore` |
 
 #### 2c. B2B Store — Vollannahmestelle (natürliche Person — kein Business Account)
@@ -116,6 +144,7 @@ Natürliche Person: Lizenzinhaber betreibt die ASt selbst. Kein Business Account
 | BillingCountry | `Germany` |
 | STLGS_StoreStatus__c | `Betriebsbereit` |
 | STLGS_StoreContractType__c | `natural person` |
+| OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bStoreVollASt` |
 
 #### 2d. B2B Store — Lotto Kompakt (juristische Person — mit Business Account)
@@ -137,6 +166,7 @@ Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filial
 | STLGS_StoreStatus__c | `Betriebsbereit` |
 | STLGS_StoreContractType__c | `legal person` |
 | ParentId | `{{Ref:b2bBusinessAccount}}` |
+| OwnerId | `{{Ref:userRD2}}` |
 | referenceId | `b2bStoreLK` |
 
 ---
@@ -159,7 +189,7 @@ Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filial
 
 #### 3b. Lizenzinhaber / ASt-Leiter (Store Vollannahmestelle — deutsch)
 
-Antragsteller natürliche Person: braucht Privatanschrift, Geburtsdaten und Staatsangehörigkeit.
+Antragsteller natürliche Person: braucht Privatanschrift (Other-Felder), Geburtsdaten und Staatsangehörigkeit.
 
 | Field | Value |
 |-------|-------|
@@ -170,10 +200,10 @@ Antragsteller natürliche Person: braucht Privatanschrift, Geburtsdaten und Staa
 | LastName | `Testinhaber-{{Today}}` |
 | Email | `anna.testinhaber@example.com` |
 | Phone | `0711-5552222` |
-| MailingStreet | `Rosensteinstraße 8` |
-| MailingPostalCode | `70191` |
-| MailingCity | `Stuttgart` |
-| MailingCountry | `Germany` |
+| OtherStreet | `Rosensteinstraße 8` |
+| OtherPostalCode | `70191` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
 | Birthdate | `1985-06-15` |
 | STLGS_Birthplace__c | `Stuttgart` |
 | STLGS_Nationality__c | `54` |
@@ -209,10 +239,10 @@ Antragsteller natürliche Person mit EU-Staatsangehörigkeit (nicht deutsch): te
 | LastName | `Testinhaber-EU-{{Today}}` |
 | Email | `pierre.testeu@example.com` |
 | Phone | `0711-5554444` |
-| MailingStreet | `Schloßstraße 22` |
-| MailingPostalCode | `70174` |
-| MailingCity | `Stuttgart` |
-| MailingCountry | `Germany` |
+| OtherStreet | `Schloßstraße 22` |
+| OtherPostalCode | `70174` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
 | Birthdate | `1990-03-22` |
 | STLGS_Birthplace__c | `Lyon` |
 | STLGS_Nationality__c | `72` |
@@ -232,15 +262,63 @@ Antragsteller natürliche Person mit Nicht-EU-Staatsangehörigkeit: testet zusä
 | LastName | `Testinhaber-NonEU-{{Today}}` |
 | Email | `mehmet.testnoneu@example.com` |
 | Phone | `0711-5555555` |
-| MailingStreet | `Friedrichstraße 45` |
-| MailingPostalCode | `70174` |
-| MailingCity | `Stuttgart` |
-| MailingCountry | `Germany` |
+| OtherStreet | `Friedrichstraße 45` |
+| OtherPostalCode | `70174` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
 | Birthdate | `1988-11-08` |
 | STLGS_Birthplace__c | `Istanbul` |
 | STLGS_Nationality__c | `215` |
 | AccountId | `{{Ref:b2bPotentialStore}}` |
 | referenceId | `contactLizenzinhaberNonEU` |
+
+#### 3f. Lizenzinhaber — Nicht-EU mit 2. Staatsangehörigkeit DE (Türkei + Deutschland)
+
+Antragsteller natürliche Person: 1. Staatsangehörigkeit Nicht-EU, 2. Staatsangehörigkeit deutsch. `STLGS_IsEU__c = true` (via 2. Nationalität = 54). Da eine Nationalität = "54" (deutsch) vorliegt, wird **kein** EU-Führungszeugnis und **keine** Aufenthaltserlaubnis verlangt.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Contact` |
+| RecordType | `STLGS_SalesContact` |
+| FirstName | `Elif` |
+| MiddleName | `Ayşe` |
+| LastName | `Testinhaber-NonEU-DE-{{Today}}` |
+| Email | `elif.testnoneu-de@example.com` |
+| Phone | `0711-5556666` |
+| OtherStreet | `Calwer Straße 12` |
+| OtherPostalCode | `70173` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
+| Birthdate | `1992-04-18` |
+| STLGS_Birthplace__c | `Ankara` |
+| STLGS_Nationality__c | `215` |
+| STLGS_Nationality2__c | `54` |
+| AccountId | `{{Ref:b2bPotentialStore}}` |
+| referenceId | `contactLizenzinhaberNonEU_DE` |
+
+#### 3g. Lizenzinhaber — Nicht-EU mit 2. Staatsangehörigkeit EU (Türkei + Frankreich)
+
+Antragsteller natürliche Person: 1. Staatsangehörigkeit Nicht-EU, 2. Staatsangehörigkeit EU (nicht deutsch). `STLGS_IsEU__c = true` (via 2. Nationalität = 72). Da **keine** Nationalität = "54" (deutsch), wird ein **EU-Führungszeugnis** verlangt. Keine Aufenthaltserlaubnis nötig (IsEU = true).
+
+| Field | Value |
+|-------|-------|
+| sObject | `Contact` |
+| RecordType | `STLGS_SalesContact` |
+| FirstName | `Deniz` |
+| MiddleName | `Emre` |
+| LastName | `Testinhaber-NonEU-EU-{{Today}}` |
+| Email | `deniz.testnoneu-eu@example.com` |
+| Phone | `0711-5557777` |
+| OtherStreet | `Eberhardstraße 33` |
+| OtherPostalCode | `70173` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
+| Birthdate | `1987-09-03` |
+| STLGS_Birthplace__c | `Istanbul` |
+| STLGS_Nationality__c | `215` |
+| STLGS_Nationality2__c | `72` |
+| AccountId | `{{Ref:b2bPotentialStore}}` |
+| referenceId | `contactLizenzinhaberNonEU_EU` |
 
 ---
 
@@ -307,7 +385,31 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 | STLGS_Role__c | `Geschäftsinhaber` |
 | IsActive | `true` |
 
-> **Note:** `STLGS_LicenseOwner__c` is `false` because a uniqueness constraint (`STLGS_LicenseOwnerUnique__c`) allows only one License Owner per Account. The EU-Lizenzinhaber (4d) already holds this role on the same Pot. Store.
+> **Note:** `STLGS_LicenseOwner__c` is `false` for 4e, 4f, and 4g because a uniqueness constraint (`STLGS_LicenseOwnerUnique__c`) allows only one License Owner per Account. The EU-Lizenzinhaber (4d) already holds this role on the same Pot. Store.
+
+#### 4f. ACR: Pot. Store ↔ Non-EU+DE-Lizenzinhaber
+
+| Field | Value |
+|-------|-------|
+| sObject | `AccountContactRelation` |
+| operation | `update` |
+| lookupKey | `AccountId={{Ref:b2bPotentialStore}}, ContactId={{Ref:contactLizenzinhaberNonEU_DE}}` |
+| STLGS_LicenseOwner__c | `false` |
+| STLGS_MainContact__c | `false` |
+| STLGS_Role__c | `Geschäftsinhaber` |
+| IsActive | `true` |
+
+#### 4g. ACR: Pot. Store ↔ Non-EU+EU-Lizenzinhaber
+
+| Field | Value |
+|-------|-------|
+| sObject | `AccountContactRelation` |
+| operation | `update` |
+| lookupKey | `AccountId={{Ref:b2bPotentialStore}}, ContactId={{Ref:contactLizenzinhaberNonEU_EU}}` |
+| STLGS_LicenseOwner__c | `false` |
+| STLGS_MainContact__c | `false` |
+| STLGS_Role__c | `Geschäftsinhaber` |
+| IsActive | `true` |
 
 ---
 
@@ -412,6 +514,40 @@ Testet zusätzliche Unterlagen: Contact hat `STLGS_Nationality__c = 215` (Turkey
 | STLGS_ResidencePermit__c | `true` |
 | STLGS_PermissionSelfEmplyment__c | `true` |
 | referenceId | `requestNeueroeffnungNonEU` |
+
+#### 5g. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit DE
+
+Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS_Nationality2__c = 54` (Germany), `STLGS_IsEU__c = true`. Da eine Nationalität = "54" (deutsch), wird **kein** EU-Führungszeugnis und **keine** Aufenthaltserlaubnis verlangt.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bPotentialStore}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberNonEU_DE}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| referenceId | `requestNeueroeffnungNonEU_DE` |
+
+#### 5h. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit EU (nicht deutsch)
+
+Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS_Nationality2__c = 72` (France), `STLGS_IsEU__c = true`. Da **keine** Nationalität = "54" (deutsch), wird ein **EU-Führungszeugnis** verlangt. Keine Aufenthaltserlaubnis nötig (IsEU = true).
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bPotentialStore}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberNonEU_EU}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| referenceId | `requestNeueroeffnungNonEU_EU` |
 
 ---
 
@@ -724,6 +860,7 @@ B2C and B2B are **independent paths** — they share no dependencies.
 ### Prerequisite (both paths)
 
 0. **Lotto BW Company Account** (`STLGS_BusinessAccount`) — internal company account, created once (skip if already exists)
+0b. **Test User Lookups** — query existing active users by role (e.g., "RD Stuttgart"), store IDs as references for OwnerId assignment
 
 ### B2B Path (Business Accounts + Sales Contacts)
 
@@ -751,10 +888,12 @@ B2C and B2B are **independent paths** — they share no dependencies.
 - The Request field `STLGS_Store__c` is a MasterDetail to Account (filtered to Store record types)
 - The standard `Type` field (without prefix) on Case is used for B2C case categorization; `STLGS_Type__c` is used for B2B case categorization
 - **Nationality codes** use the `STLG_Nationality` global value set: `54` = Germany, `72` = France, `215` = Turkey, `13` = Austria
-- **Antragsteller natürliche Person** needs: private address (Mailing fields), Birthdate, `STLGS_Birthplace__c`, `STLGS_Nationality__c` on Contact
+- **Antragsteller natürliche Person** needs: private address (Other fields: `OtherStreet`, `OtherPostalCode`, `OtherCity`, `OtherCountry`), Birthdate, `STLGS_Birthplace__c`, `STLGS_Nationality__c` on Contact. Note: Mailing fields are auto-populated by migration/automation — do NOT use them for private address.
 - **Filialverantwortliche** (jur. Person) do NOT need private address — the Antragsteller is the Business Account
 - **EU non-German** (`STLGS_IsEU__c = true`, neither nationality = "54"): EU-Führungszeugnis required
 - **Non-EU** (`STLGS_IsEU__c = false`): Request needs `STLGS_ResidencePermit__c = true` + `STLGS_PermissionSelfEmplyment__c = true`
+- **Dual nationality** (`STLGS_Nationality2__c`): `STLGS_IsEU__c` checks BOTH nationalities — if either is EU, `IsEU = true`. EU-FZ is only required when `IsEU = true` AND neither nationality = "54" (deutsch)
+- **Nationality test matrix**: 3b=DE, 3d=EU, 3e=NonEU, 3f=NonEU+DE, 3g=NonEU+EU — covers all permutations
 
 ## Process Coverage Matrix
 
@@ -766,6 +905,8 @@ B2C and B2B are **independent paths** — they share no dependencies.
 | Verlegung | 5d | `STLGS_StandardRequest` | `STLGS_Type__c = Verlegung` |
 | Neueröffnung (EU-Ausländer) | 5e | `STLGS_StandardRequest` | EU-Führungszeugnis-Pflicht |
 | Neueröffnung (Nicht-EU) | 5f | `STLGS_StandardRequest` | Aufenthalts-/Gewerbeerlaubnis |
+| Neueröffnung (NonEU + DE) | 5g | `STLGS_StandardRequest` | Doppelstaatler, keine Sonderunterlagen |
+| Neueröffnung (NonEU + EU) | 5h | `STLGS_StandardRequest` | Doppelstaatler, EU-FZ Pflicht |
 | Service Desk (B2B) | 7a | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = General__c` |
 | VDE Prüfung (VollASt) | 7b | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = VDE Prüfung` |
 | VDE Prüfung (LK) | 7c | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = VDE Prüfung` |

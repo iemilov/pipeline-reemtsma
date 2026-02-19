@@ -440,6 +440,19 @@ Flow-based automated asset creation based on `Account.STLGS_SalesType__c`:
 
 ## Technische Referenz
 
+### Contact Address Fields
+
+The private address (Privatanschrift) is stored in the **Other** address fields, NOT the Mailing fields:
+
+| UI Label                    | API Field          | Purpose                                      |
+| --------------------------- | ------------------ | -------------------------------------------- |
+| Straße (Privatanschrift)    | `OtherStreet`      | Private address street                       |
+| PLZ (Privatanschrift)       | `OtherPostalCode`  | Private address postal code                  |
+| Ort (Privatanschrift)       | `OtherCity`        | Private address city                         |
+| Land (Privatanschrift)      | `OtherCountry`     | Private address country                      |
+
+The **Mailing** fields (`MailingStreet`, `MailingCity` etc.) are populated automatically by migration/automation — do NOT use them for manual private address entry. They may contain incorrect data (e.g., birthplace instead of residential city) due to historical migration issues.
+
 ### Common Field Name Pitfalls
 
 Frequently confused field names — use the correct spelling to avoid deployment errors:

@@ -40,6 +40,12 @@ Before creating records, query the org for required metadata:
    sf data query -q "SELECT Id, DeveloperName FROM Group WHERE Type = 'Queue' AND DeveloperName IN ('<queues>')" -o <org-alias> --json
    ```
 4. Store all IDs in a lookup map for use in record creation
+5. **Lookup existing records** — For each record group with `operation: lookup`, execute the `lookupQuery` SOQL:
+   ```bash
+   sf data query -q "<lookupQuery>" -o <org-alias> --json
+   ```
+   - If the query returns a result, store the Id under the specified `referenceId` (same as created records)
+   - If the query returns no results, log a **warning** and leave the `referenceId` empty — any `{{Ref:<id>}}` tokens referencing it will resolve to an empty string, causing the field (e.g., `OwnerId`) to be omitted from the create payload (Salesforce uses the default/running user)
 
 ### Step 3: Create Records
 
@@ -50,6 +56,7 @@ Process the test data config **in dependency order** (parents before children). 
    - `{{RecordTypeId:<DeveloperName>}}` → resolved Record Type ID
    - `{{Ref:<referenceId>}}` → ID from a previously created record
    - `{{Today}}` → today's date in YYYY-MM-DD format
+   - `{{Today+Nd}}` → today's date plus N days (e.g., `{{Today+42d}}`)
    - `{{Year}}` → current year
    - `{{OrgAlias}}` → target org alias
 3. Use the **Composite Tree API** for batch creation (max 200 records per request):
