@@ -18,6 +18,7 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | RecordType | `STLG_StandardAccount` |
 | Salutation | `Herr` |
 | FirstName | `Test` |
+| MiddleName | `Maria` |
 | LastName | `Interessent-{{Today}}` |
 | PersonEmail | `test.interessent@example.com` |
 | Phone | `0711-1234567` |
@@ -35,6 +36,7 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | RecordType | `STLG_StandardAccount` |
 | Salutation | `Frau` |
 | FirstName | `Test` |
+| MiddleName | `Elisabeth` |
 | LastName | `Bestandskunde-{{Today}}` |
 | PersonEmail | `test.bestandskunde@example.com` |
 | Phone | `0711-9876543` |
@@ -63,7 +65,7 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | BillingCountry | `Germany` |
 | referenceId | `b2bBusinessAccount` |
 
-#### 2b. B2B Potential Store (Potenzielle Annahmestelle)
+#### 2b. B2B Potential Store (Potenzielle Annahmestelle — ohne Business Account)
 
 | Field | Value |
 |-------|-------|
@@ -77,16 +79,17 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | BillingCountry | `Germany` |
 | STLGS_RegionalDirectorate__c | `RD Stuttgart` |
 | STLGS_StoreStatus__c | `Potentielle Ast` |
-| ParentId | `{{Ref:b2bBusinessAccount}}` |
 | referenceId | `b2bPotentialStore` |
 
-#### 2c. B2B Store — Vollannahmestelle (natürliche Person)
+#### 2c. B2B Store — Vollannahmestelle (natürliche Person — kein Business Account)
+
+Natürliche Person: Lizenzinhaber betreibt die ASt selbst. Kein Business Account, kein GBV, kein ParentId.
 
 | Field | Value |
 |-------|-------|
 | sObject | `Account` |
 | RecordType | `STLGS_Store` |
-| Name | `Test ASt VA {{Today}}` |
+| Name | `Test ASt VollASt {{Today}}` |
 | Phone | `0711-5554321` |
 | BillingStreet | `Hauptstraße 42` |
 | BillingPostalCode | `70173` |
@@ -96,10 +99,11 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | STLGS_SalesType__c | `Vollannahmestelle` |
 | STLGS_StoreStatus__c | `Betriebsbereit` |
 | STLGS_StoreContractType__c | `natural person` |
-| ParentId | `{{Ref:b2bBusinessAccount}}` |
-| referenceId | `b2bStoreVA` |
+| referenceId | `b2bStoreVollASt` |
 
-#### 2d. B2B Store — Lotto Kompakt (juristische Person)
+#### 2d. B2B Store — Lotto Kompakt (juristische Person — mit Business Account)
+
+Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filialverantwortliche pro Standort, Geschäftsbesorgungsvertrag (GBV).
 
 | Field | Value |
 |-------|-------|
@@ -129,37 +133,97 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
 | FirstName | `Max` |
+| MiddleName | `Johann` |
 | LastName | `Testgeschäftsführer-{{Today}}` |
 | Email | `max.testgf@example.com` |
 | Phone | `0711-5551111` |
 | AccountId | `{{Ref:b2bBusinessAccount}}` |
 | referenceId | `contactGF` |
 
-#### 3b. Lizenzinhaber / ASt-Leiter (Store Vollannahmestelle)
+#### 3b. Lizenzinhaber / ASt-Leiter (Store Vollannahmestelle — deutsch)
+
+Antragsteller natürliche Person: braucht Privatanschrift, Geburtsdaten und Staatsangehörigkeit.
 
 | Field | Value |
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
 | FirstName | `Anna` |
+| MiddleName | `Sophie` |
 | LastName | `Testinhaber-{{Today}}` |
 | Email | `anna.testinhaber@example.com` |
 | Phone | `0711-5552222` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| MailingStreet | `Rosensteinstraße 8` |
+| MailingPostalCode | `70191` |
+| MailingCity | `Stuttgart` |
+| MailingCountry | `Germany` |
+| Birthdate | `1985-06-15` |
+| STLGS_Birthplace__c | `Stuttgart` |
+| STLGS_Nationality__c | `54` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | referenceId | `contactLizenzinhaber` |
 
 #### 3c. Filialverantwortliche (Store Lotto Kompakt)
+
+Filialverantwortliche bei jur. Person: KEINE Privatanschrift nötig (Antragsteller ist der Business Account).
 
 | Field | Value |
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
 | FirstName | `Lisa` |
+| MiddleName | `Marie` |
 | LastName | `Testfiliale-{{Today}}` |
 | Email | `lisa.testfiliale@example.com` |
 | Phone | `0711-5553333` |
 | AccountId | `{{Ref:b2bStoreLK}}` |
 | referenceId | `contactFilialverantwortliche` |
+
+#### 3d. Lizenzinhaber — EU-Ausländer (Frankreich)
+
+Antragsteller natürliche Person mit EU-Staatsangehörigkeit (nicht deutsch): testet EU-Führungszeugnis-Pflicht. Wenn `STLGS_IsEU__c = true` und weder 1. noch 2. Staatsangehörigkeit = "54" (deutsch), wird ein EU-Führungszeugnis verlangt.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Contact` |
+| RecordType | `STLGS_SalesContact` |
+| FirstName | `Pierre` |
+| MiddleName | `Jean` |
+| LastName | `Testinhaber-EU-{{Today}}` |
+| Email | `pierre.testeu@example.com` |
+| Phone | `0711-5554444` |
+| MailingStreet | `Schloßstraße 22` |
+| MailingPostalCode | `70174` |
+| MailingCity | `Stuttgart` |
+| MailingCountry | `Germany` |
+| Birthdate | `1990-03-22` |
+| STLGS_Birthplace__c | `Lyon` |
+| STLGS_Nationality__c | `72` |
+| AccountId | `{{Ref:b2bPotentialStore}}` |
+| referenceId | `contactLizenzinhaberEU` |
+
+#### 3e. Lizenzinhaber — Nicht-EU (Türkei)
+
+Antragsteller natürliche Person mit Nicht-EU-Staatsangehörigkeit: testet zusätzliche Unterlagen-Pflicht. Wenn `STLGS_IsEU__c = false`, müssen am Request `STLGS_ResidencePermit__c` (Aufenthaltserlaubnis) und `STLGS_PermissionSelfEmplyment__c` (Erlaubnis zur Selbstständigkeit) gesetzt werden.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Contact` |
+| RecordType | `STLGS_SalesContact` |
+| FirstName | `Mehmet` |
+| MiddleName | `Ali` |
+| LastName | `Testinhaber-NonEU-{{Today}}` |
+| Email | `mehmet.testnoneu@example.com` |
+| Phone | `0711-5555555` |
+| MailingStreet | `Friedrichstraße 45` |
+| MailingPostalCode | `70174` |
+| MailingCity | `Stuttgart` |
+| MailingCountry | `Germany` |
+| Birthdate | `1988-11-08` |
+| STLGS_Birthplace__c | `Istanbul` |
+| STLGS_Nationality__c | `215` |
+| AccountId | `{{Ref:b2bPotentialStore}}` |
+| referenceId | `contactLizenzinhaberNonEU` |
 
 ---
 
@@ -167,13 +231,13 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 
 These are UPDATE operations on the auto-created ACR records (Salesforce creates ACRs automatically when a Contact is linked to an Account). The skill must query the ACR by AccountId + ContactId, then update the custom fields.
 
-#### 4a. ACR: Store VA ↔ Lizenzinhaber
+#### 4a. ACR: Store VollASt ↔ Lizenzinhaber
 
 | Field | Value |
 |-------|-------|
 | sObject | `AccountContactRelation` |
 | operation | `update` |
-| lookupKey | `AccountId={{Ref:b2bStoreVA}}, ContactId={{Ref:contactLizenzinhaber}}` |
+| lookupKey | `AccountId={{Ref:b2bStoreVollASt}}, ContactId={{Ref:contactLizenzinhaber}}` |
 | STLGS_LicenseOwner__c | `true` |
 | STLGS_MainContact__c | `true` |
 | STLGS_StatusStoreLeader__c | `Geschäftsinhaber` |
@@ -202,6 +266,30 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 | STLGS_MainContact__c | `true` |
 | IsActive | `true` |
 
+#### 4d. ACR: Pot. Store ↔ EU-Lizenzinhaber
+
+| Field | Value |
+|-------|-------|
+| sObject | `AccountContactRelation` |
+| operation | `update` |
+| lookupKey | `AccountId={{Ref:b2bPotentialStore}}, ContactId={{Ref:contactLizenzinhaberEU}}` |
+| STLGS_LicenseOwner__c | `true` |
+| STLGS_MainContact__c | `true` |
+| STLGS_StatusStoreLeader__c | `Geschäftsinhaber` |
+| IsActive | `true` |
+
+#### 4e. ACR: Pot. Store ↔ Non-EU-Lizenzinhaber
+
+| Field | Value |
+|-------|-------|
+| sObject | `AccountContactRelation` |
+| operation | `update` |
+| lookupKey | `AccountId={{Ref:b2bPotentialStore}}, ContactId={{Ref:contactLizenzinhaberNonEU}}` |
+| STLGS_LicenseOwner__c | `true` |
+| STLGS_MainContact__c | `false` |
+| STLGS_StatusStoreLeader__c | `Geschäftsinhaber` |
+| IsActive | `true` |
+
 ---
 
 ### 5. Requests (Anträge)
@@ -214,7 +302,7 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 |-------|-------|
 | sObject | `STLGS_Request__c` |
 | RecordType | `STLGS_StandardRequest` |
-| STLGS_Store__c | `{{Ref:b2bStoreVA}}` |
+| STLGS_Store__c | `{{Ref:b2bStoreVollASt}}` |
 | STLGS_Type__c | `Neueröffnung` |
 | STLGS_SalesType__c | `Vollannahmestelle` |
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
@@ -229,7 +317,7 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 |-------|-------|
 | sObject | `STLGS_Request__c` |
 | RecordType | `STLGS_StandardRequest` |
-| STLGS_Store__c | `{{Ref:b2bStoreVA}}` |
+| STLGS_Store__c | `{{Ref:b2bStoreVollASt}}` |
 | STLGS_Type__c | `Übernahme` |
 | STLGS_SalesType__c | `Vollannahmestelle` |
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
@@ -261,7 +349,7 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 |-------|-------|
 | sObject | `STLGS_Request__c` |
 | RecordType | `STLGS_StandardRequest` |
-| STLGS_Store__c | `{{Ref:b2bStoreVA}}` |
+| STLGS_Store__c | `{{Ref:b2bStoreVollASt}}` |
 | STLGS_Type__c | `Verlegung` |
 | STLGS_SalesType__c | `Vollannahmestelle` |
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
@@ -269,6 +357,42 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 | STLGS_ApplicationDate__c | `{{Today}}` |
 | STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
 | referenceId | `requestVerlegung` |
+
+#### 5e. Request: Neueröffnung — natürliche Person, EU-Ausländer (Frankreich)
+
+Testet EU-Führungszeugnis-Pflicht: Contact hat `STLGS_Nationality__c = 72` (France), `STLGS_IsEU__c = true`, aber keine deutsche Staatsangehörigkeit.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bPotentialStore}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberEU}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| referenceId | `requestNeueroeffnungEU` |
+
+#### 5f. Request: Neueröffnung — natürliche Person, Nicht-EU (Türkei)
+
+Testet zusätzliche Unterlagen: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS_IsEU__c = false`. Am Request müssen `STLGS_ResidencePermit__c` und `STLGS_PermissionSelfEmplyment__c` gesetzt sein.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bPotentialStore}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberNonEU}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| STLGS_ResidencePermit__c | `true` |
+| STLGS_PermissionSelfEmplyment__c | `true` |
+| referenceId | `requestNeueroeffnungNonEU` |
 
 ---
 
@@ -325,7 +449,7 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_ServiceDeskCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test B2B Service Desk {{Today}}` |
 | Status | `Neu` |
@@ -343,14 +467,14 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_ServiceDeskCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test VDE Prüfung {{Today}}` |
 | Status | `Neu` |
 | STLGS_TopicArea__c | `VDE Prüfung` |
 | STLGS_SubjectSD__c | `VDE Prüfung` |
 | Description | `Testfall VDE Prüfung — Vollannahmestelle (12 Assets erwartet)` |
-| referenceId | `caseVDEPruefungVA` |
+| referenceId | `caseVDEPruefungVollASt` |
 
 #### 7c. Case: VDE Prüfung — Lotto Kompakt
 
@@ -373,7 +497,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_TestPurchase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Testkauf {{Today}}` |
 | Status | `Neu` |
@@ -387,7 +511,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_EditCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Pflichtschulung Präsenz {{Today}}` |
 | Status | `Neu` |
@@ -404,7 +528,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_EditCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Pflichtschulung Online {{Today}}` |
 | Status | `Neu` |
@@ -423,7 +547,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_EditCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Kündigung durch ASt {{Today}}` |
 | Status | `Neu` |
@@ -438,7 +562,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_EditCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Vertragsrelevante Daten {{Today}}` |
 | Status | `Neu` |
@@ -452,7 +576,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_EditCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Bankdaten-Änderung {{Today}}` |
 | Status | `Neu` |
@@ -466,7 +590,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_EditCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Rücklastschrift {{Today}}` |
 | Status | `Neu` |
@@ -480,7 +604,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_ControlReport` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Kontrollbesuch {{Today}}` |
 | Status | `Neu` |
@@ -494,7 +618,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_SalesCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Terminallaufzeiten {{Today}}` |
 | Status | `Neu` |
@@ -508,7 +632,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 |-------|-------|
 | sObject | `Case` |
 | RecordType | `STLGS_SalesCase` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Bestellung {{Today}}` |
 | Status | `Neu` |
@@ -529,7 +653,7 @@ Visit Reports are a separate custom object (`STLGS_VisitReport__c`), NOT Cases.
 |-------|-------|
 | sObject | `STLGS_VisitReport__c` |
 | RecordType | `STLGS_Report` |
-| STLGS_Account__c | `{{Ref:b2bStoreVA}}` |
+| STLGS_Account__c | `{{Ref:b2bStoreVollASt}}` |
 | STLGS_Status__c | `Neu` |
 | STLGS_DueDate__c | `{{Today+14d}}` |
 | STLGS_Description__c | `Testfall Besuchsbericht` |
@@ -547,8 +671,8 @@ These are manually defined test assets. Note: The VDE Flow (`STLGS_CreateAssetsV
 |-------|-------|
 | sObject | `Asset` |
 | Name | `Test Terminal {{Today}}` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
-| Case__c | `{{Ref:caseVDEPruefungVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
+| Case__c | `{{Ref:caseVDEPruefungVollASt}}` |
 | STLGS_Type__c | `Terminal & Drucker` |
 | STLGS_InspectionDate__c | `{{Today}}` |
 | STLGS_ErrorFound__c | `false` |
@@ -561,8 +685,8 @@ These are manually defined test assets. Note: The VDE Flow (`STLGS_CreateAssetsV
 |-------|-------|
 | sObject | `Asset` |
 | Name | `Test Lottowand {{Today}}` |
-| AccountId | `{{Ref:b2bStoreVA}}` |
-| Case__c | `{{Ref:caseVDEPruefungVA}}` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
+| Case__c | `{{Ref:caseVDEPruefungVollASt}}` |
 | STLGS_Type__c | `Lottowand` |
 | STLGS_InspectionDate__c | `{{Today}}` |
 | STLGS_ErrorFound__c | `true` |
@@ -582,8 +706,8 @@ B2C and B2B are **independent paths** — they share no dependencies.
 
 ### B2B Path (Business Accounts + Sales Contacts)
 
-1. **Business Account** (`STLGS_BusinessAccount`)
-2. **Stores** (`STLGS_Store`, `STLGS_PotentialStore`) — Need BusinessAccount as `ParentId`
+1. **Business Account** (`STLGS_BusinessAccount`) — only needed for juristische Person (GBV)
+2. **Stores** (`STLGS_Store`, `STLGS_PotentialStore`) — juristische Person needs BusinessAccount as `ParentId`; natürliche Person has NO parent
 3. **Sales Contacts** (`STLGS_SalesContact`) — Need Store/BusinessAccount IDs from steps 1–2
 4. **ACR Updates** — Need Account IDs + Contact IDs from steps 1–3 (query existing ACR, then update custom fields)
 5. **Requests** — Need Store IDs from step 2 and Contact IDs from step 3
@@ -604,6 +728,11 @@ B2C and B2B are **independent paths** — they share no dependencies.
 - **VDE Cases** (7b, 7c) trigger the Flow `STLGS_CreateAssetsVDECases` which auto-creates Assets — the manual Assets in section 9 are independent test records
 - The Request field `STLGS_Store__c` is a MasterDetail to Account (filtered to Store record types)
 - The standard `Type` field (without prefix) on Case is used for B2C case categorization; `STLGS_Type__c` is used for B2B case categorization
+- **Nationality codes** use the `STLG_Nationality` global value set: `54` = Germany, `72` = France, `215` = Turkey, `13` = Austria
+- **Antragsteller natürliche Person** needs: private address (Mailing fields), Birthdate, `STLGS_Birthplace__c`, `STLGS_Nationality__c` on Contact
+- **Filialverantwortliche** (jur. Person) do NOT need private address — the Antragsteller is the Business Account
+- **EU non-German** (`STLGS_IsEU__c = true`, neither nationality = "54"): EU-Führungszeugnis required
+- **Non-EU** (`STLGS_IsEU__c = false`): Request needs `STLGS_ResidencePermit__c = true` + `STLGS_PermissionSelfEmplyment__c = true`
 
 ## Process Coverage Matrix
 
@@ -613,8 +742,10 @@ B2C and B2B are **independent paths** — they share no dependencies.
 | Neueröffnung (jur. Person) | 5c | `STLGS_BusinessRequest` | `STLGS_Type__c = Neueröffnung` |
 | Übernahme | 5b | `STLGS_StandardRequest` | `STLGS_Type__c = Übernahme` |
 | Verlegung | 5d | `STLGS_StandardRequest` | `STLGS_Type__c = Verlegung` |
+| Neueröffnung (EU-Ausländer) | 5e | `STLGS_StandardRequest` | EU-Führungszeugnis-Pflicht |
+| Neueröffnung (Nicht-EU) | 5f | `STLGS_StandardRequest` | Aufenthalts-/Gewerbeerlaubnis |
 | Service Desk (B2B) | 7a | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = General__c` |
-| VDE Prüfung (VA) | 7b | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = VDE Prüfung` |
+| VDE Prüfung (VollASt) | 7b | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = VDE Prüfung` |
 | VDE Prüfung (LK) | 7c | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = VDE Prüfung` |
 | Testkauf | 7d | `STLGS_TestPurchase` | — |
 | Pflichtschulung Präsenz | 7e | `STLGS_EditCase` | `STLGS_TrainingType__c = Präsenz` |
