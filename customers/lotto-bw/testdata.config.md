@@ -15,7 +15,7 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | Field | Value |
 |-------|-------|
 | sObject | `Account` |
-| RecordType | `STLG_StandardAccount` |
+| RecordType | `STLG_StandardPersonAccount` |
 | Salutation | `Herr` |
 | FirstName | `Test` |
 | MiddleName | `Maria` |
@@ -33,7 +33,7 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | Field | Value |
 |-------|-------|
 | sObject | `Account` |
-| RecordType | `STLG_StandardAccount` |
+| RecordType | `STLG_StandardPersonAccount` |
 | Salutation | `Frau` |
 | FirstName | `Test` |
 | MiddleName | `Elisabeth` |
@@ -67,6 +67,8 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 
 #### 2b. B2B Potential Store (Potenzielle Annahmestelle — ohne Business Account)
 
+> `STLGS_RegionalDirectorate__c` is a formula field (auto-computed) — do not set manually.
+
 | Field | Value |
 |-------|-------|
 | sObject | `Account` |
@@ -77,13 +79,14 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 | BillingPostalCode | `70173` |
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
-| STLGS_RegionalDirectorate__c | `RD Stuttgart` |
 | STLGS_StoreStatus__c | `Potentielle Ast` |
 | referenceId | `b2bPotentialStore` |
 
 #### 2c. B2B Store — Vollannahmestelle (natürliche Person — kein Business Account)
 
 Natürliche Person: Lizenzinhaber betreibt die ASt selbst. Kein Business Account, kein GBV, kein ParentId.
+
+> `STLGS_RegionalDirectorate__c` and `STLGS_SalesType__c` are formula fields on Account — do not set manually.
 
 | Field | Value |
 |-------|-------|
@@ -95,8 +98,6 @@ Natürliche Person: Lizenzinhaber betreibt die ASt selbst. Kein Business Account
 | BillingPostalCode | `70173` |
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
-| STLGS_RegionalDirectorate__c | `RD Stuttgart` |
-| STLGS_SalesType__c | `Vollannahmestelle` |
 | STLGS_StoreStatus__c | `Betriebsbereit` |
 | STLGS_StoreContractType__c | `natural person` |
 | referenceId | `b2bStoreVollASt` |
@@ -104,6 +105,8 @@ Natürliche Person: Lizenzinhaber betreibt die ASt selbst. Kein Business Account
 #### 2d. B2B Store — Lotto Kompakt (juristische Person — mit Business Account)
 
 Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filialverantwortliche pro Standort, Geschäftsbesorgungsvertrag (GBV).
+
+> `STLGS_RegionalDirectorate__c` and `STLGS_SalesType__c` are formula fields on Account — do not set manually.
 
 | Field | Value |
 |-------|-------|
@@ -115,8 +118,6 @@ Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filial
 | BillingPostalCode | `70173` |
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
-| STLGS_RegionalDirectorate__c | `RD Stuttgart` |
-| STLGS_SalesType__c | `Lotto Kompakt` |
 | STLGS_StoreStatus__c | `Betriebsbereit` |
 | STLGS_StoreContractType__c | `legal person` |
 | ParentId | `{{Ref:b2bBusinessAccount}}` |
@@ -240,7 +241,7 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 | lookupKey | `AccountId={{Ref:b2bStoreVollASt}}, ContactId={{Ref:contactLizenzinhaber}}` |
 | STLGS_LicenseOwner__c | `true` |
 | STLGS_MainContact__c | `true` |
-| STLGS_StatusStoreLeader__c | `Geschäftsinhaber` |
+| STLGS_Role__c | `Geschäftsinhaber` |
 | IsActive | `true` |
 
 #### 4b. ACR: Store LK ↔ Filialverantwortliche
@@ -252,7 +253,7 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 | lookupKey | `AccountId={{Ref:b2bStoreLK}}, ContactId={{Ref:contactFilialverantwortliche}}` |
 | STLGS_LicenseOwner__c | `false` |
 | STLGS_MainContact__c | `true` |
-| STLGS_StatusStoreLeader__c | `Filialleiter` |
+| STLGS_Role__c | `Filialleiter` |
 | IsActive | `true` |
 
 #### 4c. ACR: Business Account ↔ Geschäftsführer
@@ -275,7 +276,7 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 | lookupKey | `AccountId={{Ref:b2bPotentialStore}}, ContactId={{Ref:contactLizenzinhaberEU}}` |
 | STLGS_LicenseOwner__c | `true` |
 | STLGS_MainContact__c | `true` |
-| STLGS_StatusStoreLeader__c | `Geschäftsinhaber` |
+| STLGS_Role__c | `Geschäftsinhaber` |
 | IsActive | `true` |
 
 #### 4e. ACR: Pot. Store ↔ Non-EU-Lizenzinhaber
@@ -285,10 +286,12 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 | sObject | `AccountContactRelation` |
 | operation | `update` |
 | lookupKey | `AccountId={{Ref:b2bPotentialStore}}, ContactId={{Ref:contactLizenzinhaberNonEU}}` |
-| STLGS_LicenseOwner__c | `true` |
+| STLGS_LicenseOwner__c | `false` |
 | STLGS_MainContact__c | `false` |
-| STLGS_StatusStoreLeader__c | `Geschäftsinhaber` |
+| STLGS_Role__c | `Geschäftsinhaber` |
 | IsActive | `true` |
+
+> **Note:** `STLGS_LicenseOwner__c` is `false` because a uniqueness constraint (`STLGS_LicenseOwnerUnique__c`) allows only one License Owner per Account. The EU-Lizenzinhaber (4d) already holds this role on the same Pot. Store.
 
 ---
 
@@ -535,10 +538,8 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | STLGS_Type__c | `Pflichtschulung Jugend- und Spielerschutz` |
 | STLGS_TrainingType__c | `Online` |
 | STLGS_TrainingYear__c | `{{Year}}` |
-| STLGS_TrainingModulesTotal__c | `6` |
-| STLGS_TrainingModulesCompleted__c | `0` |
 | STLGS_LeadingRequest__c | `{{Ref:requestNeueroeffnungNP}}` |
-| Description | `Testfall Pflichtschulung Online (6 Module)` |
+| Description | `Testfall Pflichtschulung Online` |
 | referenceId | `casePflichtschulungOnline` |
 
 #### 7g. Case: Kündigung (Termination — by ASt)
@@ -617,7 +618,7 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | Field | Value |
 |-------|-------|
 | sObject | `Case` |
-| RecordType | `STLGS_SalesCase` |
+| RecordType | `STLGS_EditCase` |
 | AccountId | `{{Ref:b2bStoreVollASt}}` |
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Terminallaufzeiten {{Today}}` |
@@ -701,7 +702,7 @@ B2C and B2B are **independent paths** — they share no dependencies.
 
 ### B2C Path (Person Accounts)
 
-1. **Person Accounts** (`STLG_StandardAccount`) — these ARE the contacts (PersonAccount model)
+1. **Person Accounts** (`STLG_StandardPersonAccount`) — these ARE the contacts (PersonAccount model)
 2. **B2C Cases** — Need Person Account IDs from step 1
 
 ### B2B Path (Business Accounts + Sales Contacts)
@@ -721,7 +722,7 @@ B2C and B2B are **independent paths** — they share no dependencies.
 - All `{{Today+Nd}}` tokens are replaced with current date plus N days
 - All `{{Year}}` tokens are replaced with the current year
 - All `{{Ref:<referenceId>}}` tokens are replaced with the Salesforce ID of the referenced record created earlier
-- Person Account fields (FirstName, LastName, PersonEmail) are only valid when the Account RecordType is a PersonAccount type (e.g., `STLG_StandardAccount`)
+- Person Account fields (FirstName, LastName, PersonEmail) are only valid when the Account RecordType is a PersonAccount type (`STLG_StandardPersonAccount`)
 - Record Type DeveloperNames are verified against the repository metadata — the skill queries the actual RecordType IDs at runtime
 - Field API names follow domain knowledge from `domain-knowledge.md` — use exact spelling to avoid deployment errors
 - **ACR records** (section 4) are UPDATE operations, not inserts — Salesforce auto-creates ACRs when Contacts are linked to Accounts
@@ -755,7 +756,7 @@ B2C and B2B are **independent paths** — they share no dependencies.
 | Bankdaten | 7i | `STLGS_EditCase` | `STLGS_Type__c = Bankdaten` |
 | Rücklastschrift | 7j | `STLGS_EditCase` | `STLGS_Type__c = Rücklastschrift` |
 | Kontrollbesuch | 7k | `STLGS_ControlReport` | `STLGS_Type__c = Kontrollbesuch` |
-| Terminallaufzeiten | 7l | `STLGS_SalesCase` | `STLGS_Type__c = Terminallaufzeiten` |
+| Terminallaufzeiten | 7l | `STLGS_EditCase` | `STLGS_Type__c = Terminallaufzeiten` |
 | Bestellung | 7m | `STLGS_SalesCase` | `STLGS_Type__c = Bestellung RD` |
 | B2C Allgemein | 6a | `STLG_StandardCase` | `Type = Allgemeines` |
 | B2C Gewinne | 6b | `STLG_StandardCase` | `Type = Gewinne` |
