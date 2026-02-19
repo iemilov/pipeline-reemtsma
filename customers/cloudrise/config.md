@@ -57,3 +57,15 @@
 | Branch | Target Environment |
 |--------|-------------------|
 | `main` | Cloudflare Pages (Production) |
+
+### GitHub Actions
+
+Auto-deployment via GitHub Actions (no native Cloudflare Git provider — projects were created via direct upload).
+
+| Workflow | Path Filter | Action |
+|----------|-------------|--------|
+| `.github/workflows/deploy-crm.yml` | `projects/crm/**` | Build & deploy CRM to Cloudflare Pages |
+
+**Required GitHub Secrets:**
+- `CLOUDFLARE_API_TOKEN` — API token with Cloudflare Pages: Edit permission
+- `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account ID
