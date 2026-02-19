@@ -1,0 +1,80 @@
+# /implement-us CRM-3021 — Execution Log
+Date: 2026-02-19
+Story: CRM-3021 — Einschränkung des QNova-Users auf Conversation-Objekte
+
+## Step 1: Read User Story
+- Fetched CRM-3021 from Jira
+- Read implementation-design/CRM-3021/implementation-notes.md for design decisions
+- Story transitioned to "In Progress"
+
+## Step 2: Explore Codebase Patterns
+- Found existing Trigger Action Framework (MetadataTriggerHandler by mitchspano)
+- Existing STLG_CaseTrigger delegates to trigger actions via custom metadata
+- Existing trigger action STLG_TA_CaseUpsert at Order 1.0 on Case
+- Found existing flow STLG_SetQNovaSubmissionFlag (to be replaced)
+- Found QNova sharing rules on Case and MessagingSession
+- Confirmed: Conversation/ConversationEntry have NO Object Permissions or Sharing Rules
+
+## Step 3: Implementation Approach
+- Programmatic: Apex Trigger Action (ConversationEntry SOQL not possible in Flows)
+- Declarative: Custom field, permission set changes, flow deactivation
+
+## Step 4: Feature Branch
+- Created feature/CRM-3021 from origin/release/1.10.4
+
+## Step 5: Implementation Files Created
+1. NEW: force-app/main/default/objects/MessagingSession/fields/STLG_ConversationTranscript__c.field-meta.xml
+   - Html type, 131072 chars max
+2. NEW: force-app/main/default/classes/STLG_TA_CaseQNovaTranscript.cls
+   - Trigger Action (AfterUpdate on Case)
+   - Syncs STLG_QNovaSubmissionFlag__c to MessagingSessions
+   - Populates STLG_ConversationTranscript__c from ConversationEntry records
+   - Plaintext format: [timestamp] ActorName: Message
+   - Truncates at 131072 chars
+3. NEW: force-app/main/default/classes/STLG_TA_CaseQNovaTranscriptTest.cls
+   - 6 test methods, all passing
+4. NEW: force-app/main/default/customMetadata/Trigger_Action.STLG_TA_CaseQNovaTranscript.md-meta.xml
+   - Registered at Order 2.0 for Case AfterUpdate
+5. MODIFIED: force-app/main/default/flows/STLG_SetQNovaSubmissionFlag.flow-meta.xml
+   - Status changed to Draft (deactivated)
+   - Description updated to note replacement by CRM-3021
+6. MODIFIED: force-app/main/default/permissionsets/STLG_QualitaetsmanagementAPIOnly.permissionset-meta.xml
+   - Added field permissions: ConversationTranscript, Type, Request, CustomerSatisfaction, ChatFeedback
+
+## Step 6: Deploy to DEV Org
+- Deploy 1 (FAILED): All metadata in single deploy — failed because ConversationEntry has no 'Sequence' field
+- Fix: Changed SOQL to use 'Seq' field and 'EntryTime' instead of 'CreatedDate'
+- Deploy 2: Custom field deployed first (Succeeded)
+- Deploy 3: Apex classes + remaining metadata (Succeeded)
+
+### Apex Test Results
+| Test Method                   | Result | Runtime |
+|-------------------------------|--------|---------|
+| testBuildTranscriptFormat     | Pass   | 295ms   |
+| testBuildTranscriptTruncation | Pass   | 52ms    |
+| testBulkFlagUpdate            | Pass   | 418ms   |
+| testFlagResetClearsTranscript | Pass   | 309ms   |
+| testFlagSyncToMessagingSession| Pass   | 207ms   |
+| testNoChangeWhenFlagUnchanged | Pass   | 182ms   |
+
+Code Coverage: STLG_TA_CaseQNovaTranscript = 40%
+(Uncovered lines are transcript population paths requiring MessagingSession/Conversation records)
+
+## Step 7: Test Data
+- Skipped: MessagingSession/Conversation records are system-managed and cannot be manually created
+
+## Step 8: Commit & PR
+- Commit: fd3681b1 — CRM-3021 QNova Conversation Transcript on MessagingSession
+- Branch pushed: feature/CRM-3021 → origin/feature/CRM-3021
+- PR #1495 created: feature/CRM-3021 → release/1.10.4
+
+## Step 9: Manual Deployment Steps
+Saved to deployment/1.10.4/Release-1.10.4-Manual-Deployment-Steps.md:
+1. Verify flow STLG_SetQNovaSubmissionFlag is in Draft status
+2. Verify trigger action STLG_TA_CaseQNovaTranscript is registered in Trigger_Action__mdt
+
+## Issues Encountered
+1. ConversationEntry field 'Sequence' does not exist → corrected to 'Seq' via sf sobject describe
+2. Test class used wrong record type 'PersonAccount' → corrected to 'STLG_StandardPersonAccount'
+3. Test class created separate Contacts for PersonAccount → fixed to use @TestSetup with PersonContactId
+4. PMD check skipped (pmd command not available on system)
