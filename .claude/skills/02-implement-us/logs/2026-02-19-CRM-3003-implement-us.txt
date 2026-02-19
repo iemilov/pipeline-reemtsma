@@ -1,0 +1,116 @@
+# Implementation Log: CRM-3003
+# Date: 2026-02-19
+# Story: TK: Bestandener TK triggert fälschlicherweise Kündigungsvorgang
+
+## Step 1: Read User Story
+
+Fetched CRM-3003 from Jira (Cloud ID: 2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4).
+Status: Already In Progress.
+
+### Summary
+Der Record-Triggered Flow STLGS_CalculateTestPurchaseStatus erstellt einen Kündigungsvorgang,
+sobald der berechnete Ampelstatus eines TK-Cases "geschlossen" ist. Dabei wird nicht geprüft,
+ob das TK-Ergebnis "nicht bestanden" war. Dadurch wird auch bei einem bestandenen TK ein
+Kündigungsvorgang erstellt, wenn der Ampelstatus des Accounts bereits "geschlossen" war.
+
+### Acceptance Criteria
+- [ ] Bestandener TK bei Ampelstatus "geschlossen" erstellt keinen Kündigungsvorgang
+- [ ] Nicht bestandener TK bei Ampelstatus "geschlossen" erstellt weiterhin Kündigungsvorgang (CRM-2820 bleibt erhalten)
+- [ ] Fehlanfahrt und annullierte TK erstellen keinen Kündigungsvorgang
+
+### Implementation Notes
+Read from: implementation-design/CRM-3003/implementation-notes.md
+- Root cause: Decision STLGS_Geschlossen only checks STLGS_TestPurchaseStatus__c == "geschlossen"
+  but does not check STLGS_ResultTestPurchase__c == "nicht bestanden"
+- CMT geschlossen_all returns "geschlossen" for both positive and negative results (correct behavior)
+- Bug is in the flow, not in the Apex class or CMT
+
+## Step 2: Explore Codebase Patterns
+
+### Flow: STLGS_CalculateTestPurchaseStatus.flow-meta.xml
+- Record-Triggered Flow on Case (RecordAfterSave, AsyncAfterCommit)
+- Trigger conditions: RecordType=STLGS_TestPurchase, Status IsChanged, Type=Testkauf, Status=Testkaufergebnis geprüft
+- Async path: GetAccount → Decision STLGS_Geschlossen → Get_Terminations → CreateTermination
+- triggerOrder: 1500
+- apiVersion: 61.0
+
+### Bug Location: Decision STLGS_Geschlossen (lines 23-44)
+Only one condition: $Record.STLGS_TestPurchaseStatus__c == "geschlossen"
+Missing: $Record.STLGS_ResultTestPurchase__c == "nicht bestanden"
+
+## Step 3: Implementation Approach
+
+Declarative — Flow modification only. Minimal-invasive fix adding one condition to the existing
+STLGS_Geschlossen decision node. No Apex changes needed. No new fields needed.
+
+## Step 4: Create Feature Branch
+
+- Base: release/1.10.4 (corrected from initial release/1.10.3)
+- Branch: feature/CRM-3003
+- Command: git checkout origin/release/1.10.4 && git checkout -B feature/CRM-3003
+
+## Step 5: Generate Implementation
+
+### Modified File
+force-app/main/default/flows/STLGS_CalculateTestPurchaseStatus.flow-meta.xml
+
+### Change 1: Decision STLGS_Geschlossen — added second condition
+Added condition with AND logic:
+  <conditions>
+      <leftValueReference>$Record.STLGS_ResultTestPurchase__c</leftValueReference>
+      <operator>EqualTo</operator>
+      <rightValue>
+          <stringValue>nicht bestanden</stringValue>
+      </rightValue>
+  </conditions>
+
+### Change 2: Flow description updated
+Old: CRM-2820 -> allow multiple terminations due to test purchase fails
+New: CRM-2820 -> allow multiple terminations due to test purchase fails, CRM-3003 -> only create termination when result is nicht bestanden
+
+## Step 6: Deploy to DEV Org
+
+Deploy command: sf project deploy start --source-dir force-app/main/default/flows/STLGS_CalculateTestPurchaseStatus.flow-meta.xml -o LottoDEV --wait 10
+Result: Succeeded
+Deploy ID: 0Afbh000008pHYTCA2
+Target Org: system.user@lotto-bw.de.dev
+Elapsed Time: 1m 54.66s
+
+Deployed Source:
+| State   | Name                              | Type | Path                                                                         |
+| Changed | STLGS_CalculateTestPurchaseStatus | Flow | force-app/main/default/flows/STLGS_CalculateTestPurchaseStatus.flow-meta.xml |
+
+## Step 7: Test Data
+
+Not applicable — bug fix can be verified with existing data (Account 210460 Banzhaf).
+
+## Step 8: Create Pull Request
+
+### Initial PR (abandoned)
+PR #1491: feature/CRM-3003 → release/1.10.3
+Status: Abandoned (wrong target branch)
+
+### Corrected PR
+PR #1492: feature/CRM-3003 → release/1.10.4
+Status: Active
+URL: https://lottobw.visualstudio.com/Salesforce%20CICD/_git/Salesforce%20CICD/pullRequest/1492
+Commit: ad7480c8
+
+## Step 9: Summary
+
+### Implementation Approach
+Declarative (Flow modification). Single condition added to existing decision node.
+No Apex, no new fields, no CMT changes needed.
+
+### Files Modified
+| Type | File | Change |
+|------|------|--------|
+| Flow | STLGS_CalculateTestPurchaseStatus.flow-meta.xml | Added condition + updated description |
+
+### Acceptance Criteria Coverage
+1. Passed TK + Ampelstatus "geschlossen" → NO Kündigung (new condition blocks it)
+2. Failed TK + Ampelstatus "geschlossen" → Kündigung created (both AND conditions met, CRM-2820 preserved)
+3. Fehlanfahrt/annulliert → NO Kündigung (Apex sets outputStatus=null, Ampelstatus never becomes "geschlossen")
+
+### No Manual Configuration Steps Required
+Flow deploys as active version. No scheduling, permission sets, or CMT changes needed.

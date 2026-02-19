@@ -57,8 +57,12 @@ Analyze the requirements and determine which Salesforce tools are most appropria
 - **Aura Components** — only if extending existing Aura components
 
 ### Step 4: Generate feature branch
-- Create based on the latest release branch (release/...) a feature branch (feature/<story-key>)
-- Do a checkout of this feature branch
+- **Determine the latest release branch** by querying the default branch from Azure DevOps:
+  ```bash
+  az repos show --repository "Salesforce CICD" --org https://dev.azure.com/LottoBW --project "Salesforce CICD" --query defaultBranch -o tsv
+  ```
+  This returns e.g. `refs/heads/release/1.10.4`. Strip the `refs/heads/` prefix to get the branch name.
+- Fetch and create a feature branch from that release branch: `git fetch origin <release-branch> && git checkout -b feature/<story-key> origin/<release-branch>`
 
 ### Step 5: Generate Implementation
 Based on the chosen approach, create the appropriate metadata files:
@@ -137,15 +141,18 @@ Deploy all created/modified metadata to the **DEV org** (alias from config):
    - If tests fail, fix the issue and redeploy
 
 ### Step 7: Create Test Data in DEV Org
-Create test data in the **DEV org** so the implementation can be manually verified. This step follows the workflow defined in `skills/09-create-testdata/SKILL.md`:
+Create test data in the **DEV org** so the implementation can be manually verified. **Always create test data** — even for bug fixes where existing records are mentioned in the story. The goal is to have dedicated, reproducible test records that match the exact conditions needed to verify the implementation.
 
-1. **Read the test data configuration** from `pipeline/customers/<customer>/testdata.config.md`
-2. **Query existing metadata** — resolve Record Type IDs, Profile IDs, and Queue IDs as needed by the test data config
-3. **Create records in dependency order** (parents before children) using the **Composite Tree API**, replacing placeholder tokens (`{{RecordTypeId:...}}`, `{{Ref:...}}`, `{{Today}}`, `{{Year}}`, `{{OrgAlias}}`)
-4. **Add a 2-second pause** between API batches to respect rate limits
-5. **Check for duplicates** — before creating, query for existing records with the same name pattern and warn the user if found
-6. **Verify created records** — query the org to confirm all records were created successfully
-7. **Present a summary** table of created test data (sObject, Name, Record Type, Id, total count)
+This step follows the workflow defined in `skills/09-create-testdata/SKILL.md`:
+
+1. **Analyze test data requirements** — based on the implementation AND acceptance criteria, determine what records are needed to verify each scenario (happy path, edge cases, error conditions). If the story mentions specific existing records (e.g., "Account 210460 Banzhaf"), create similar test records that reproduce the same conditions — do not rely on existing data alone.
+2. **Read the test data configuration** from `pipeline/customers/<customer>/testdata.config.md`
+3. **Query existing metadata** — resolve Record Type IDs, Profile IDs, and Queue IDs as needed by the test data config
+4. **Create records in dependency order** (parents before children) using the **Composite Tree API**, replacing placeholder tokens (`{{RecordTypeId:...}}`, `{{Ref:...}}`, `{{Today}}`, `{{Year}}`, `{{OrgAlias}}`)
+5. **Add a 2-second pause** between API batches to respect rate limits
+6. **Check for duplicates** — before creating, query for existing records with the same name pattern and warn the user if found
+7. **Verify created records** — query the org to confirm all records were created successfully
+8. **Present a summary** table of created test data (sObject, Name, Record Type, Id, total count)
 
 > **Rules:** Prefer Composite Tree API over individual record creation. Avoid `sf data import bulk` (macOS line ending issues). If a required parent record fails, skip dependent children and inform the user. See `skills/09-create-testdata/SKILL.md` for full error handling details.
 
