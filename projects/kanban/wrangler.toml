@@ -1,8 +1,0 @@
-name = "kanban"
-pages_build_output_dir = "dist"
-compatibility_date = "2024-12-01"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "kanban-db"
-database_id = "ed845731-13aa-4bc2-b13f-a99dfd33c5e8"
