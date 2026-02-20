@@ -7,7 +7,7 @@
 | Jira URL | `https://kommit.atlassian.net` |
 | Confluence URL | `https://kommit.atlassian.net/wiki` |
 | Cloud ID | `2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4` |
-| Jira Project Key | `CRM` |
+| Project Key | `CRM` |
 | Components | `B2C`, `B2B` |
 | Epic Link Field | `customfield_10014` (via `Parent` on story) |
 | Confluence Parent Page | `Projekt: Einführung Salesforce/Architect` |
