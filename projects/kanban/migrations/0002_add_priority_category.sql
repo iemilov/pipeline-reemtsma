@@ -1,0 +1,2 @@
+ALTER TABLE cards ADD COLUMN priority TEXT DEFAULT 'medium';
+ALTER TABLE cards ADD COLUMN category TEXT DEFAULT '';

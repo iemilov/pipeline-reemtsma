@@ -7,7 +7,7 @@
 | Jira URL | - |
 | Confluence URL | - |
 | Cloud ID | - |
-| Jira Project Key | `CR` |
+| Project Key | `CR` |
 | Components | — |
 | Epic Link Field | - |
 | Confluence Parent Page | — |
