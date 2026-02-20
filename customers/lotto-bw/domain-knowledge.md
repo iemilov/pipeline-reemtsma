@@ -26,6 +26,22 @@
 | **Ampelstatus**        | Ampelstatus                   | Traffic light status (TK compliance)          |
 | **VT-Strafe**          | Vertragsstrafe                | Contractual penalty                           |
 
+## Themen-Dokumentation (Detail)
+
+Die folgenden Topic-Dateien enthalten detaillierte fachliche und technische Dokumentation pro Themengebiet. Die Sections in diesem Dokument dienen als Kurzübersicht — für vollständige Details siehe die verlinkten Dateien.
+
+| Thema | Datei | Aktualisiert |
+|-------|-------|--------------|
+| Testkauf | [docs/testkauf.md](docs/testkauf.md) | 2026-02-20 |
+| Kündigung & Außerbetriebnahme | [docs/kuendigung.md](docs/kuendigung.md) | 2026-02-20 |
+| Filialverantwortung wechseln | [docs/filialverantwortung-wechseln.md](docs/filialverantwortung-wechseln.md) | 2026-02-20 |
+| Service Desk | [docs/service-desk.md](docs/service-desk.md) | 2026-02-20 |
+| Field Service (VDE Prüfung & Wartung) | [docs/field-service.md](docs/field-service.md) | 2026-02-20 |
+| Besuche & Besuchsberichte | [docs/besuche.md](docs/besuche.md) | 2026-02-20 |
+| Pflichtschulung Jugend- und Spielerschutz | [docs/pflichtschulung.md](docs/pflichtschulung.md) | 2026-02-20 |
+| Rücklastschrift | [docs/ruecklastschrift.md](docs/ruecklastschrift.md) | 2026-02-20 |
+| Vertragsrelevante Datenänderung | [docs/vertragsrelevante-datenaenderung.md](docs/vertragsrelevante-datenaenderung.md) | 2026-02-20 |
+
 ## Organisationsstruktur
 
 ### RD — Regionaldirektion
@@ -74,6 +90,8 @@
 - **Natürliche Person**: Einzelperson als Lizenzinhaber (= ASt-Leiter), ein Standort, kann mehrere Standorte haben (klassischer Mehrfachstandortbetreiber)
 - **Juristische Person**: Firma als Vertragspartner, kann mehrere Standorte haben, Filialverantwortliche pro Standort
 
+> **Detaillierte Dokumentation:** [docs/filialverantwortung-wechseln.md](docs/filialverantwortung-wechseln.md)
+
 ### Vertriebsform (`STLGS_SalesType__c`)
 
 - **Vollannahmestelle**: Vollsortiment Lotto-Produkte
@@ -96,8 +114,8 @@
 1. **Neueröffnung** — Neuer Standort
 2. **Übernahme** — Bestehender Standort, neuer Betreiber
 3. **Verlegung** — Umzug (gleicher PLZ-Bereich)
-4. **Upgrade** — Kompakt → Vollannahmestelle
-5. **Downgrade** — Vollannahmestelle → Kompakt
+
+> **Hinweis:** Upgrade (Kompakt → Vollannahmestelle) und Downgrade (Vollannahmestelle → Kompakt) sind **keine Antragstypen**, sondern Anliegen-Typen im Prozess "Vertragsrelevante Daten ändern". Siehe [docs/vertragsrelevante-datenaenderung.md](docs/vertragsrelevante-datenaenderung.md).
 
 ### Status-Flow
 
@@ -147,6 +165,11 @@ Ablehnungspfade: `Durch ASt abgelehnt`, `Durch RD abgelehnt`, `Abgelehnt durch R
 | Vertragsrelevante Daten ändern   | RD             | Siehe eigene Sektion unten                        |
 | Service Desk                     | VO/RD          | Technische Probleme (Terminal, Drucker, Passwort)  |
 | Kündigung                        | RD oder VO     | Siehe eigene Sektion unten                        |
+| Rücklastschrift                  | VO (Screen Flow) | Finanzklärung bei SEPA-Rückgabe, eigene Felder    |
+
+> **Service Desk Dokumentation:** [docs/service-desk.md](docs/service-desk.md) — Technischer 1st/2nd Level Support (Case Management, ProServices Portal, Itenos-Integration)
+>
+> **Rücklastschrift Dokumentation:** [docs/ruecklastschrift.md](docs/ruecklastschrift.md) — Rücklastschrift-Prozess (Screen Flow, Beträge, Zahlungsabwicklung, Buchhaltung)
 
 ### Generischer Status-Flow (Vorgänge)
 
@@ -176,6 +199,8 @@ Neu → In Bearbeitung RD → Übergeben an VO → In Bearbeitung VO → Geschlo
 3. VO findet in Liste "Offene Vertragsrelevante Datenänderungen VO"
 4. VO aktualisiert Aegis/CRM, @mention an RD-User im Activity Stream
 5. VO schließt ODER → `Übergeben an RD` (bei Rückfragen)
+
+> **Detaillierte Dokumentation:** [docs/vertragsrelevante-datenaenderung.md](docs/vertragsrelevante-datenaenderung.md)
 
 ## Testkauf (TK) — Test Purchase / Mystery Shopping
 
@@ -263,6 +288,8 @@ Cases sorted by `STLGS_TestPurchaseExecutionDate__c ASC` (Pos 0 = older, Pos 1 =
 | 2         | Fehlanfahrt                                  | —                             | Manuell                          |
 | >2        | beliebig                                     | —                             | Manuell (alle in LAST_WEEK)      |
 
+> **Detaillierte Dokumentation:** [docs/testkauf.md](docs/testkauf.md)
+
 ## Kündigung (Termination)
 
 ### Kündigungstypen
@@ -302,6 +329,8 @@ Geschäftsaufgabe wegen Alters, Zahlungsschwierigkeiten, Spielerschutz-Verstoß,
 - Keine Übernahme nach 4 Wochen → Auto-Wechsel zu "wird nicht mehr benötigt"
 - VO schließt Kündigung typischerweise erst wenn Übernahme-Antrag Status "Geprüft durch Zentrale" erreicht
 
+> **Detaillierte Dokumentation:** [docs/kuendigung.md](docs/kuendigung.md)
+
 ## Außerbetriebnahme (Decommissioning)
 
 ### 4 Gründe mit unterschiedlichen Auslösern
@@ -315,6 +344,8 @@ Geschäftsaufgabe wegen Alters, Zahlungsschwierigkeiten, Spielerschutz-Verstoß,
 
 - VO erstellt immer: "Meldung Außerbetriebnahme und Erlöschen einer erteilten Erlaubnis"
 - Endstatus Account: `Erlaubnis erloschen`
+
+> **Detaillierte Dokumentation:** [docs/kuendigung.md](docs/kuendigung.md)
 
 ## Upgrade / Downgrade
 
@@ -390,6 +421,8 @@ IF(CONTAINS({!$Record.STLGS_RecordTypeDeveloperName__c}, "Business"),
 - Sync script: `business/docs/LMS/sync-lernstand.py` (dry-run default, `--apply` for Prod updates)
 - Flow `STLG_CaseSetLastUpdatedLMS` auto-sets `STLGS_LastUpdatedLMS__c` when module fields change
 
+> **Detaillierte Dokumentation:** [docs/pflichtschulung.md](docs/pflichtschulung.md)
+
 ## VDE Prüfung (Electrical Safety Inspection)
 
 ### Asset Creation
@@ -410,6 +443,38 @@ Flow-based automated asset creation based on `Account.STLGS_SalesType__c`:
 | `STLGS_ErrorFound__c`             | Checkbox       | Error discovered during inspection    |
 | `STLGS_InspectionStickerApplied__c` | Checkbox     | Inspection sticker applied            |
 | `STLGS_InspectionDate__c`         | Date           | Date of inspection                    |
+
+> **Detaillierte Dokumentation:** [docs/field-service.md](docs/field-service.md) — VDE Prüfung, Thermodruckerwartung, Asset-Lifecycle
+
+## Besuche & Besuchsberichte (Store Visits)
+
+### Besuchstypen
+
+Regelbesuch, Prüfbesuch, Antragsbesuch, Umsatzgespräch, Spontanbesuch, Expansion, Schwerpunktbesuch, Erstbesuch AD Zentrale
+
+### Zielbesuche pro Segment
+
+| Segment | Zielbesuche/Jahr |
+| ------- | ---------------- |
+| N (Neu) | 8                |
+| A       | 8                |
+| B       | 6                |
+| C       | 4                |
+| D / E   | 4                |
+
+### Status-Flow
+
+```text
+Neu → Prüfbesuch vorbereiten → Freigabe Regionaldirektor → An Zentrale übergeben → Abgeschlossen / Abgebrochen
+```
+
+### Key Object
+
+- `STLGS_VisitReport__c` (Master-Detail zu Account, 35+ Felder)
+- 3 Record Types: StandardVisitReport, Report, ReadOnlyReport
+- Account-Felder: `STLGS_ActualNumberVisits__c`, `STLGS_MinimumVisits__c`, `STLGS_DifferenceNoVisits__c` (Formula mit Ampel-Indikator)
+
+> **Detaillierte Dokumentation:** [docs/besuche.md](docs/besuche.md) — Besuchsmanagement, Besuchsprotokoll, PDF-Generierung, Batch-Jobs
 
 ## Dokumenttypen & Templates
 
@@ -451,7 +516,14 @@ The private address (Privatanschrift) is stored in the **Other** address fields,
 | Ort (Privatanschrift)       | `OtherCity`        | Private address city                         |
 | Land (Privatanschrift)      | `OtherCountry`     | Private address country                      |
 
-The **Mailing** fields (`MailingStreet`, `MailingCity` etc.) are populated automatically by migration/automation — do NOT use them for manual private address entry. They may contain incorrect data (e.g., birthplace instead of residential city) due to historical migration issues.
+The **Mailing** fields (`MailingStreet`, `MailingCity` etc.) contain the **Store-Geschäftsadresse** (store business address), NOT the private address. They are populated automatically by Salesforce standard behavior:
+
+1. User creates a new Sales Contact on the **Store Account** (via Related List)
+2. Salesforce copies `Account.BillingAddress` → `Contact.MailingAddress` (standard platform behavior on Contact create)
+3. The flow `STLGS_LinkAllSalesContactsToOneAcc` (Record-Triggered, After Save) moves the Contact to the **Umbrella Account** ("Staatliche Toto-Lotto GmbH Baden-Württemberg")
+4. Result: `Contact.MailingAddress` = Store BillingAddress, `Contact.OtherAddress` = Privatanschrift
+
+The Mailing fields are **not shown on the Sales Contact Layout** — users cannot edit them directly. Do NOT use Mailing fields for private address entry.
 
 ### Common Field Name Pitfalls
 

@@ -1,0 +1,91 @@
+============================================================
+Skill: 10-build-knowledge
+Topic: Vertragsrelevante Datenänderung
+Slug: vertragsrelevante-datenaenderung
+Input: vertragsrelevante datenänderung (detected as: Topic)
+Date: 2026-02-20
+============================================================
+
+Step 1: Input & Existing Documentation
+----------------------------------------
+- Input type: Topic
+- Topic name: Vertragsrelevante Datenänderung
+- Slug: vertragsrelevante-datenaenderung
+- Existing topic file: not found
+- Existing domain-knowledge section: found (line 180, "Vertragsrelevante Datenänderungen" — Anliegen-Typen + Workflow)
+
+Step 2: Sources Gathered
+-------------------------
+- Jira: 29 issues from ~10 epics + 12 standalone
+  Core stories:
+  - CRM-446: Vorgang "Vertragsrelevante Daten ändern" (Fertig)
+  - CRM-425: Nur zukünftige Daten möglich (Fertig)
+  - CRM-2349: Anliegen-Typ Pflicht bei Übergabe an VO (Fertig)
+  - CRM-2460: Validierung (Gültig ab) verhindert Schließen (Fertig)
+  - CRM-2462: Zwei weitere Typen (Fertig)
+  - CRM-2507: Neuer Anliegen-Typ "Wechsel zu Agenturstandort" (Fertig)
+  - CRM-2797: Neuer Anliegen-Typ (Fertig)
+  - CRM-2483: Keine Inbetriebnahme → Meldung Außerbetriebnahme (Fertig)
+  - CRM-844: Bankdaten aus VRD-Case raus (Fertig)
+  - CRM-2882: Gewerbeanmeldung nachreichen (Spezifizieren)
+  - CRM-2624: Standort im Agenturbetrieb (Backlog)
+  - CRM-1200: List View einschränken (Next)
+- Codebase: 3 Flows, 2 Validation Rules, 1 Quick Action, 3 Fields
+  - Account.STLGS_ChangeContractRelevantData (Quick Action) — creates Case from Account
+  - STLGS_UpdateRequestOnStatusChange (Record-Triggered Flow, AfterSave) — updates Request on Case close
+  - STLGS_SetSalesCaseOwner (Record-Triggered Flow, BeforeSave) — owner assignment + duplicate check
+  - STLGS_CheckMasterDataChangeType (VR) — MasterDataChangeType mandatory at VO handover
+  - STLGS_CheckValidFromDate (VR) — ValidFrom >= TODAY() (VO exempt)
+  - STLGS_MasterDataChangeType__c (Picklist, 11 values)
+  - STLGS_ValidFrom__c (Date)
+  - STLGS_GeneralDescription__c (Html, history tracking)
+- Confluence: 0 relevant pages
+- Local docs: 0 files found
+
+Step 3: Topic File Written
+---------------------------
+- Path: pipeline/customers/lotto-bw/docs/vertragsrelevante-datenaenderung.md
+- Mode: created (new)
+- Sections: all mandatory sections populated
+- Key content:
+  - Full business process (Quick Action → RD Bearbeitung → VO Übergabe → VO Abschluss)
+  - 3 Sonderfälle: Keine Inbetriebnahme (auto Request update), Upgrade/Downgrade, Kündigung durch Lotto
+  - 6 business rules (Anliegen-Typ Pflicht, Gültig-ab-Validierung, Subject-Konvention, etc.)
+  - MasterDataChangeType picklist: alle 11 Werte mit Beschreibungen
+  - 5 Automation-Komponenten (1 QA, 3 Flows, 2 VR)
+  - 6 bekannte Probleme (CRM-2882/2624 offen, Aegis-Sync manuell, etc.)
+  - 29 Jira-Stories referenziert
+
+Step 4: Structural Validation
+------------------------------
+- Checklist passed: yes
+  - All mandatory sections present: ✓
+  - Business Rules contains only rules: ✓
+  - All tables in 3-column format: ✓
+  - Cross-references present (Siehe auch): ✓ (kuendigung.md, filialverantwortung-wechseln.md, antrag.md, ruecklastschrift.md)
+  - No content duplicates: ✓ (Sonderfälle als Kurzfassungen + Verweise)
+  - Picklist values complete: ✓ (STLGS_MasterDataChangeType__c, 11 values)
+
+Step 5: Index Updated
+----------------------
+- domain-knowledge.md: index table updated (new row for Vertragsrelevante Datenänderung)
+- Blockquote reference added after Workflow section (line ~202)
+
+Step 6: Cross-References
+--------------------------
+- kuendigung.md: Added vertragsrelevante-datenaenderung.md to "Siehe auch" + Änderungshistorie
+- antrag.md: Added vertragsrelevante-datenaenderung.md to "Siehe auch" + Änderungshistorie
+- ruecklastschrift.md: Added vertragsrelevante-datenaenderung.md to "Siehe auch" + Änderungshistorie
+- filialverantwortung-wechseln.md: Added "Siehe auch" section (new) + vertragsrelevante-datenaenderung.md + antrag.md + Änderungshistorie
+
+Step 7: Summary
+----------------
+- Topic file: pipeline/customers/lotto-bw/docs/vertragsrelevante-datenaenderung.md
+- Sources processed: 29 Jira stories, 3 Flows, 2 VR, 1 Quick Action, 3 Fields, 0 Confluence pages, 0 local docs
+- Key findings:
+  - Quick Action STLGS_ChangeContractRelevantData is the sole entry point (Account-Level)
+  - 11 Anliegen-Typen klassifizieren die Art der Änderung (von Kontaktdaten bis Kündigung)
+  - VR-Duo: MasterDataChangeType Pflicht bei VO + ValidFrom nicht in Vergangenheit (VO exempt)
+  - "Keine Inbetriebnahme" löst automatisch Request-Update aus (Erlaubnis erloschen)
+  - Flow STLGS_UpdateRequestOnStatusChange wird mit FV-Wechsel geteilt (getrennte Pfade)
+  - Aegis-Sync ist komplett manuell — potenzielle Fehlerquelle

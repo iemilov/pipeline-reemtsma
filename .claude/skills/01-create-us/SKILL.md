@@ -6,7 +6,7 @@ argument-hint: [epic-id]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, project key, components, epic link field, locale settings, folder paths), and `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, functional domains).
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, project key, components, epic link field, locale settings, folder paths), `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, functional domains), and `pipeline/customer.domain.md` for domain-specific business logic, glossary, field name pitfalls, and linked topic documentation files.
 
 ## Workflow: Transcript → User Stories (Interactive)
 

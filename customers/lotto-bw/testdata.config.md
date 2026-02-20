@@ -656,8 +656,10 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | ContactId | `{{Ref:contactLizenzinhaber}}` |
 | Subject | `Test Testkauf {{Today}}` |
 | Status | `Neu` |
+| STLGS_TypeTestPurchase__c | `Jugendschutz` |
+| STLGS_KindTestPurchase__c | `Ersttest` |
 | STLGS_TestPurchaseExecutionDate__c | `{{Today}}` |
-| Description | `Testfall Testkauf` |
+| Description | `Testfall Testkauf — Ersttest Jugendschutz` |
 | referenceId | `caseTestkauf` |
 
 #### 7e. Case: Pflichtschulung Präsenz (Mandatory Training — In-Person)
@@ -706,7 +708,9 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | Status | `Neu` |
 | STLGS_Type__c | `Kündigung` |
 | STLGS_TerminationType__c | `Kündigung` |
-| Description | `Testfall Kündigung durch Annahmestelle` |
+| STLGS_TerminatedBy__c | `Annahmestelle` |
+| STLGS_TerminationReason__c | `Geschäftsaufgabe - Alter` |
+| Description | `Testfall Kündigung durch Annahmestelle — Geschäftsaufgabe Alter` |
 | referenceId | `caseKuendigungASt` |
 
 #### 7h. Case: Änderung vertragsrelevanter Daten (Contract Data Change)
@@ -794,6 +798,54 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | Description | `Testfall Bestellung durch RD` |
 | referenceId | `caseBestellung` |
 
+#### 7n. Case: Wartung Thermodrucker (Thermal Printer Maintenance)
+
+| Field | Value |
+|-------|-------|
+| sObject | `Case` |
+| RecordType | `STLGS_ServiceDeskCase` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
+| Subject | `Test Wartung Thermodrucker {{Year}}` |
+| Status | `Zugewiesen an 2nd Level` |
+| STLGS_TopicArea__c | `Wartung__c` |
+| STLGS_ChecksToKBDone__c | `true` |
+| STLGS_ProServicesCase__c | `true` |
+| Description | `Testfall Thermodruckerwartung` |
+| referenceId | `caseWartung` |
+
+#### 7o. Case: Filialverantwortung ändern (Branch Manager Change)
+
+| Field | Value |
+|-------|-------|
+| sObject | `Case` |
+| RecordType | `STLGS_EditCase` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
+| ContactId | `{{Ref:contactFilialverantwortliche}}` |
+| Subject | `Test Filialverantwortung ändern {{Today}}` |
+| Status | `Neu` |
+| STLGS_Type__c | `Filialverantwortung ändern` |
+| STLGS_ValidFrom__c | `{{Today+30d}}` |
+| Origin | `Email` |
+| Description | `Testfall Filialverantwortung wechseln — juristische Person` |
+| referenceId | `caseFVWechsel` |
+
+#### 7p. Case: Kündigung durch Lotto (Termination — by STLG)
+
+| Field | Value |
+|-------|-------|
+| sObject | `Case` |
+| RecordType | `STLGS_EditCase` |
+| AccountId | `{{Ref:b2bStoreVollASt}}` |
+| ContactId | `{{Ref:contactLizenzinhaber}}` |
+| Subject | `Test Kündigung durch Lotto {{Today}}` |
+| Status | `Neu` |
+| STLGS_Type__c | `Kündigung` |
+| STLGS_TerminationType__c | `Kündigung` |
+| STLGS_TerminatedBy__c | `Lotto` |
+| STLGS_TerminationReason__c | `Fristl. Kündigung - Zahlungsschwierigkeiten` |
+| Description | `Testfall Kündigung durch Lotto — Zahlungsschwierigkeiten` |
+| referenceId | `caseKuendigungLotto` |
+
 ---
 
 ### 8. Visit Reports (Besuchsberichte)
@@ -805,11 +857,12 @@ Visit Reports are a separate custom object (`STLGS_VisitReport__c`), NOT Cases.
 | Field | Value |
 |-------|-------|
 | sObject | `STLGS_VisitReport__c` |
-| RecordType | `STLGS_Report` |
+| RecordType | `STLGS_StandardVisitReport` |
 | STLGS_Account__c | `{{Ref:b2bStoreVollASt}}` |
+| STLGS_Type__c | `Regelbesuch` |
 | STLGS_Status__c | `Neu` |
 | STLGS_DueDate__c | `{{Today+14d}}` |
-| STLGS_Description__c | `Testfall Besuchsbericht` |
+| STLGS_Description__c | `Testfall Besuchsbericht — Regelbesuch` |
 | referenceId | `visitReport` |
 
 ---
@@ -913,13 +966,16 @@ B2C and B2B are **independent paths** — they share no dependencies.
 | Testkauf | 7d | `STLGS_TestPurchase` | — |
 | Pflichtschulung Präsenz | 7e | `STLGS_EditCase` | `STLGS_TrainingType__c = Präsenz` |
 | Pflichtschulung Online | 7f | `STLGS_EditCase` | `STLGS_TrainingType__c = Online` |
-| Kündigung | 7g | `STLGS_EditCase` | `STLGS_Type__c = Kündigung` |
+| Kündigung durch ASt | 7g | `STLGS_EditCase` | `STLGS_TerminatedBy__c = Annahmestelle` |
 | Vertragsrel. Datenänderung | 7h | `STLGS_EditCase` | `STLGS_Type__c = Änderung vertragsrelevanter Daten` |
 | Bankdaten | 7i | `STLGS_EditCase` | `STLGS_Type__c = Bankdaten` |
 | Rücklastschrift | 7j | `STLGS_EditCase` | `STLGS_Type__c = Rücklastschrift` |
 | Kontrollbesuch | 7k | `STLGS_ControlReport` | `STLGS_Type__c = Kontrollbesuch` |
 | Terminallaufzeiten | 7l | `STLGS_EditCase` | `STLGS_Type__c = Terminallaufzeiten` |
 | Bestellung | 7m | `STLGS_SalesCase` | `STLGS_Type__c = Bestellung RD` |
+| Wartung Thermodrucker | 7n | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = Wartung__c` |
+| Filialverantwortung ändern | 7o | `STLGS_EditCase` | `STLGS_Type__c = Filialverantwortung ändern` |
+| Kündigung durch Lotto | 7p | `STLGS_EditCase` | `STLGS_TerminatedBy__c = Lotto` |
 | B2C Allgemein | 6a | `STLG_StandardCase` | `Type = Allgemeines` |
 | B2C Gewinne | 6b | `STLG_StandardCase` | `Type = Gewinne` |
 | B2C Erwin | 6c | `STLG_ErwinCase` | `Type = ERWIN_Kundenkonto` |

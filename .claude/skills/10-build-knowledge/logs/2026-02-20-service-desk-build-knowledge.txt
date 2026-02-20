@@ -1,0 +1,130 @@
+============================================================
+Skill: 10-build-knowledge
+Topic: Service Desk
+Slug: service-desk
+Input: Service Desk (detected as: Topic)
+Date: 2026-02-20
+============================================================
+
+Step 1: Input & Existing Documentation
+----------------------------------------
+- Input type: Topic (user request: "topic service desk")
+- Topic name: Service Desk
+- Slug: service-desk
+- Existing topic file: not found (new creation)
+- Existing domain-knowledge section: found (mention in Vorgangstypen table, line 160)
+- Scope exclusion: VDE Prüfung, Thermodrucker Wartung, Terminaltausch Feedback → Future "Field Service" doc
+
+Step 2: Sources Gathered
+-------------------------
+- Jira: ~120 stories from 7 epics (4 main + 3 backlog)
+  Main Epics:
+  - CRM-94: SD - Case Management (~80 stories) — Done
+  - CRM-1223: SD - ProServices Portal (~15 stories) — Done
+  - CRM-1224: SD - Integration Itenos (~8 stories) — Done
+  - CRM-1278: SD - Rechte, Rollen & Profiles (~12 stories) — Done
+  Backlog Epics:
+  - CRM-2446: SD: KB Artikel Freigabeworkflow (2 stories) — Backlog
+  - CRM-2451: SD: Masterticket Incidents (0 stories) — Backlog
+  - CRM-3032: SD: Neue Themenbereiche & Lösungspunkte (0 stories) — Backlog
+
+  Key Stories read in detail (~20):
+  - CRM-1273: Neuer RecordType ServiceDeskCase
+  - CRM-1276: Status & Statuswechsel
+  - CRM-1287: KB Artikel Durchstich
+  - CRM-1288: Email2Case Leitstand
+  - CRM-1342: Übergabe an RD
+  - CRM-1350: Case von SD zu VO/RD Status
+  - CRM-1453: Email an Itenos
+  - CRM-1460: Sharing ProServices
+  - CRM-1461: Handover für ProServices
+  - CRM-1471: Themenbereiche
+  - CRM-1485: Zurück an SD
+  - CRM-1495: Übergabe-Validierung
+  - CRM-1497: Wiedervorlage
+  - CRM-1507: Vertrieb nimmt SD-Case
+  - CRM-1515/1516/1518: Skyvva/TMF Integration
+  - CRM-1557: Portal Kopfverteiler
+  - CRM-1572: Warten Intern Button
+  - CRM-1634: Themenbereich
+  - CRM-1636: Betreff
+  - CRM-1676: Neue Themenbereiche
+  - CRM-1810: Vollstörung Checkbox
+  - CRM-1821: MCS Queue
+  - CRM-1839: Notfallrouter
+
+- Codebase: 6 Flows, 1 Apex Trigger Action, 2 Skyvva classes, 1 Trigger, 12 Case fields, 5 Itenos fields, 3 Validation Rules, 5 FlexiPages, 2 List Views, 5+ Permission Sets, 1 Custom Object
+  Key components:
+  - Flow: STLGS_CreateServiceDeskCase (Screen Flow, Case creation)
+  - Flow: STLGS_SetSubjectSD (Record-Triggered, auto subject)
+  - Flow: STLGS_UpdateSDCaseOnEmail (Record-Triggered, email update)
+  - Flow: STLG_SendTicketItenos (Autolaunched, Itenos ticket)
+  - Flow: STLG_ItenosIntegration (Autolaunched, Skyvva Create/Update)
+  - Flow: STLGS_MapItenosStatus (Record-Triggered, status mapping)
+  - Apex: STLGS_TA_SetFileVisibilityProServices (Trigger Action)
+  - Apex: STLGS_SkyvvaMappingResponseTMF (Skyvva mapping)
+  - Apex: STLGS_SkyvvaMappingRequestTMF (Skyvva mapping)
+  - Trigger: STLGS_TroubleTicketTrigger (CaseComment__c)
+  - Object: STLGS_CaseComment__c (Itenos comments)
+  - LWC: stlgs_searchArticleDetails (KB article search)
+  - RecordType: STLGS_ServiceDeskCase + BusinessProcess
+  - Queues: STLGS_ServiceDesk, STLGS_ProServices, MCS, Embers, VDE_Pruefung, Wartung
+
+- Confluence: 1 page read
+  - "Annahmestellenservice Prozesse" (712376321) — Pre-SF ist-state
+
+- Local docs: 0 files (no existing SD documentation in business/docs/)
+
+Step 3: Topic File Written
+---------------------------
+- Path: pipeline/customers/lotto-bw/docs/service-desk.md
+- Mode: created (new)
+- Sections: All 9 mandatory sections present
+  - Überblick (with Siehe auch cross-references)
+  - Geschäftsprozess (4 subsections: Case-Erstellung, Status-Flow, Eskalation ProServices, Eskalation Itenos, Themenbereich & KB, Case-Abschluss)
+  - Business Rules (12 rules, no process descriptions)
+  - Technische Umsetzung (Datenmodell, Picklists, Automation, Integrationen, UI)
+  - Konfiguration (RecordType, Queues, Profiles, PermSets, PSGs, Custom Permissions, Data Categories)
+  - Bekannte Probleme & Workarounds (5 items)
+  - Referenzen (Jira, Confluence, Codebase)
+  - Änderungshistorie
+
+- Key content:
+  - Complete TopicArea picklist (18 values: 15 active, 3 inactive)
+  - Complete Resolution picklist (60+ values grouped by TopicArea dependency)
+  - Full Itenos TMF integration documentation (Skyvva bidirectional, deeplink)
+  - ProServices portal workflow
+  - 12 SD-specific Case fields + 5 Itenos fields + STLGS_CaseComment__c
+
+Step 4: Structural Validation
+------------------------------
+- Checklist passed: yes
+  1. All 9 mandatory sections present: YES
+  2. Business Rules contains only rules: YES (12 constraint items, no process descriptions)
+  3. All tables in 3-column format: YES
+  4. Cross-references present: YES (Überblick → testkauf, kuendigung, filialverantwortung-wechseln)
+  5. No content duplicates: YES (kuendigung/testkauf processes only briefly mentioned + linked)
+  6. Picklist values complete: YES (TopicArea 18/18, Resolution 60+/60+)
+
+Step 5: Cross-References Updated
+----------------------------------
+- service-desk.md → testkauf.md, kuendigung.md, filialverantwortung-wechseln.md (in Überblick)
+- testkauf.md → service-desk.md added (Siehe auch line)
+- kuendigung.md → service-desk.md added (Siehe auch line)
+
+Step 6: Index Updated
+----------------------
+- domain-knowledge.md:
+  - Index table: Service Desk row added to "Themen-Dokumentation (Detail)"
+  - Blockquote reference added after Vorgangstypen table (line 162)
+
+Step 7: Summary
+----------------
+- Topic file: pipeline/customers/lotto-bw/docs/service-desk.md
+- Sources processed: ~120 Jira stories (7 epics), 6 Flows + 4 Apex components, 1 Confluence page, 0 local docs
+- Key findings:
+  1. Service Desk is the largest B2B process by story count (~120 stories across 7 epics)
+  2. Itenos TMF integration is fully bidirectional via Skyvva (Create ticket → status sync → auto-close)
+  3. Resolution picklist has 60+ values with TopicArea dependency — complex mapping
+  4. 3 backlog epics (KB Freigabe, Masterticket, Neue Themenbereiche) represent upcoming work
+  5. ProServices portal uses Experience Cloud with dedicated queue, permission set group, and file visibility control

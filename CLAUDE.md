@@ -46,6 +46,7 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 6. `/architecture-overview [space-key]` — Analyzes the full repository and publishes a comprehensive technical architecture overview to Confluence
 7. `/release-notes [version]` — Generates release notes from the latest merge commit by resolving all referenced Jira stories
 8. `/code-review [space-key]` — Performs a comprehensive code review based on the project's tech stack and publishes results to Confluence or as local Markdown
+9. `/build-knowledge <epic-id|topic>` — Builds comprehensive internal domain documentation as Markdown topic files, consolidating knowledge from Jira, Confluence, codebase, and existing docs
 
 ## Additional Skill Remarks
 
