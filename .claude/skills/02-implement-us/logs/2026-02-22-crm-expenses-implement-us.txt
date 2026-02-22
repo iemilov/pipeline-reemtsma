@@ -1,0 +1,68 @@
+Implementation Log: crm-expenses
+Date: 2026-02-22
+Skill: 02-implement-us
+
+## Source
+Local implementation design: implementation-design/crm-expenses/implementation-notes.md
+
+## Implementation Approach
+Declarative + code hybrid approach for a full-stack feature:
+- Database migration (declarative SQL)
+- Backend API endpoints + business logic (Node.js / Cloudflare Workers)
+- PDF generation update (pdf-lib)
+- Frontend UI (React JSX)
+- Configuration (wrangler.toml R2 binding)
+
+## Files Created
+
+### Migration
+- projects/crm/migrations/0024_add_expenses.sql — Add expense_category/currency columns, expense_attachments table, expense_limits table
+
+### Backend Libraries
+- projects/crm/functions/lib/expense-limits.js — CRUD for expense limits (getExpenseLimits, getExpenseLimit, upsertExpenseLimit, deleteExpenseLimit)
+
+### API Endpoints
+- projects/crm/functions/api/settings/expense-limits.js — GET/PUT/DELETE expense limits
+- projects/crm/functions/api/invoices/[id]/attachments.js — POST/GET/DELETE receipt attachments (R2 storage)
+- projects/crm/functions/api/dashboard/expenses.js — GET expenses grouped by project
+
+## Files Modified
+
+### Backend
+- projects/crm/functions/lib/invoices.js — Added addExpense() with limit validation; updated updateLineItem() to support expense_category and currency fields
+- projects/crm/functions/api/invoices/[id]/line-items.js — Route type=expense to addExpense(); relaxed quantity requirement for expenses
+
+### PDF
+- projects/crm/functions/lib/invoice-pdf.js — Split rendering into services/expenses sections with separate subtotals (Zwischensumme Leistungen / Zwischensumme Auslagen)
+
+### Frontend
+- projects/crm/src/pages/InvoicesPage.jsx — Added expenses section with add form, expenses table, category badges, split totals display
+- projects/crm/src/pages/SettingsPage.jsx — Added ExpenseLimitsSection with CRUD table for configuring per-category limits
+- projects/crm/src/pages/DashboardPage.jsx — Added ExpensesByProject pie chart component
+- projects/crm/src/hooks/useDashboard.js — Added expenses endpoint to dashboard data fetching
+
+### Config
+- projects/crm/wrangler.toml — Added R2 bucket binding (ATTACHMENTS = crm-attachments)
+
+## Build Result
+- npm run build: SUCCESS (1.84s)
+- ESLint: warnings only (all pre-existing), no new errors
+
+## Expense Categories
+- travel (Reisekosten) — 19% VAT
+- hotel (Übernachtung) — 7% VAT
+- meals (Verpflegung) — 19% VAT
+- transport (Fahrtkosten) — 19% VAT
+- flatrate (Pauschale) — 19% VAT, unit: DAY
+- other (Sonstige Auslagen) — 19% VAT
+
+## Manual Steps Required
+1. Create R2 bucket: wrangler r2 bucket create crm-attachments
+2. Run migrations: npm run migrate:local && npm run migrate:remote
+3. Configure expense limits in Settings page (optional)
+
+## Open Questions / Assumptions
+- Attachment upload uses R2 — bucket must be created before deployment
+- Used 0024 as migration number (next sequential after 0023), not 0025 as suggested in notes
+- ZUGFeRD XML: no changes needed — expenses are included as regular invoice lines automatically
+- recalcTotals() already handles all line item types — no modification needed
