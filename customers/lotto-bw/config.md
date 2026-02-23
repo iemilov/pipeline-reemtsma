@@ -17,7 +17,7 @@
 | Key | Value |
 |-----|-------|
 | Full Name | Lotto Baden-Württemberg |
-| Short Name | Lotto BW |
+| Short Name | LottoBW |
 | Architecture Page Title | `Technische Architektur – Salesforce Lotto BW` |
 
 ## Locale & Language
