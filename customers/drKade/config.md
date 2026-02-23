@@ -7,7 +7,7 @@
 | Jira URL | `https://<instance>.atlassian.net` |
 | Confluence URL | `https://<instance>.atlassian.net/wiki` |
 | Cloud ID | `<uuid>` |
-| Project Key | `<PROJECT>` |
+| Project Key | `PP-` |
 | Components | `<Component1>`, `<Component2>` |
 | Epic Link Field | `customfield_10014` (via `Parent` on story) |
 | Confluence Parent Page | `<parent page path>` |
