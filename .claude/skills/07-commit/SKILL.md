@@ -70,23 +70,28 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
    - Option 2: "Nein, ich möchte Dateien auswählen"
    - If the user wants to select files, ask which files to include
 
-3. **Stage and commit**:
+3. **Create the log file** before staging:
+   - Write the log file `<YYYY-MM-DD>-commit.txt` to `.claude/skills/07-commit/logs/`
+   - Include: changes summary, security check result, list of files being committed in each repo
+   - This file is created NOW so it is included in the submodule commit (no separate commit needed)
+
+4. **Stage and commit**:
    ```bash
    cd pipeline
-   git add <files>
+   git add <files> .claude/skills/07-commit/logs/<YYYY-MM-DD>-commit.txt
    git commit -m "<commit-message>"
    ```
    - The commit message is `$ARGUMENTS` as provided by the user
    - Do NOT append the CI skip pattern to submodule commits (no CI pipeline on submodule)
    - Follow the **co-author policy** from config
 
-4. **Pull with rebase** (handle remote-ahead):
+5. **Pull with rebase** (handle remote-ahead):
    ```bash
    git pull --rebase origin <submodule-branch-from-config>
    ```
    - If conflicts occur, inform the user and abort (do not auto-resolve)
 
-5. **Push**:
+6. **Push**:
    ```bash
    git push origin <submodule-branch-from-config>
    ```
@@ -143,7 +148,7 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
 - **Interactive**: Always ask the user for confirmation before committing. Show exactly which files will be included
 - **Submodule pointer**: When the submodule is updated, always stage `pipeline` in the main repo too
 - **Detached HEAD recovery**: Automatically recover from detached HEAD in the submodule
-- ALWAYS create a log file named `<YYYY-MM-DD>-commit.txt` in `.claude/skills/07-commit/logs/` — copy the complete output as text into this file
+- **Log file timing**: ALWAYS create the log file `<YYYY-MM-DD>-commit.txt` in `.claude/skills/07-commit/logs/` BEFORE the submodule commit (Step 3.3), so it is included in the same commit — never as a separate follow-up commit
 
 ## Error Handling
 

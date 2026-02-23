@@ -1,0 +1,26 @@
+Commit Log: 2026-02-23 — updated commit skill log file timing
+==============================================================
+
+## Changes Summary
+
+### Submodule (pipeline/)
+- Modified: .claude/skills/07-commit/SKILL.md
+  - Moved log file creation to before submodule commit (Step 3.3)
+  - Log file is now included in the same commit, no separate follow-up needed
+  - Updated Important Rules section to reflect new timing
+
+### Main Repo
+- Modified: pipeline (submodule pointer update only)
+
+## Security Check
+No main repo files modified (submodule pointer only). No sensitive content detected.
+
+## Submodule Commit & Push
+- Files committed: .claude/skills/07-commit/SKILL.md, .claude/skills/07-commit/logs/2026-02-23-commit.txt
+- Branch: main
+- Push: origin/main
+
+## Main Repo Commit & Push
+- Files committed: pipeline (submodule pointer)
+- Branch: master
+- CI skip pattern appended: [skip ci]
