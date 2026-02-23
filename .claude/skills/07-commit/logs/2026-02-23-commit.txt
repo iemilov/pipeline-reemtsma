@@ -1,26 +1,24 @@
-Commit Log: 2026-02-23 — updated commit skill log file timing
-==============================================================
+Commit Log: 2026-02-23 — architecture overview
+================================================
 
 ## Changes Summary
 
 ### Submodule (pipeline/)
-- Modified: .claude/skills/07-commit/SKILL.md
-  - Moved log file creation to before submodule commit (Step 3.3)
-  - Log file is now included in the same commit, no separate follow-up needed
-  - Updated Important Rules section to reflect new timing
+- New: .claude/skills/05-architecture-overview/logs/2026-02-23-architecture-overview.txt
+- New: .claude/skills/07-commit/logs/2026-02-23-commit.txt (this file)
 
 ### Main Repo
-- Modified: pipeline (submodule pointer update only)
+- New: architecture/2026-02-23-architecture-overview.md
+- Modified: pipeline (submodule pointer)
 
 ## Security Check
-No main repo files modified (submodule pointer only). No sensitive content detected.
+No sensitive content detected.
 
 ## Submodule Commit & Push
-- Files committed: .claude/skills/07-commit/SKILL.md, .claude/skills/07-commit/logs/2026-02-23-commit.txt
 - Branch: main
-- Push: origin/main
+- Files: architecture-overview log + commit log
 
 ## Main Repo Commit & Push
-- Files committed: pipeline (submodule pointer)
 - Branch: master
+- Files: architecture overview document + submodule pointer
 - CI skip pattern appended: [skip ci]
