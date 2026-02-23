@@ -239,7 +239,7 @@ If only step 1 is done, the main repo will show `pipeline` as modified (displaye
 ## Important Notes
 
 - **Confidentiality:** The customer has no access to this submodule. Sensitive information (skill prompts, internal processes) must only be committed here, never to the main repo.
-- **Logs:** Each skill execution creates a log file under `.claude/skills/<skill>/logs/` in the format `<YYYY-MM-DD>-<identifier>-<skill-name>.txt`.
+- **Logs:** Each skill execution creates a log file under `.claude/skills/<skill>/logs/` in the format `<YYYY-MM-DD>-<customer-short-name>-<identifier>-<skill-name>.txt`.
 - **No AI attribution:** Never include `Co-Authored-By: Claude` or similar AI attribution in commits to the main repo.
 - **`.gitignore` in main repo:** The entries for `CLAUDE.md`, `.claude/`, and `pipeline/.env` ensure that symlinks and sensitive files are never committed to the main repo.
 - **Customer config symlinks:** `customer.config.md` and `customer.domain.md` are local symlinks inside `pipeline/` — they are gitignored and not committed.

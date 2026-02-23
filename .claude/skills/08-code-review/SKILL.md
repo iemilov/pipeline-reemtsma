@@ -164,7 +164,7 @@ Present:
 - Output text in the review report uses the **documentation language** from config
 - Use the Atlassian MCP tools for all Confluence operations
 - Read **Cloud ID** from `customer.config.md` — do not hardcode
-- ALWAYS create a log file named `<YYYY-MM-DD>-code-review.txt` in `.claude/skills/08-code-review/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-code-review.txt` in `.claude/skills/08-code-review/logs/` — copy the complete output as text into this file
 - Focus on actionable findings — avoid nitpicking or stylistic opinions unless they violate project conventions
 - Every finding MUST include: severity, file location, description, and a concrete fix suggestion
 - Do not report findings in test files unless they represent security risks

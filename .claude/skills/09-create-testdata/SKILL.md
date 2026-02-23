@@ -96,7 +96,7 @@ Present:
 - **Prefer Composite Tree API** over individual record creation for performance
 - **Avoid `sf data import bulk`** — it has persistent line ending issues on macOS (see domain knowledge)
 - **Do not create duplicate test data** — before creating, optionally query for existing records with the same name pattern and warn the user
-- ALWAYS create a log file named `<YYYY-MM-DD>-<org-alias>-create-testdata.txt` in `.claude/skills/09-create-testdata/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<org-alias>-create-testdata.txt` in `.claude/skills/09-create-testdata/logs/` — copy the complete output as text into this file
 
 ## Error Handling
 

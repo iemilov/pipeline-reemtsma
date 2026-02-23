@@ -114,7 +114,7 @@ Present:
 - Use the Atlassian MCP tools for all Jira operations
 - Read **Cloud ID** from `customer.config.md` — do not hardcode
 - If no Jira keys are found in the merge commit, inform the user and abort
-- ALWAYS create a log file named `<YYYY-MM-DD>-<version>-release-notes.txt` in `.claude/skills/06-release-notes/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<version>-release-notes.txt` in `.claude/skills/06-release-notes/logs/` — copy the complete output as text into this file
 - If a story cannot be fetched from Jira (e.g. permissions), list it with just the key and note that details were unavailable
 
 ## Error Handling

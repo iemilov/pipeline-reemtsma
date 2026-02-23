@@ -209,7 +209,7 @@ If there are **manual configuration steps** needed post-deployment (e.g., activa
 - Use the Atlassian MCP tools for all Jira operations
 - Read **Cloud ID** from `customer.config.md` — do not hardcode
 - Add always the epic id in the header with @see, so the code can be tracked back and linked to a user story in Jira
-- ALWAYS create a log file named `<YYYY-MM-DD>-$ARGUMENTS-implement-us.txt` in `.claude/skills/02-implement-us/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-$ARGUMENTS-implement-us.txt` in `.claude/skills/02-implement-us/logs/` — copy the complete output as text into this file
 
 ## Error Handling
 - If the Jira issue cannot be fetched, inform the user with the error details and abort
