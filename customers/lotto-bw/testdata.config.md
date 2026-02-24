@@ -10,6 +10,8 @@ This configuration defines the test data records to be created in a Lotto-BW Sal
 
 ### 0. Internal Company Account
 
+> **Sektion 0** | Tags: `prerequisites` | Abhängigkeiten: — | Beschreibung: Company Account (skip if exists) + RD-User Lookups — immer erforderlich für B2B
+
 #### 0a. Lotto BW Company Account (Staatliche Toto-Lotto GmbH)
 
 This is the internal Lotto BW company account — a prerequisite for B2B processes. Unlike test records, this uses a fixed name (no `{{Today}}` suffix) because it represents the real company entity. The skill should **skip creation if an account with this exact name already exists**.
@@ -52,6 +54,8 @@ These are NOT created — the skill queries existing active users by their role 
 
 ### 1. B2C Person Accounts
 
+> **Sektion 1** | Tags: `b2c`, `person-account` | Abhängigkeiten: — | Records: 2 | Beschreibung: B2C Person Accounts (Prospect + Bestandskunde)
+
 #### 1a. B2C Prospect Account (Interessent)
 
 | Field | Value |
@@ -92,6 +96,8 @@ These are NOT created — the skill queries existing active users by their role 
 ---
 
 ### 2. B2B Accounts
+
+> **Sektion 2** | Tags: `b2b`, `account`, `store` | Abhängigkeiten: Sek. 0 | Records: 4 | Beschreibung: B2B Accounts & Stores (Business Account, Potenzielle ASt, VollASt, Lotto Kompakt)
 
 #### 2a. B2B Business Account (Geschäftskunde — juristische Person)
 
@@ -172,6 +178,8 @@ Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filial
 ---
 
 ### 3. Contacts
+
+> **Sektion 3** | Tags: `b2b`, `contact`, `nationality`, `antrag` | Abhängigkeiten: Sek. 0, 2 | Records: 7 | Beschreibung: Sales Contacts inkl. Nationalitäts-Szenarien (DE, EU, Nicht-EU, Doppelstaatler)
 
 #### 3a. Geschäftsführer (Business Account)
 
@@ -324,6 +332,8 @@ Antragsteller natürliche Person: 1. Staatsangehörigkeit Nicht-EU, 2. Staatsang
 
 ### 4. AccountContactRelation Updates
 
+> **Sektion 4** | Tags: `b2b`, `acr` | Abhängigkeiten: Sek. 0, 2, 3 | Records: 7 (Updates) | Beschreibung: ACR-Updates (Lizenzinhaber, Filialverantwortliche, Geschäftsführer — Rollen + Flags setzen)
+
 These are UPDATE operations on the auto-created ACR records (Salesforce creates ACRs automatically when a Contact is linked to an Account). The skill must query the ACR by AccountId + ContactId, then update the custom fields.
 
 #### 4a. ACR: Store VollASt ↔ Lizenzinhaber
@@ -414,6 +424,8 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 ---
 
 ### 5. Requests (Anträge)
+
+> **Sektion 5** | Tags: `antrag`, `b2b`, `nationality` | Abhängigkeiten: Sek. 0, 2, 3, 4 | Records: 8 | Beschreibung: Anträge (Neueröffnung NP/JP, Übernahme, Verlegung, EU/Nicht-EU/Doppelstaatler-Szenarien)
 
 All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 
@@ -553,6 +565,8 @@ Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS
 
 ### 6. B2C Cases
 
+> **Sektion 6** | Tags: `b2c`, `case` | Abhängigkeiten: Sek. 1 | Records: 3 | Beschreibung: B2C Cases (Allgemeines Anliegen, Gewinnauskunft, Erwin-Plattform)
+
 #### 6a. Case: Allgemeines Anliegen (B2C)
 
 | Field | Value |
@@ -598,6 +612,10 @@ Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS
 
 ### 7. B2B Cases — on Store Vollannahmestelle
 
+Alle 7x-Sub-Sektionen erfordern Sek. 0 + 2 (und Sek. 3 für ContactId). Sub-Sektionen sind unabhängig voneinander wählbar.
+
+> **Sektion 7a** | Tags: `b2b`, `case`, `service-desk` | Abhängigkeiten: Sek. 0, 2 | Records: 1 | Beschreibung: Service Desk allgemeine Anfrage (B2B)
+
 #### 7a. Case: Service Desk (B2B)
 
 | Field | Value |
@@ -613,6 +631,8 @@ Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS
 | STLGS_TopicArea__c | `General__c` |
 | Description | `Testfall B2B Service Desk — allgemeine technische Anfrage` |
 | referenceId | `caseServiceDeskB2B` |
+
+> **Sektion 7b–7c** | Tags: `b2b`, `case`, `vde`, `asset` | Abhängigkeiten: Sek. 0, 2 | Records: 2 | Beschreibung: VDE Prüfung (Vollannahmestelle + Lotto Kompakt — Flow erstellt Assets automatisch)
 
 #### 7b. Case: VDE Prüfung (Electrical Safety Inspection)
 
@@ -646,6 +666,8 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | Description | `Testfall VDE Prüfung — Lotto Kompakt (7 Assets erwartet)` |
 | referenceId | `caseVDEPruefungLK` |
 
+> **Sektion 7d** | Tags: `b2b`, `case`, `testkauf`, `compliance` | Abhängigkeiten: Sek. 0, 2 | Records: 1 | Beschreibung: Testkauf (Mystery-Shopping, Ampelsystem Jugendschutz)
+
 #### 7d. Case: Testkauf (Test Purchase)
 
 | Field | Value |
@@ -661,6 +683,8 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | STLGS_TestPurchaseExecutionDate__c | `{{Today}}` |
 | Description | `Testfall Testkauf — Ersttest Jugendschutz` |
 | referenceId | `caseTestkauf` |
+
+> **Sektion 7e–7f** | Tags: `b2b`, `case`, `pflichtschulung` | Abhängigkeiten: Sek. 0, 2 | Records: 2 | Beschreibung: Pflichtschulung Jugend- und Spielerschutz (Präsenz + Online/E-Learning)
 
 #### 7e. Case: Pflichtschulung Präsenz (Mandatory Training — In-Person)
 
@@ -695,6 +719,8 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 | STLGS_LeadingRequest__c | `{{Ref:requestNeueroeffnungNP}}` |
 | Description | `Testfall Pflichtschulung Online` |
 | referenceId | `casePflichtschulungOnline` |
+
+> **Sektion 7g–7p** | Tags: `b2b`, `case`, `verwaltung` | Abhängigkeiten: Sek. 0, 2 | Records: 10 | Beschreibung: Verwaltungs-Cases (Kündigung, Vertragsänderung, Bankdaten, Rücklastschrift, Kontrollbesuch, Terminallaufzeiten, Bestellung, Wartung, FV-Wechsel)
 
 #### 7g. Case: Kündigung (Termination — by ASt)
 
@@ -850,6 +876,8 @@ VDE uses the ServiceDeskCase RecordType with `STLGS_TopicArea__c = "VDE Prüfung
 
 ### 8. Visit Reports (Besuchsberichte)
 
+> **Sektion 8** | Tags: `b2b`, `besuch`, `visit` | Abhängigkeiten: Sek. 0, 2 | Records: 1 | Beschreibung: Besuchsbericht Regelbesuch (eigenes Objekt STLGS_VisitReport__c)
+
 Visit Reports are a separate custom object (`STLGS_VisitReport__c`), NOT Cases.
 
 #### 8a. Visit Report (Besuchsbericht)
@@ -868,6 +896,8 @@ Visit Reports are a separate custom object (`STLGS_VisitReport__c`), NOT Cases.
 ---
 
 ### 9. Assets (VDE Inspection Assets)
+
+> **Sektion 9** | Tags: `b2b`, `asset`, `vde` | Abhängigkeiten: Sek. 0, 2, 7b | Records: 2 | Beschreibung: Manuelle Test-Assets (Terminal & Drucker, Lottowand) — unabhängig vom VDE-Flow, für Inspektion-Workflow-Tests
 
 These are manually defined test assets. Note: The VDE Flow (`STLGS_CreateAssetsVDECases`) auto-creates assets when a VDE Case is created — these manual assets are for testing inspection workflows independently.
 
