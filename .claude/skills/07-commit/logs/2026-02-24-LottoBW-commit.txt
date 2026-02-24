@@ -1,20 +1,17 @@
-Commit Log: 2026-02-24 — new skill design-us
+Commit Log: 2026-02-24 — interactive design-us skill
 
 ## Changes Summary
 
 ### Submodule (pipeline/)
-- Modified: .claude/skills/02-implement-us/SKILL.md — updated Step 1.4 to reference /design-us skill
-- Modified: CLAUDE.md — added /design-us as step 3 in workflow list
-- New: .claude/skills/11-design-us/SKILL.md — new standalone skill for generating implementation notes
-- New: .claude/skills/11-design-us/logs/ — log directory for the new skill
+- Modified: .claude/skills/11-design-us/SKILL.md — added Step 3 (Resolve Open Questions) with interactive Q&A, added Resolved Questions table to markdown template, renumbered steps
 
 ### Main Repo
 - Submodule pointer update only (pipeline/)
 
 ## Security Check
-No sensitive content detected. All changes are in the submodule (skill definitions and CLAUDE.md).
+No sensitive content detected. All changes are in the submodule.
 
 ## Commit Details
-- Submodule commit message: new skill design-us
-- Main repo commit message: new skill design-us [skip ci]
+- Submodule commit message: interactive design-us skill
+- Main repo commit message: interactive design-us skill [skip ci]
 - Co-author policy: Never

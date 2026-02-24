@@ -37,9 +37,35 @@ Analyze the existing codebase to inform the implementation approach:
 5. **Test patterns** — if Apex is likely needed, check the **test data factory** class from config for existing test data methods
 6. **Domain knowledge** — cross-reference `pipeline/customer.domain.md` for business logic rules, field name pitfalls, and glossary terms relevant to this story
 
-### Step 3: Determine Implementation Approach
+### Step 3: Resolve Open Questions (Interactive)
 
-Based on the requirements and codebase analysis, decide the optimal approach:
+Before determining the implementation approach, identify and resolve ambiguities. Collect **all** open questions that emerged from Steps 1-2 — do not guess or assume when the answer materially affects the implementation.
+
+**When to ask the user:**
+- The story is ambiguous about scope, behavior, or edge cases
+- Multiple valid implementation approaches exist and the trade-offs are significant
+- Field types, lengths, or labels are not specified in the story
+- It is unclear which object, record type, or page layout is affected
+- The naming prefix (B2C `STLG_` vs B2B `STLGS_`) cannot be determined from the story's component
+- Dependencies on other stories or existing metadata are unclear
+- Business rules from `customer.domain.md` conflict with or are not addressed by the story
+- Acceptance criteria are missing, incomplete, or contradictory
+
+**How to ask:**
+1. **Batch related questions** — group questions by topic and present them together using `AskUserQuestion` (up to 4 questions per call). Do not ask one question at a time when multiple are independent.
+2. **Provide context and options** — for each question, explain why it matters and offer concrete options where possible (e.g., "Long Text Area (32,000 chars) or Rich Text Area?"). Put the recommended option first.
+3. **Iterate if needed** — if an answer raises follow-up questions, ask those before proceeding. Quality of the design document is more important than speed.
+
+**What NOT to ask:**
+- Questions answerable from the Jira story, config files, domain knowledge, or codebase exploration
+- Pure implementation details that `/implement-us` can decide (e.g., exact Flow node structure, SOQL query syntax)
+- Questions where there is a clear best practice or convention in the existing codebase
+
+**Record all Q&A** — every question asked and the user's answer will be documented in the "Resolved Questions" section of the implementation notes (Step 4).
+
+### Step 4: Determine Implementation Approach
+
+Based on the requirements, codebase analysis, and resolved questions, decide the optimal approach:
 
 #### Declarative (preferred when feasible)
 - Flows (Record-Triggered, Screen, Scheduled, Autolaunched)
@@ -61,7 +87,7 @@ Based on the requirements and codebase analysis, decide the optimal approach:
 
 **Decision criteria:** Prefer declarative unless the requirement involves complex logic, bulk operations, external integrations, or cross-object processing that exceeds Flow capabilities.
 
-### Step 4: Generate Implementation Notes
+### Step 5: Generate Implementation Notes
 
 1. **Create the folder** `implementation-design/$ARGUMENTS/`
 
@@ -109,9 +135,15 @@ Based on the requirements and codebase analysis, decide the optimal approach:
 |---|---------------------|--------------------------|
 | 1 | <criterion from story> | <which component fulfills it> |
 
+## Resolved Questions
+
+| # | Question | Answer | Impact on Design |
+|---|----------|--------|------------------|
+| 1 | <question asked during design> | <user's answer> | <how this affected the implementation approach> |
+
 ## Open Questions / Assumptions
 
-<Any unresolved questions or assumptions made during analysis>
+<Any remaining unresolved questions or assumptions that could not be clarified — flag these for `/implement-us` to handle or for the user to revisit>
 
 ## Notes for `/implement-us`
 
@@ -133,7 +165,7 @@ Based on the requirements and codebase analysis, decide the optimal approach:
    - Reference relevant entries from `testdata.config.md` if the story involves objects with test data templates
    - Flag any field name pitfalls from `customer.domain.md`
 
-### Step 5: Present Summary
+### Step 6: Present Summary
 
 Present a summary to the user:
 
@@ -141,7 +173,8 @@ Present a summary to the user:
 - Implementation approach chosen (declarative vs programmatic breakdown)
 - Number of components to create/modify
 - Dependencies identified
-- Open questions that need clarification
+- Questions resolved during the interactive session (count)
+- Remaining open questions / assumptions (if any)
 - File path of the generated implementation notes
 - **Suggested next step**: `/implement-us $ARGUMENTS`
 
