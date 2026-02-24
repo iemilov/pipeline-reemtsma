@@ -1,0 +1,28 @@
+Commit Log — 2026-02-24
+Customer: LottoBW
+Skill: 07-commit
+
+## Changes Summary
+
+### Submodule (pipeline/)
+- Status: Clean — no pending changes
+
+### Main Repo (Salesforce CICD)
+- Branch: feature/CRM-3027
+- Modified: azure-pipelines.yaml
+  - NothingToDeploy handling: deploy steps now treat empty delta as warning instead of failure
+  - UAT2 delta comparison: changed from origin/master to release branch base (RELEASE_BASE)
+  - Generate_PROD_Package: auto-triggers on master push (removed skipGeneratePackage gate)
+  - PROD stage: depends on Generate_PROD_Package, resolves release version from pipeline variables
+  - Removed unused parameters: release, skipGeneratePackage
+
+## Security Check
+- Result: PASS — no sensitive content detected
+
+## Commits
+### Submodule
+- Log file commit only
+
+### Main Repo
+- Files: azure-pipelines.yaml
+- Commit message: CRM-3028 pipeline overhaul [skip ci]
