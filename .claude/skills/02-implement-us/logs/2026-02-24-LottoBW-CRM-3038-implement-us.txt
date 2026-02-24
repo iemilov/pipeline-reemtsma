@@ -1,0 +1,76 @@
+Implementation Log: CRM-3038 — Datumsformat im E-Mail Log
+Date: 2026-02-24
+Customer: LottoBW
+
+== Story ==
+CRM-3038 (Bug) — Datumsformat im E-Mail Log
+Epic: CRM-2403
+Component: B2C
+Status: In Progress
+
+Description: Das Datumsformat in der E-Mail Log Komponente muss noch angepasst werden.
+The send_date column in the Email Log LWC displays raw date values from Marketing Cloud/Skyvva without formatting.
+
+== Implementation Approach ==
+Declarative + LWC code change (minimal code, shared utility pattern)
+
+== Changes ==
+
+1. force-app/main/default/lwc/recordUtils/recordUtils.js
+   - Added exported function formatDateTimeValue(value)
+   - Formats timestamps to German DD.MM.YYYY HH:mm format
+   - Returns original value unchanged if not parseable as date
+   - Shared utility reusable across all LWC components
+
+2. force-app/main/default/lwc/stlg_emailLog/stlg_emailLog.js
+   - Added import: import { formatDateTimeValue } from "c/recordUtils"
+   - Added @see CRM-3038 JSDoc comment
+   - Modified parseResponse column mapping to format send_date values
+
+3. force-app/main/default/flexipages/STLG_StandardCaseRecordPage.flexipage-meta.xml
+   - Migrated from Aura STLG_SendLogSearch to LWC stlg_emailLog
+   - Property name mapping: Interface→interfaceName, FieldAPIName→fieldAPIName, etc.
+   - itemKeys value: subject,send_date,view_email_url
+   - Added pageSize: 5
+   - Preserved visibility rule (Account.Name NE blank)
+
+4. force-app/main/default/aura/STLG_SendLogSearch/ (7 files DELETED)
+   - Obsolete Aura component replaced by LWC in CRM-2871
+   - All references migrated — last remaining on STLG_StandardCaseRecordPage
+
+5. implementation-design/CRM-3038/implementation-notes.md
+   - Design document with full implementation details
+
+== Deployment ==
+
+Deployment 1 (Constructive): SUCCESS
+- Target: LottoDEV
+- Components: LightningComponentBundle (stlg_emailLog, recordUtils), FlexiPage (STLG_StandardCaseRecordPage)
+- Result: 3 components, 8 files deployed successfully
+
+Deployment 2 (Destructive): SUCCESS
+- Target: LottoDEV
+- Deleted: AuraDefinitionBundle STLG_SendLogSearch
+- Result: Successfully deleted from org
+
+== Git ==
+Branch: feature/CRM-3038 (from origin/release/1.10.4)
+Commit: a3b65e02
+Push: SUCCESS (to origin/feature/CRM-3038)
+PR: Azure DevOps CLI token expired — manual PR creation required
+PR URL: https://dev.azure.com/DEV-LottoBW/CRM/_git/CRM/pullrequestcreate?sourceRef=feature/CRM-3038&targetRef=release/1.10.4
+
+== Manual Deployment Steps ==
+None required. All changes deploy via metadata — no manual configuration needed.
+
+== Test Data ==
+Skipped — Email Log data comes from Marketing Cloud via Skyvva integration.
+Verification: Open any Case record with a linked Account that has Marketing Cloud email history.
+
+== Verification Checklist ==
+- [ ] Open Case record page (STLG Standard Case Record Page) in LottoDEV
+- [ ] Navigate to "Marketing Cloud" tab
+- [ ] Verify send_date displays in DD.MM.YYYY HH:mm format
+- [ ] Verify Email Log data loads correctly
+- [ ] Verify Vorschau button links work
+- [ ] Verify pagination works with >5 records
