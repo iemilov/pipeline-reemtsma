@@ -4,19 +4,19 @@
 
 | Key | Value |
 |-----|-------|
-| Jira URL | `https://<instance>.atlassian.net` |
-| Confluence URL | `https://<instance>.atlassian.net/wiki` |
-| Cloud ID | `<uuid>` |
+| Jira URL | `https://drkade.atlassian.net` |
+| Confluence URL | `https://drkade.atlassian.net/wiki` |
+| Cloud ID | `8d23ddk4-ja41-1cj4-657b-jk1cd0ca1bk7` |
 | Project Key | `PP-` |
-| Components | `<Component1>`, `<Component2>` |
+| Components | — |
 | Epic Link Field | `customfield_10014` (via `Parent` on story) |
-| Confluence Parent Page | `<parent page path>` |
+| Confluence Parent Page | — |
 
 ## Customer Identity
 
 | Key | Value |
 |-----|-------|
-| Full Name | drKade |
+| Full Name | Dr. KADE Health Care |
 | Short Name | drKade |
 | Architecture Page Title | `Technische Architektur – Salesforce drKade` |
 
