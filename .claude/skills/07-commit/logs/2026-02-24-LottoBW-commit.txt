@@ -1,81 +1,30 @@
-Commit Log: 2026-02-24 — logs
+Commit Log: 2026-02-24 — CRM-2981
 Customer: LottoBW
 
 == Changes Summary ==
 
 Submodule (pipeline/):
-- NEW: .claude/skills/02-implement-us/logs/2026-02-24-LottoBW-CRM-3038-implement-us.txt
-- NEW: .claude/skills/11-design-us/logs/2026-02-24-LottoBW-CRM-3038-design-us.txt
+- NEW: .claude/skills/11-design-us/logs/2026-02-24-LottoBW-CRM-2981-design-us.txt
 - NEW: .claude/skills/07-commit/logs/2026-02-24-LottoBW-commit.txt (this file)
 
 Main repo:
+- MODIFIED: force-app/main/default/classes/STLGS_OpeningHoursController.cls
+- MODIFIED: force-app/main/default/classes/STLGS_OpeningHoursControllerTest.cls
+- MODIFIED: force-app/main/default/lwc/stlgs_displayStoreOpeningHours/stlgs_displayStoreOpeningHours.html
+- MODIFIED: force-app/main/default/lwc/stlgs_displayStoreOpeningHours/stlgs_displayStoreOpeningHours.js
+- NEW: force-app/main/default/objects/Account/fields/STLGS_OpeningHoursLastModified__c.field-meta.xml
+- NEW: force-app/main/default/permissionsets/STLGS_Sales/fieldPermissions/Account.STLGS_OpeningHoursLastModified__c.fieldPermission-meta.xml
+- NEW: force-app/main/default/permissionsets/STLGS_ServiceDesk/fieldPermissions/Account.STLGS_OpeningHoursLastModified__c.fieldPermission-meta.xml
+- NEW: force-app/main/default/permissionsets/STLGS_ExternalServicePartner/fieldPermissions/Account.STLGS_OpeningHoursLastModified__c.fieldPermission-meta.xml
+- NEW: force-app/main/default/permissionsets/STLG_SystemAdministrator/fieldPermissions/Account.STLGS_OpeningHoursLastModified__c.fieldPermission-meta.xml
 - MODIFIED: pipeline (submodule pointer update)
 
 == Security Check ==
-No main repo file changes — only submodule pointer. No sensitive content detected.
+No sensitive content detected in main repo files.
 
 == Commit Details ==
-- Submodule commit message: logs
-- Main repo commit message: logs [skip ci]
+- Submodule commit message: CRM-2981
+- Main repo commit message: CRM-2981
 - Co-author policy: Never
 - Submodule branch: main
-- Main repo branch: feature/CRM-3038
-
----
-
-Date: 2026-02-24
-Skill: 07-commit
-Customer: LottoBW
-
-## Session 1 (earlier today)
-
-### Submodule (pipeline/)
-Status: Clean — already committed and pushed before this run.
-Latest commit: cda136b — "interactive design-us skill"
-
-### Main Repo
-Change: Submodule pointer update (pipeline/ -> cda136b)
-Files staged: pipeline (submodule reference only)
-
-## Security Check
-No files with sensitive content — only a submodule pointer change. No scan required.
-
-### Main Repo
-Branch: release/1.10.3
-Message: "Update submodule [skip ci]"
-
----
-
-## Session 2 (create-testdata skill improvement)
-
-### Submodule (pipeline/)
-
-3 Dateien geändert:
-
-1. `.claude/skills/09-create-testdata/SKILL.md`
-   - Komplett neu geschrieben
-   - Neuer Step 2: Story-Analyse via Atlassian MCP (Story-Key aus $ARGUMENTS)
-   - Keyword-to-Tag-Mapping-Tabelle (Antrag/VDE/Testkauf/Pflichtschulung/etc.)
-   - Neuer Step 3: Interaktive Sektionsauswahl mit [IMMER]/[EMPFOHLEN]/[ ] Status
-   - Neuer Step 4: Abhängigkeits-Auflösung (depends_on)
-   - Steps 5–8: Umbenannt aus ursprünglichen Steps 2–5
-
-2. `customers/lotto-bw/testdata.config.md`
-   - Metadata-Blockquotes für alle Sektionen 0–9 hinzugefügt (Tags + depends_on)
-
-3. `.claude/skills/07-commit/logs/2026-02-24-LottoBW-commit.txt`
-   - Dieser Log (wird mitgecheckt)
-
-### Main Repo
-Change: Submodule-Pointer (pipeline/ → neuer Commit)
-
-## Security Check
-Keine sensiblen Dateien. Keine .env, keine Credentials, keine API-Keys.
-
-### Submodule (pipeline/)
-Branch: main
-Message: "create-testdata: Story-aware Sektionsauswahl (SKILL.md + testdata.config.md Tags)"
-
-### Main Repo
-Branch: release/1.10.3
-Message: "create-testdata: Story-aware Sektionsauswahl (SKILL.md + testdata.config.md Tags) [skip ci]"
+- Main repo branch: feature/CRM-2981

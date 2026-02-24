@@ -1,0 +1,56 @@
+Design Log: CRM-2981 — Ladenöffnungszeiten // Info "zuletzt geändert am" anzeigen
+Date: 2026-02-24
+Customer: LottoBW
+
+== Story ==
+CRM-2981 (Story) — Ladenöffnungszeiten // Info "zuletzt geändert am" anzeigen
+Component: B2B (prefix STLGS_)
+Status: In Progress
+Fix Version: 1.10.4
+Epic: (none assigned)
+No blocking dependencies.
+
+== Requirements ==
+- Show "zuletzt geändert am" info in the opening hours section on Account
+- Timestamp set on every saveTimes() call in the Aura component — unconditionally (no change detection)
+- Standard Update Quick Action (STLGS_NewOpeningHoursCustomized) stays on flexipages — no changes needed
+- Aura component (STLGS_NewOpeningHours) available via Page Layout Actions — this is the relevant action for the timestamp
+- Visibility: all in Sales
+
+== Codebase Exploration ==
+- 28 Time fields on Account (Monday-Sunday, Morning/Afternoon, From/To)
+- Aura component: STLGS_NewOpeningHours (custom "Speichern" button, calls saveTimes())
+- Standard Update Quick Action: STLGS_NewOpeningHoursCustomized (on flexipages — stays as-is)
+- Apex controller: STLGS_OpeningHoursController (getTimes, saveTimes)
+- Display LWC: stlgs_displayStoreOpeningHours (lightning-card with weekday table)
+- Existing DateTime field: STLGS_CurrentOpeningHourssCheckedAt__c ("checked at" during visits, different concept)
+- 5 flexipages reference the display component
+- 3 Account flexipages reference STLGS_NewOpeningHoursCustomized — NO changes needed
+
+== Questions Resolved ==
+1. Which quick action? → Aura component (STLGS_NewOpeningHours) for the timestamp. Standard Update action stays on flexipages.
+2. Where to display? → Card subtitle in stlgs_displayStoreOpeningHours LWC
+3. Date formatting? → Use formatDateTimeValue() from c/recordUtils (client-side)
+4. Timestamp without changes? → Yes, every saveTimes() call stamps unconditionally
+
+== Implementation Approach ==
+Apex controller modification + LWC change:
+- New field: STLGS_OpeningHoursLastModified__c (DateTime) on Account
+- Modify STLGS_OpeningHoursController.saveTimes() — stamp Datetime.now() unconditionally
+- Modify STLGS_OpeningHoursController.getTimes() — return the timestamp
+- Modify stlgs_displayStoreOpeningHours LWC — show subtitle with formatDateTimeValue()
+- Modify test class STLGS_OpeningHoursControllerTest
+- Update 5 permission sets with read+edit access
+- NO Flow needed
+- NO flexipage changes needed
+
+== Components ==
+- 1 new field
+- 1 modified Apex controller
+- 1 modified Apex test class
+- 1 modified LWC
+- 5 modified permission sets
+Total: 9 components
+
+== Output ==
+File: implementation-design/CRM-2981/implementation-notes.md
