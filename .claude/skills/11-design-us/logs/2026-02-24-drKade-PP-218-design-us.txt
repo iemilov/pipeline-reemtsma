@@ -1,0 +1,104 @@
+Design US Log: PP-218 — Webinar-Objekt Erweiterung & Registrierungsformular
+Date: 2026-02-24
+Customer: drKade
+
+== Step 1: Read User Story ==
+
+Story PP-218 fetched manually (Jira tenant drkade.atlassian.net not connected to MCP plugin).
+
+Requirements:
+- Extension of webinar functionality through dynamic pages for displaying webinar content
+- Creation of a web-based registration form with validation and data persistence
+- Configuration of access permissions and basic data logic within the platform
+- No Microsoft Teams integration
+- No Salesforce Marketing Cloud AE communication
+
+No parent Epic identified.
+
+== Step 2: Explore Codebase ==
+
+Existing Webinar implementation found:
+- Webinar__c: 13 custom fields, auto-number W-XXXX, no record types, no validation rules
+- WebinarParticipant__c: 10 custom fields, master-detail to Webinar__c, auto-number WP-XXXX
+- WebinarRegistrationFlow: Screen Flow with FirstName/LastName/Email + email confirmation
+- FlowLauncherButtonStateService: Duplicate registration prevention (checks User__c)
+- FlowPostProcessorService: Toast notification after registration
+- Experience Cloud: PTA_Portal1 with webinarList and webinarDetail routes/views
+- 23 pTA_ LWC components found (BrandCard, TrainingsCard, etc.)
+- Permission sets: DRKAReadOnlyExternal (portal users), DRKA_SystemAdministrator
+- DRKA_TestFactory: No webinar methods exist yet
+- Custom labels: 6 webinar-related labels found
+
+Training pattern analysis (reference for webinar implementation):
+- pTA_TrainingsList: Uses getListUi wire adapter with "PTA" ListView on Training__c
+- pTA_TrainingsCard: Card tile with image, title, topic, duration, NavigationMixin
+- PTA_TrainingsCardController: isCommunityUser() check
+- Training__c "PTA" ListView: Published__c = true filter
+- trainingsAndWebinarsPage: Combined overview at /trainings/
+- Sorting by PTA_Order__c field
+
+== Step 3: Resolve Open Questions ==
+
+Q1: Where should dynamic webinar pages be displayed?
+A1: PTA Portal (Experience Cloud)
+
+Q2: Should the registration form be LWC or enhanced Flow?
+A2: New LWC component
+
+Q3: What validations are needed?
+A3: Full validation (duplicate + date check + capacity limit)
+
+Q4: Should Knowledge article content be displayed?
+A4: Yes, render article content on detail page
+
+Q5: Webinar list layout?
+A5: Single list with filters (like training overview with tiles)
+
+Q6: Capacity field design?
+A6: MaxParticipants__c only (simple Number field, null/0 = unlimited)
+
+Q7: Keep existing Flow alongside LWC?
+A7: Replace entirely (deactivate WebinarRegistrationFlow)
+
+Q8 (user clarification): How should webinar list and management work?
+A8: Same as trainings — tile-based overview in Experience Site (like pTA_TrainingsList),
+    managed via records in core platform, visibility via "PTA" ListView (Published__c = true)
+
+== Step 4: Implementation Approach ==
+
+Mixed declarative + programmatic, following training pattern:
+
+List/Card (follows training pattern exactly):
+- pTA_WebinarsList LWC — uses getListUi with "PTA" ListView (mirrors pTA_TrainingsList)
+- pTA_WebinarsCard LWC — tile component (mirrors pTA_TrainingsCard)
+- Webinar__c "PTA" ListView — Published__c = true filter
+
+Detail/Registration (new):
+- pTA_WebinarDetail LWC — Knowledge content + registration
+- pTA_WebinarRegistration LWC — form with full validation
+- PTA_WebinarController Apex — registration, validation, detail queries
+- PTA_WebinarControllerTest Apex — test coverage
+
+Declarative:
+- 2 new fields on Webinar__c (MaxParticipants__c, ParticipantCount__c)
+- 1 new ListView on Webinar__c (PTA)
+- 3 new Validation Rules on Webinar__c
+- 9 new Custom Labels
+- Permission set updates (DRKAReadOnlyExternal, DRKA_SystemAdministrator)
+- Experience Cloud page configuration (new overview + updated detail)
+- Flow deactivation (WebinarRegistrationFlow)
+
+== Step 5: Implementation Notes Generated ==
+
+File: implementation-design/PP-218/implementation-notes.md (updated with training pattern alignment)
+
+== Summary ==
+
+- Story: PP-218 — Webinar-Objekt Erweiterung & Registrierungsformular
+- Pattern: Follows training implementation (pTA_TrainingsList / pTA_TrainingsCard)
+- Approach: 4 LWC + 1 Apex controller + 2 fields + 1 ListView + 3 validation rules + 9 labels + permissions
+- Components to create: ~12 new, ~4 modify
+- Dependencies: Existing Webinar__c/WebinarParticipant__c, PTA_Portal1, Knowledge__kav, pTA_TrainingsList pattern
+- Questions resolved: 8
+- Open questions/assumptions: 6
+- Suggested next step: /implement-us PP-218
