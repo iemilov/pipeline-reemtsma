@@ -17,11 +17,11 @@ Process raw holiday photos and videos from a project folder (`$ARGUMENTS`) into 
 1. Resolve the project path: `projects/holidays/$ARGUMENTS/`
 2. Verify these directories exist:
    - `raw input/` — unsorted source media
-   - `input/fotos/` — destination for sorted photos
+   - `input/photos/` — destination for sorted photos
    - `input/videos/` — destination for sorted videos
    - `input/audio/` — audio tracks (optional)
    - `output/` — destination for final video
-3. Create `input/fotos/favorites/` and `input/videos/favorites/` if they don't exist
+3. Create `input/photos/favorites/` and `input/videos/favorites/` if they don't exist
 4. Count files in `raw input/` and report to the user
 5. If `raw input/` is empty, inform the user and abort
 
@@ -38,7 +38,7 @@ This script will:
 - Extract timestamps: EXIF `DateTimeOriginal` for photos, `ffprobe` creation_time for videos
 - Fall back to file modification date if no metadata is available
 - Sort all files chronologically (photos and videos share one global sequence)
-- Copy to `input/fotos/` or `input/videos/` with naming: `NNN_YYYYMMDD_HHMMSS.ext`
+- Copy to `input/photos/` or `input/videos/` with naming: `NNN_YYYYMMDD_HHMMSS.ext`
 - Skip files that already exist in the destination (by matching timestamp)
 - Print a day-by-day summary
 
@@ -72,7 +72,7 @@ python3 .claude/skills/holidays/propose_favorites.py "projects/holidays/$ARGUMEN
 ```
 
 This script will:
-- Read all sorted photos from `input/fotos/` and videos from `input/videos/`
+- Read all sorted photos from `input/photos/` and videos from `input/videos/`
 - Score photos by: resolution (megapixels), time spread (avoids clustering from same moment), and day coverage (ensures each day is represented)
 - Score videos by: duration (prefers 5-15s clips over very short or very long), time spread, and day coverage
 - Select the top ~20% of photos and ~20% of videos as favorites
@@ -99,7 +99,7 @@ Ask the user via `AskUserQuestion`:
 2. **Review and adjust** — User specifies files to add/remove
 3. **Skip favorites** — Don't create favorites
 
-Move approved favorites to `input/fotos/favorites/` and `input/videos/favorites/`. Files are **moved, not copied** — the video generator scans both main directories and favorites subdirectories, so all files are included in the video regardless of location.
+Move approved favorites to `input/photos/favorites/` and `input/videos/favorites/`. Files are **moved, not copied** — the video generator scans both main directories and favorites subdirectories, so all files are included in the video regardless of location.
 
 ### Step 6: Generate Video
 
@@ -114,7 +114,7 @@ If yes:
    ```
 4. Report the output file path and size when complete
 
-**Favorites integration:** The video generator (`generate_video.py`) automatically reads `input/fotos/favorites/` and `input/videos/favorites/` and guarantees that:
+**Favorites integration:** The video generator (`generate_video.py`) automatically reads `input/photos/favorites/` and `input/videos/favorites/` and guarantees that:
 - **Favorite photos are never subsampled away** — when the generator trims photos to fit the target duration, all favorites are kept regardless
 - **Favorite photos get longer screen time** — 4.5 seconds instead of the standard 3 seconds
 - **Favorite videos get longer clips** — up to 10 seconds instead of the standard 6 seconds
@@ -122,7 +122,7 @@ If yes:
 
 ## Important Rules
 
-- **Never overwrite** existing files in `input/fotos/` or `input/videos/` — skip duplicates
+- **Never overwrite** existing files in `input/photos/` or `input/videos/` — skip duplicates
 - **Preserve raw input** — always copy, never move files from `raw input/`
 - **Global sequence** — photos and videos share one continuous sequence number so chronological interleaving is clear
 - **Timestamp fallback chain**: EXIF DateTimeOriginal → EXIF DateTime → ffprobe creation_time → file modification date

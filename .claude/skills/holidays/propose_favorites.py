@@ -5,7 +5,7 @@ Propose favorite photos and videos from sorted holiday media.
 Usage: python3 propose_favorites.py <project-folder> [--move]
 Example: python3 propose_favorites.py projects/holidays/2026-gran-canaria --move
 
-Analyzes sorted media in input/fotos/ and input/videos/, scores them
+Analyzes sorted media in input/photos/ and input/videos/, scores them
 by quality metrics, and proposes ~20% as favorites. Use --move to
 move the favorites into the favorites/ subfolders (the video generator
 scans both main dirs and favorites dirs, so all files are included).
@@ -249,12 +249,12 @@ def main():
     if not os.path.isabs(project_dir):
         project_dir = os.path.join(os.getcwd(), project_dir)
 
-    fotos_dir = os.path.join(project_dir, "input", "fotos")
+    photos_dir = os.path.join(project_dir, "input", "photos")
     videos_dir = os.path.join(project_dir, "input", "videos")
-    fotos_fav = os.path.join(fotos_dir, "favorites")
+    photos_fav = os.path.join(photos_dir, "favorites")
     videos_fav = os.path.join(videos_dir, "favorites")
 
-    os.makedirs(fotos_fav, exist_ok=True)
+    os.makedirs(photos_fav, exist_ok=True)
     os.makedirs(videos_fav, exist_ok=True)
 
     print("=" * 55)
@@ -263,7 +263,7 @@ def main():
 
     # Score photos
     print("\nAnalyzing photos...")
-    photo_items = score_photos(fotos_dir)
+    photo_items = score_photos(photos_dir)
     photo_favs = select_favorites(photo_items, ratio=0.20)
 
     print(f"Scored {len(photo_items)} photos, proposing {len(photo_favs)} favorites")
@@ -296,7 +296,7 @@ def main():
         print(f"\nMoving favorites...")
         moved = 0
         for item in photo_favs:
-            dest = os.path.join(fotos_fav, item['filename'])
+            dest = os.path.join(photos_fav, item['filename'])
             if not os.path.exists(dest):
                 shutil.move(item['path'], dest)
                 moved += 1

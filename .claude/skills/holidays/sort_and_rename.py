@@ -6,7 +6,7 @@ Usage: python3 sort_and_rename.py <project-folder>
 Example: python3 sort_and_rename.py projects/holidays/2026-gran-canaria
 
 Scans 'raw input/' for photos and videos, extracts timestamps from
-EXIF/ffprobe metadata, and copies them to input/fotos/ and input/videos/
+EXIF/ffprobe metadata, and copies them to input/photos/ and input/videos/
 with the naming convention: NNN_YYYYMMDD_HHMMSS.ext
 """
 
@@ -158,13 +158,13 @@ def build_destination_name(seq, timestamp, media_type):
     return f"{seq:03d}_{date_str}{ext}"
 
 
-def copy_files(items, fotos_dir, videos_dir):
+def copy_files(items, photos_dir, videos_dir):
     """Copy sorted files to their destination directories."""
     copied = 0
     skipped_existing = 0
 
     for item in items:
-        dest_dir = fotos_dir if item['type'] == 'photo' else videos_dir
+        dest_dir = photos_dir if item['type'] == 'photo' else videos_dir
         dest_name = item['dest_name']
         dest_path = os.path.join(dest_dir, dest_name)
 
@@ -221,7 +221,7 @@ def main():
         project_dir = os.path.join(os.getcwd(), project_dir)
 
     raw_dir = os.path.join(project_dir, "raw input")
-    fotos_dir = os.path.join(project_dir, "input", "fotos")
+    photos_dir = os.path.join(project_dir, "input", "photos")
     videos_dir = os.path.join(project_dir, "input", "videos")
 
     # Validate
@@ -229,9 +229,9 @@ def main():
         print(f"ERROR: 'raw input/' not found at {raw_dir}")
         sys.exit(1)
 
-    os.makedirs(fotos_dir, exist_ok=True)
+    os.makedirs(photos_dir, exist_ok=True)
     os.makedirs(videos_dir, exist_ok=True)
-    os.makedirs(os.path.join(fotos_dir, "favorites"), exist_ok=True)
+    os.makedirs(os.path.join(photos_dir, "favorites"), exist_ok=True)
     os.makedirs(os.path.join(videos_dir, "favorites"), exist_ok=True)
 
     print("=" * 50)
@@ -266,7 +266,7 @@ def main():
 
     # Copy files
     print("\nCopying files...")
-    copied, skipped_existing = copy_files(items, fotos_dir, videos_dir)
+    copied, skipped_existing = copy_files(items, photos_dir, videos_dir)
 
     print(f"\nDone! Copied {copied} files.")
     if skipped_existing > 0:
