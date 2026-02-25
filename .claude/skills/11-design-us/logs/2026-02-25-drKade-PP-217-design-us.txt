@@ -1,0 +1,61 @@
+Skill: /design-us PP-217
+Date: 2026-02-25
+Customer: drKade
+
+## Input
+
+Story: PP-217 (no Jira connection)
+Requirement: "Wir würden gerne die Reihenfolge in denen die Trainings sowohl im Slider als auf der Overview page dargestelt werden individuell ändern können"
+
+## Configuration Files Read
+
+- pipeline/customer.config.md
+- pipeline/stack.config.md
+- pipeline/customer.domain.md
+
+## Codebase Exploration
+
+### Training__c Object
+- PTA_Order__c field exists: Number(2,0), not required, not unique
+- PTA ListView exists with Published__c = true filter, includes PTA_Order__c column
+
+### Components Analyzed
+
+| Component | Sorts by PTA_Order__c? | Issue |
+|-----------|------------------------|-------|
+| pTA_TrainingsList (overview) | YES | Works correctly |
+| pTA_TrainingsCarousel (homepage slider) | NO | BUG: extracts order field but never calls .sort() |
+| pTA_Carousel (generic) | NO | Has compare() method but never calls .sort() |
+| pTA_BrandsCarousel (brands) | YES | Reference implementation — correctly sorts |
+
+### Experience Cloud Pages
+- landingPagePTA: uses pTA_TrainingsCarousel (slider on homepage)
+- trainingsAndWebinarsPage: uses pTA_TrainingsList (overview page)
+
+## Questions Asked
+
+1. "Individuell ändern" = Bug fix or new Admin UI?
+   → Answer: Bug fix — PTA_Order__c exists, slider ignores sorting
+
+2. Fix generic pTA_Carousel too (also used for promotions)?
+   → Answer: No, only trainings
+
+## Implementation Approach
+
+Scope: 1-line bug fix in pTA_TrainingsCarousel.js
+- Add .sort(this.compare) after .map() in wire handler
+- Add compare(a, b) method to class
+- No Apex changes, no new fields, no new components
+
+## Output
+
+File: implementation-design/PP-217/implementation-notes.md
+
+## Summary
+
+- Story: PP-217 — Training-Reihenfolge in Slider und Overview-Seite
+- Approach: Programmatic (LWC bug fix)
+- Components to modify: 1 (pTA_TrainingsCarousel)
+- Dependencies: None
+- Questions resolved: 2
+- Open questions: 0

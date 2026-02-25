@@ -31,8 +31,7 @@
 
 | Alias | Purpose |
 |-------|---------|
-| `KadeDEV` | DEV sandbox (default development org) |
-| `KadeUAT` | UAT testing sandbox |
+| `KadeUAT` | UAT testing sandbox (default development org) |
 | `KadePROD` | Production (validation target) |
 
 ## Dependencies
