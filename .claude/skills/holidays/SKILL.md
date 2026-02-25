@@ -19,7 +19,7 @@ Process raw holiday photos and videos from a project folder (`$ARGUMENTS`) into 
    - `raw input/` — unsorted source media
    - `input/photos/` — destination for sorted photos
    - `input/videos/` — destination for sorted videos
-   - `input/audio/` — audio tracks (optional)
+   - `input/audio/` — background music tracks, played in filename order (use `NN-Title.mp3` naming, e.g. `01-Tycho - Awake.mp3`, `02-Better Together.mp3`)
    - `output/` — destination for final video
 3. Create `input/photos/favorites/` and `input/videos/favorites/` if they don't exist
 4. Count files in `raw input/` and report to the user
@@ -119,6 +119,12 @@ If yes:
 - **Favorite photos get longer screen time** — 4.5 seconds instead of the standard 3 seconds
 - **Favorite videos get longer clips** — up to 10 seconds instead of the standard 6 seconds
 - Favorites are marked with ★ in the processing log for visibility
+
+**Audio track ordering:** Background music files in `input/audio/` are played in **filename sort order**. Use a numbered prefix to control the playlist sequence:
+- `01-Tycho - Awake.mp3` — plays first
+- `02-Better Together.mp3` — plays second
+- Tracks are concatenated and looped to fill the full video duration
+- Audio fades in/out with the video
 
 ## Important Rules
 
