@@ -114,11 +114,31 @@ If yes:
    ```
 4. Report the output file path and size when complete
 
+**Cover images:** Place images in `input/photos/cover/` to create a title sequence at the start of the video. All images in this folder are shown for 10 seconds each (with Ken Burns effect) before the chronological content begins. Images are played in filename sort order — use numbered prefixes to control the sequence (e.g., `01-title.jpg`, `02-arrival.jpg`).
+
 **Favorites integration:** The video generator (`generate_video.py`) automatically reads `input/photos/favorites/` and `input/videos/favorites/` and guarantees that:
 - **Favorite photos are never subsampled away** — when the generator trims photos to fit the target duration, all favorites are kept regardless
 - **Favorite photos get longer screen time** — 4.5 seconds instead of the standard 3 seconds
 - **Favorite videos get longer clips** — up to 10 seconds instead of the standard 6 seconds
 - Favorites are marked with ★ in the processing log for visibility
+
+**Labels/captions:** Place an `input/labels.json` file to add text overlays on specific photos or videos. Supports two formats:
+
+```json
+{
+  "015_20251228_143502.jpeg": "Maspalomas Dunes",
+  "017_20251228_160000.mp4": {
+    "text": "Sunset Walk\nPlaya del Inglés",
+    "position": "top"
+  }
+}
+```
+
+- **Simple string value** — renders as a lower-third label (bottom of frame)
+- **Object value** — `text` (required) and `position` (optional: `"bottom"` default, or `"top"`)
+- Multi-line text supported with `\n`
+- Labels appear as white text on a semi-transparent dark bar, with fade-in/fade-out animation
+- Labeled clips are marked with a tag icon in the processing log
 
 **Audio track ordering:** Background music files in `input/audio/` are played in **filename sort order**. Use a numbered prefix to control the playlist sequence:
 - `01-Tycho - Awake.mp3` — plays first
