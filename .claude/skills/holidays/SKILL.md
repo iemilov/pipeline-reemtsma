@@ -107,10 +107,10 @@ Ask the user if they want to generate the highlight video now.
 
 If yes:
 1. Read `projects/holidays/instructions.md` for the full editing guidelines
-2. Verify `generate_video.py` exists in the project folder
+2. Verify `projects/holidays/generate_video.py` exists
 3. Run the video generator:
    ```bash
-   cd "projects/holidays/$ARGUMENTS" && python3 generate_video.py
+   python3 projects/holidays/generate_video.py "projects/holidays/$ARGUMENTS"
    ```
 4. Report the output file path and size when complete
 

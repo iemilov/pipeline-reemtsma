@@ -1,0 +1,45 @@
+Holiday Video Generation Log — 2026-02-25
+==========================================
+
+Project: 2026-gran-canaria
+Mode: Test run (target=120s, photo subsampling only)
+
+Steps Skipped: 1-5 (sorting, renaming, favorites — already done)
+
+Step 6: Generate Video
+─────────────────────
+Input:
+  - 305 photos (47 favorites) + 67 videos (27 favorites)
+  - 1 cover image in input/photos/cover/
+  - 3 audio tracks: Tycho, Better Together, Weezer
+
+Configuration:
+  - PHOTO_DURATION: 3s
+  - VIDEO_MAX_DURATION: 6s (4.5s used in build_timeline estimation)
+  - PHOTO_DURATION_FAV: 3.5s
+  - VIDEO_MAX_DURATION_FAV: 7.0s
+  - COVER_DURATION: 10s
+  - Target: 120s (test run — only subsamples photos, all videos kept)
+  - Face detection: enabled (OpenCV Haar cascade)
+  - Labels: supported via input/labels.json
+  - Cover images: from input/photos/cover/
+
+Processing:
+  - Cover chunk: 9.3 MB
+  - Chunk 0: 169 MB (40 clips)
+  - Chunk 1: 174 MB (40 clips)
+  - Chunk 2: 198 MB (remaining clips)
+  - Stitching + audio + final encode
+
+Result:
+  - Duration: 579.0s (9.7 min)
+  - Resolution: 1920x1080
+  - File size: 573 MB
+  - Output: projects/holidays/2026-gran-canaria/output/gran-canaria-2026.mp4
+
+Notes:
+  - Actual duration (9.7 min) exceeds target (2 min) because target only
+    controls photo subsampling — all 94 videos are always included
+  - For true 2-min test, video subsampling would be needed
+  - Features tested: cover image, face-aware Ken Burns, favorites priority,
+    audio track ordering, chunked rendering
