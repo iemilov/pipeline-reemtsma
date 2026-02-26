@@ -1,16 +1,24 @@
-Commit Log — 2026-02-26
-========================
+Commit Log: CRM-3033
+Date: 2026-02-26
+Customer: LottoBW
 
-Commit message: updated video generator cover/outro logic
+== Changes Summary ==
 
-Changes Summary:
-────────────────
+Main Repo (feature/CRM-3033):
+- Modified: force-app/main/default/flows/STLG_New2ndLevelCase.flow-meta.xml
+- New: force-app/main/default/lwc/stlg_contactLookupFilter/stlg_contactLookupFilter.js
+- New: force-app/main/default/lwc/stlg_contactLookupFilter/stlg_contactLookupFilter.html
+- New: force-app/main/default/lwc/stlg_contactLookupFilter/stlg_contactLookupFilter.js-meta.xml
+- New: deployment/CRM-3033/package/package.xml
+- New: implementation-design/CRM-3033/implementation-notes.md
+
 Submodule (pipeline/):
-  - New: .claude/skills/holidays/logs/2026-02-25-holidays-2026-gran-canaria-run2-holidays.txt
-  - New: .claude/skills/holidays/logs/2026-02-26-holidays-2026-gran-canaria-run3-holidays.txt
+- New: .claude/skills/11-design-us/logs/2026-02-26-LottoBW-CRM-3033-design-us.txt
+- New: .claude/skills/07-commit/logs/2026-02-26-LottoBW-commit.txt
 
-Main repo:
-  - Modified: projects/holidays/generate_video.py (cover moved to input/cover/, added outro support, static display for cover/outro)
-  - Modified: pipeline (submodule pointer update)
+== Security Check ==
+No sensitive content detected.
 
-Security Check: PASSED — no sensitive content detected
+== Commit Details ==
+Submodule commit message: CRM-3033
+Main repo commit message: CRM-3033 [skip ci]
