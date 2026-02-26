@@ -1,0 +1,50 @@
+Holiday Video Generation Log — 2026-02-26 (Run 3)
+===================================================
+
+Project: 2026-gran-canaria
+Steps Skipped: 1-5 (sorting, renaming, favorites already done)
+
+Step 6: Generate Video
+─────────────────────
+Command: python3 projects/holidays/generate_video.py "projects/holidays/2026-gran-canaria"
+
+Input:
+  - 324 photos (47 favorites) + 66 videos (27 favorites)
+  - 5 labeled files (all protected from subsampling)
+  - 1 cover image in input/photos/cover/
+  - 3 audio tracks: Tycho, Better Together, Weezer
+
+Configuration:
+  - PHOTO_DURATION: 3s / PHOTO_DURATION_FAV: 3.5s
+  - VIDEO_MAX_DURATION: 6s / VIDEO_MAX_DURATION_FAV: 7.0s
+  - COVER_DURATION: 10s
+  - Target: 120s (subsamples photos only, all videos kept)
+  - Ken Burns: face-aware pan/zoom (cv2 Haar cascade)
+  - Labels: 5 files tagged, all protected from subsampling
+  - Cover images: from input/photos/cover/
+
+Changes since last run:
+  - Bottom label position moved 40px higher to avoid clipping
+    (bar_y = HEIGHT - LABEL_BAR_HEIGHT - 40, text_y adjusted accordingly)
+
+Processing:
+  - Selected: 50 photos + 66 videos (75 favorites included)
+  - Estimated duration: 9.1 min
+  - Cover chunk: 1 cover image (10s)
+  - Chunk 0: 40 clips
+  - Chunk 1: 40 clips
+  - Chunk 2: 36 clips (remaining)
+  - Final stitching + audio + encode
+
+Labeled clips rendered:
+  - 004_20251228_053540.jpeg 🏷 "Flughafen Memmingen" (bottom)
+  - 020_20251228_113656.jpeg 🏷 "Gran Canaria Auto" (bottom)
+  - 133_20251230_105441.jpeg 🏷 "Palmitos Park" (bottom)
+  - 084_20251231_114645.mp4  🏷 "Fahrt ins Landesinnere" (bottom)
+  - 100_20251231_233045.mp4  🏷 "Sylvester 25/26" (bottom)
+
+Result:
+  - Duration: 551.0s (9.2 min)
+  - Resolution: 1920x1080
+  - File size: 546 MB
+  - Output: projects/holidays/2026-gran-canaria/output/gran-canaria-2026.mp4
