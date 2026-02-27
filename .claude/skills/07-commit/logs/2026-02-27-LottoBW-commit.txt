@@ -1,0 +1,15 @@
+Commit Log — 2026-02-27
+========================
+
+Message: preset Joachim Lintl contact on invoice detail page
+
+Changes:
+  Main repo:
+    - projects/crm/src/pages/InvoicesPage.jsx (3 lines changed)
+      Replaced pc[0] / projectContacts[0] with lookup for "Joachim Lintl" as default contact
+      in openDetail(), handleAddLine(), and saveField() (project change)
+    - pipeline (submodule pointer update)
+
+  Submodule: no changes (clean)
+
+Security check: passed (no sensitive content)
