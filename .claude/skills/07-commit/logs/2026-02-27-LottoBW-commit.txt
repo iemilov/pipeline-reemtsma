@@ -1,15 +1,23 @@
 Commit Log — 2026-02-27
-========================
+Commit Message: remove holidays skill
 
-Message: preset Joachim Lintl contact on invoice detail page
+== Changes Summary ==
 
-Changes:
-  Main repo:
-    - projects/crm/src/pages/InvoicesPage.jsx (3 lines changed)
-      Replaced pc[0] / projectContacts[0] with lookup for "Joachim Lintl" as default contact
-      in openDetail(), handleAddLine(), and saveField() (project change)
-    - pipeline (submodule pointer update)
+Submodule (pipeline/):
+  DELETED: .claude/skills/holidays/SKILL.md
+  DELETED: .claude/skills/holidays/logs/2026-02-25-holidays-2026-gran-canaria-holidays.txt
+  DELETED: .claude/skills/holidays/logs/2026-02-25-holidays-2026-gran-canaria-run2-holidays.txt
+  DELETED: .claude/skills/holidays/logs/2026-02-26-holidays-2026-gran-canaria-run3-holidays.txt
+  DELETED: .claude/skills/holidays/propose_favorites.py
 
-  Submodule: no changes (clean)
+Main Repo:
+  DELETED: projects/holidays/generate_video.py
+  DELETED: projects/holidays/instructions.md
+  DELETED: projects/mac-studio-setup/mac-modelle-coding-llm.md
 
-Security check: passed (no sensitive content)
+== Security Check ==
+Only deletions in main repo — no sensitive content detected.
+
+== Commit Details ==
+Submodule commit: remove holidays skill
+Main repo commit: remove holidays skill [skip ci]
