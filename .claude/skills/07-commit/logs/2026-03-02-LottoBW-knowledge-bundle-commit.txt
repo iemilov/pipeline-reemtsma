@@ -1,0 +1,14 @@
+Commit Log: knowledge bundle auto-detection
+Date: 2026-03-02
+Customer: LottoBW
+
+== Security Check ==
+No sensitive content detected.
+
+== Submodule Changes ==
+- setup.sh (added knowledge rebundle loop for projects after symlink switch)
+- customers/cloudrise/kanban/CR-0007/CR-0007.md (card description updated via AI Prompt)
+
+== Main Repo Changes ==
+- projects/kanban/scripts/bundle-knowledge.js (auto-detect customer from symlink, require CUSTOMER_NAME in CI)
+- pipeline (submodule pointer update)
