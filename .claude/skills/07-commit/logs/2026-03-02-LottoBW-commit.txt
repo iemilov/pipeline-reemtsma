@@ -1,0 +1,35 @@
+Commit Log: kanban optimizations
+Date: 2026-03-02
+Customer: LottoBW
+
+== Security Check ==
+No sensitive content detected.
+
+== Submodule Changes ==
+- .claude/skills/07-commit/logs/2026-03-01-LottoBW-filter-ownership-commit.txt (untracked)
+- .claude/skills/07-commit/logs/2026-03-02-LottoBW-commit.txt (new log)
+
+== Main Repo Changes ==
+Modified:
+- projects/kanban/functions/api/cards.js (sync caching TTL, new response shape)
+- projects/kanban/functions/api/cards/sync.js (update sync timestamp)
+- projects/kanban/functions/lib/db.js (getAllCards with doneLimit, getDoneCards)
+- projects/kanban/functions/lib/sync.js (batch DB operations, fix deleted bug)
+- projects/kanban/src/components/Board.css (fix 8-column grid)
+- projects/kanban/src/components/Board.jsx (search/filter, sync button, done load-more)
+- projects/kanban/src/components/CardModal.jsx (toast integration)
+- projects/kanban/src/components/Column.css (load-more button style)
+- projects/kanban/src/components/Column.jsx (done load-more props)
+- projects/kanban/src/components/FilterPanel.css (search, tag chips, sync btn styles)
+- projects/kanban/src/components/FilterPanel.jsx (search, priority, type, tag filters)
+- projects/kanban/src/hooks/useBoard.js (toast, syncBoard, loadMoreDone)
+- projects/kanban/src/main.jsx (ToastProvider wrapper)
+- projects/kanban/src/pages/ReleasesPage.jsx (toast, new response shape)
+- projects/kanban/src/pages/SettingsPage.jsx (toast integration)
+
+New:
+- projects/kanban/functions/api/cards/done.js (done pagination endpoint)
+- projects/kanban/migrations/0012_app_settings.sql (app_settings table)
+- projects/kanban/src/components/Toast.css
+- projects/kanban/src/components/Toast.jsx
+- projects/kanban/src/contexts/ToastContext.jsx
