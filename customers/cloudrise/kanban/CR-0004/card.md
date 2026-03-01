@@ -1,7 +1,7 @@
 ---
 id: CR-0004
 title: test4
-status: hold_external
+status: qa
 priority: medium
 release: 1.0.0
 tags:
