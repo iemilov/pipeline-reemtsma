@@ -1,7 +1,7 @@
 ---
 id: CR-0004
 title: test4
-status: todo
+status: hold_external
 priority: medium
 tags:
   - CloudRise
