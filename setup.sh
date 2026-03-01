@@ -48,3 +48,12 @@ echo "  $SUBMODULE_NAME/customer.config.md -> customers/$CUSTOMER/config.md"
 echo "  $SUBMODULE_NAME/customer.domain.md -> customers/$CUSTOMER/domain-knowledge.md"
 echo "  $SUBMODULE_NAME/stack.config.md -> customers/$CUSTOMER/stack.config.md"
 echo "  $SUBMODULE_NAME/testdata.config.md -> customers/$CUSTOMER/testdata.config.md"
+
+# Rebundle knowledge for projects with bundle-knowledge.js
+for bundler in "$REPO_ROOT"/projects/*/scripts/bundle-knowledge.js; do
+  [ -f "$bundler" ] || continue
+  project_dir="$(dirname "$(dirname "$bundler")")"
+  project_name="$(basename "$project_dir")"
+  echo "Rebundling knowledge for project: $project_name"
+  (cd "$project_dir" && node scripts/bundle-knowledge.js)
+done
