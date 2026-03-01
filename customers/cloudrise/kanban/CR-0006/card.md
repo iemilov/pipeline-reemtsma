@@ -1,7 +1,7 @@
 ---
 id: CR-0006
 title: Erstelle rechte und rollen Konzept
-status: todo
+status: to_be_specified
 priority: medium
 epic_id: CR-0005
 tags:
