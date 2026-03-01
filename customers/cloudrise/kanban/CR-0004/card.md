@@ -1,7 +1,7 @@
 ---
 id: CR-0004
 title: test4
-status: backlog
+status: todo
 priority: medium
 tags:
   - CloudRise
