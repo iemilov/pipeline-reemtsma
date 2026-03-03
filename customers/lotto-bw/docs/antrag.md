@@ -1,6 +1,6 @@
 # Zulassungsantrag (Request) — Domain Knowledge
 
-> Letzte Aktualisierung: 2026-02-20 | Quellen: ~110 Jira-Stories, 5 Confluence-Seiten, 12 Flows, 10 Apex-Klassen, ~80 Custom Fields, 6 Validation Rules, 6 Quick Actions, 5 FlexiPages
+> Letzte Aktualisierung: 2026-03-02 | Quellen: ~110 Jira-Stories, 5 Confluence-Seiten, 13 Flows, 10 Apex-Klassen, ~80 Custom Fields, 6 Validation Rules, 6 Quick Actions, 5 FlexiPages
 
 ## Überblick
 
@@ -116,6 +116,11 @@ Voraussetzung: Potentielle ASt ist angelegt, Antragsbesuch erstellt
      - Vertragsbeginn ≥ 6 Wochen in Zukunft (Neueröffnung) / 4 Wochen (Übernahme)
      - EU-Staatsangehörigkeit oder Aufenthaltserlaubnis
      - Treuhandkonto wenn Potenzial ≥ 10.000€
+     - Bankdaten: werden als Pflicht angezeigt, RD kann aber auch ohne Bankdaten freigeben
+       → Hinweis: Bankdaten müssen spätestens 4 Wochen nach Freigabe nachgereicht werden
+       → Auto: Flow STLGS_CreateBankdataOnVOHandover erstellt Bankdaten-Case wenn IBAN fehlt
+     - Gewerbeanmeldung: wird als Pflicht angezeigt, RD kann aber auch ohne freigeben
+       → Hinweis: Gewerbeanmeldung muss spätestens 4 Wochen nach Eröffnung nachgereicht werden
    → Snapshot: Zielwerte (ASt-Anzahl Gemeinde/Landkreis/Region, Einwohner)
    → RecordType-Switch → ReadOnly
    → Status: "An Zentrale übergeben"
@@ -123,7 +128,6 @@ Voraussetzung: Potentielle ASt ist angelegt, Antragsbesuch erstellt
 
 7. VO prüft → "Geprüft durch Zentrale"
    → Auto: Schulungs-Case wird erstellt (Flow STLGS_CreateTrainingOnGeprueft)
-   → Auto: Bankdaten-Case wenn IBAN fehlt (Flow STLGS_CreateBankdataOnVOHandover)
 
 8. VO übergibt an RP → "Übergeben an RP"
 
@@ -145,7 +149,9 @@ Voraussetzung: Potentielle ASt ist angelegt, Antragsbesuch erstellt
 Wie Neueröffnung, mit Unterschieden:
 - Antrag wird von bestehender aktiver ASt aus angelegt
 - Zusätzliche Felder: Vorherige Adresse (`STLGS_PreviousStreet__c`, `_PostalCode__c`, `_City__c`)
-- Neue Adresse (`STLGS_Street__c`, `_Postalcode__c`, `_City__c`)
+- Neue Adresse Pflicht: `STLGS_Street__c`, `STLGS_Postalcode__c`, `STLGS_City__c`
+- Verlegungsdatum (`STLGS_TransferDate__c`) muss mind. 6 Wochen in der Zukunft liegen
+- Bei Verlegung/Übernahme: Flow `STLGS_CopyPreviousRPFileNumber` kopiert `FileNumberRP` des vorherigen Antrags als Snapshot in `STLGS_FileNumberRPPrevious__c` (CRM-3041)
 - Bei Ablehnung/Rücknahme: Flow `STLGS_RollbackLeadingRequest` stellt den vorherigen genehmigten Antrag als führenden Antrag wieder her
 
 ### Workflow — Übernahme
@@ -155,6 +161,28 @@ Wie Neueröffnung, mit Unterschieden:
 - Durchschnittsumsatz Vorgänger wird übernommen (`STLGS_AverageTurnoverPredecessor__c`)
 - Validation: Kündigungsdatum der Vorgänger-ASt muss gesetzt sein bevor Freigabe möglich (VR `STLGS_TerminatedOnEmpty`)
 - Vertragsstart-Frist: 4 Wochen (statt 6 Wochen bei Neueröffnung)
+
+### Leading Request (Führender Antrag)
+
+Jeder aktive Account hat genau einen **führenden Antrag** (`Account.STLGS_LeadingRequest__c`). Er bestimmt Compliance-Felder, RecordType und Vertragsdaten am Account.
+
+**Zuweisung durch Flow** `STLGS_UpdateAccStatusOnCreateUpdateRequest` (After Save, Create+Update):
+
+```text
+Entry: Status ≠ "Erlaubnis erloschen" (OR-Logik, feuert bei fast jedem Update)
+Decision: SetLeadingAt__c IS NOT BLANK?
+  → JA (Pfad B): Account-Update OHNE Leading-Request-Änderung
+  → NEIN (Pfad A): Account.LeadingRequest = $Record.Id
+Beide Pfade → SetLeadingAt__c = NOW() + ~20 Compliance-Felder vom Request auf Account kopiert
+```
+
+**Guard-Feld** `STLGS_SetLeadingAt__c` (CRM-2775): Wird beim ersten Update gesetzt und verhindert, dass nachfolgende Updates den Leading Request erneut zuweisen. Der DateTime-Wert selbst wird nicht ausgewertet — nur `IS NOT BLANK` zählt.
+
+**Backfill 02.03.2026:** 2.679 von 3.074 aktiven ASten (87%) hatten `SetLeadingAt__c = NULL` am Leading Request. Ohne Backfill hätte jedes beliebige Update den Request erneut als Leading gesetzt — auch wenn ein neuerer Antrag bereits Leading sein sollte.
+
+**Rollback bei Verlegung:** Flow `STLGS_RollbackLeadingRequest` stellt bei Ablehnung/Rücknahme einer Verlegung den vorherigen genehmigten Antrag als Leading wieder her.
+
+**Bekannte Einschränkung:** Verlegungsantrag wird bei Erstellung sofort zum Leading Request, obwohl er fachlich erst nach RP-Genehmigung + Verlegungsdatum Leading werden sollte. Die Logik dafür existiert noch nicht (Problem 1, zurückgestellt).
 
 ### Ablehnung / Abbruch
 
@@ -217,7 +245,7 @@ Wie Neueröffnung, mit Unterschieden:
 | `STLGS_SigningDate__c` | Date | Unterschriftsdatum |
 | `STLGS_ApprovalDate__c` | Date | Genehmigungsdatum |
 | `STLGS_ApprovalDuration__c` | Date | Genehmigungsdauer |
-| `STLGS_TransferDate__c` | Date | Übergabedatum |
+| `STLGS_TransferDate__c` | Date | Verlegungsdatum |
 | `STLGS_DeclineDate__c` | Date | Ablehnungsdatum |
 | `STLGS_DeclineReasons__c` | Picklist | Ablehnungsgrund: Kein Interesse, Kein Potential |
 | `STLGS_Potential__c` | Currency | Potenzial (Wochenumsatz-Prognose) |
@@ -246,6 +274,8 @@ Wie Neueröffnung, mit Unterschieden:
 | `STLGS_IssueDateCriminalRecordBA__c` | Ausstellungsdatum Führungszeugnis GF (Date) |
 | `STLGS_DateIssueSchufa__c` | Ausstellungsdatum Schufa (Date) |
 
+> **NP/JP-Zuordnung:** `HasSchufa__c` + `DateIssueSchufa__c` = nur NP. `HasCommercialRegisterExtract__c` = nur JP. Alle anderen (inkl. `HasSEPAMandate__c`, `HasCriminalRecordBusinessAccount__c`, `IssueDateCriminalRecordBA__c`) = NP + JP.
+
 **Vertrags-Checkboxen (Phase "Genehmigt durch RP"):**
 
 | Feld (API-Name) | Beschreibung |
@@ -257,7 +287,7 @@ Wie Neueröffnung, mit Unterschieden:
 | `STLGS_TaxNumberAvailable__c` | Steuernummer vorhanden |
 | `STLGS_BusinessRegAvailable__c` | Gewerbeanmeldung vorhanden |
 
-**Verlegung-Felder:**
+**Verlegung/Übernahme-Felder:**
 
 | Feld (API-Name) | Typ | Beschreibung |
 |-----------------|-----|-------------|
@@ -276,7 +306,12 @@ Wie Neueröffnung, mit Unterschieden:
 | Feld (API-Name) | Typ | Beschreibung |
 |-----------------|-----|-------------|
 | `STLGS_FileNumberRP__c` | Text | Aktenzeichen RP |
-| `STLGS_FileNumberRPPreviousApprovalCalc__c` | Text | Aktenzeichen RP vorherige Genehmigung |
+| `STLGS_FileNumberRPPreviousApprovalCalc__c` | Formel | Aktenzeichen RP vorherige Genehmigung (Formel: `PredecessorStore.LeadingRequest.FileNumberRP`) |
+| `STLGS_FileNumberRPPrevious__c` | Text | Aktenzeichen RP vorherige Genehmigung — Snapshot (CRM-3041, CRM-2977) |
+| `STLGS_ApprovalDate__c` | Date | Genehmigungsdatum RP |
+| `STLGS_ReceiptDate__c` | Date | Eingangsdatum RP |
+| `STLGS_ApprovalDuration__c` | Number | Genehmigungsdauer |
+| `STLGS_SetLeadingAt__c` | DateTime | Guard-Feld: verhindert erneute Leading-Zuweisung bei Updates (CRM-2775) |
 | `STLGS_FilenumberSince__c` | Date | Aktenzeichen seit |
 | `STLGS_RemarksRP__c` | Html | Hinweise RP |
 | `STLGS_StorePremises__c` | Checkbox | Räumlichkeiten-Hinweis (Spielbank, Spielhalle, Gaststätte etc.) |
@@ -332,6 +367,16 @@ Wie Neueröffnung, mit Unterschieden:
 |-----------------|--------|-------------|
 | `STLGS_LeadingRequest__c` | Case | Lookup zum führenden Antrag (gesetzt via Flow `STLGS_UpdateLeadingRequestOnCase` bei Case-Erstellung) |
 
+**Junction-Objekt: RequestContactRelation (`STLGS_RequestContactRelation__c`):**
+
+Verknüpft Contacts mit Anträgen (JP). Backed die "Geschäftsführer"-Related-List auf der BusinessRequest FlexiPage.
+
+| Feld (API-Name) | Typ | Beschreibung |
+|-----------------|-----|-------------|
+| `Contact__c` | Lookup(Contact) | Verknüpfter Contact (z.B. Geschäftsführer) |
+| `STLGS_Request__c` | Lookup(STLGS_Request__c) | Verknüpfter Antrag |
+| `STLGS_Type__c` | Picklist | Rolle: `Managing Director` |
+
 ### Record Types
 
 | Developer Name | Label | Editierbar | Zweck |
@@ -343,7 +388,7 @@ Wie Neueröffnung, mit Unterschieden:
 
 ### Automation
 
-**Flows (12):**
+**Flows (13):**
 
 | Flow | Typ | Zweck |
 |------|-----|-------|
@@ -353,12 +398,13 @@ Wie Neueröffnung, mit Unterschieden:
 | `STLGS_HandoverRequest` | Screen Flow (Quick Action) | "Übergabe an": Status-Wechsel mit optionalem Chatter-Kommentar, sammelt Ablehnungsgründe |
 | `STLGS_SetRequestToClosed` | Record-Triggered (Before Update) | Auto-Status "Vertrag abgeschlossen" wenn Genehmigt durch RP + alle 6 Checkboxen = true |
 | `STLGS_RollbackLeadingRequest` | Record-Triggered (After Update) | Bei Ablehnung/Rücknahme einer Verlegung: stellt vorherigen genehmigten Antrag als führenden Antrag wieder her |
-| `STLGS_UpdateAccStatusOnCreateUpdateRequest` | Record-Triggered (After Save) | Setzt Account RecordType (Potential Store / Standard Store) bei Request-Erstellung/-Update |
+| `STLGS_UpdateAccStatusOnCreateUpdateRequest` | Record-Triggered (After Save) | Setzt Leading Request am Account + RecordType + ~20 Compliance-Felder. Guard-Feld `SetLeadingAt__c` verhindert erneute Zuweisung (CRM-2775) |
 | `STLGS_UpdateRequestTaxNumber` | Record-Triggered (Account, After Update) | Account-Steuernummer → `STLGS_TaxNumberAvailable__c` am führenden Antrag |
 | `STLGS_UpdateRequestOnStatusChange` | Record-Triggered (After Update) | Bei "Genehmigt durch RP"/"Vertrag abgeschlossen": schließt verknüpften Case, postet Chatter. Bei "Keine Inbetriebnahme": setzt Shutdown (CRM-2483) |
 | `STLGS_CreateBankdataOnVOHandover` | Record-Triggered (After Update) | Bei "An Zentrale übergeben" + fehlende IBAN: erstellt Bankdaten-Case automatisch |
 | `STLGS_CreateTrainingOnGeprueft` | Record-Triggered (After Save) | Bei "Geprüft durch Zentrale" + Neueröffnung/Übernahme: erstellt Schulungs-Case (Pflichtschulung JS/SP) automatisch (CRM-2568) |
 | `STLGS_UpdateShutdownDateOnPreviousRequest` | Record-Triggered (After Update) | Propagiert Shutdown-Datum auf vorherigen Antrag (CRM-2439) |
+| `STLGS_CopyPreviousRPFileNumber` | Record-Triggered (Before Save) | Bei Status → "An Zentrale übergeben": kopiert FileNumberRP des vorherigen Antrags als Snapshot nach `STLGS_FileNumberRPPrevious__c`. Übernahme: PredecessorStore, Verlegung: selber Store (CRM-3041, CRM-2977) |
 
 **Apex-Klassen:**
 
@@ -389,8 +435,8 @@ Wie Neueröffnung, mit Unterschieden:
 
 | Rule | Objekt | Zweck |
 |------|--------|-------|
-| `STLGS_ContractStartCheck` | Request | Geplanter Vertragsbeginn ≥ 6 Wochen bei Übergabe |
-| `STLGS_ContractStartCheck2` | Request | Geplanter Vertragsbeginn ≥ 4 Wochen bei Übergabe |
+| `STLGS_ContractStartCheck` | Request | Geplanter Vertragsbeginn ≥ 6 Wochen bei Übergabe (bei Verlegung: prüft `TransferDate__c` statt `ContractStartPlanned__c`) |
+| `STLGS_ContractStartCheck2` | Request | Geplanter Vertragsbeginn ≥ 4 Wochen bei Übergabe (bei Verlegung: prüft `TransferDate__c` statt `ContractStartPlanned__c`) |
 | `STLGS_MandatoryFieldsForDecline` | Request | Ablehnungsgrund + Datum Pflicht bei Ablehnung |
 | `STLGS_MandatoryFieldsForShutdown` | Request | Shutdown-Datum + Grund Pflicht bei "Erlaubnis erloschen" |
 | `STLGS_TerminatedOnEmpty` | Request | Vorgänger-Kündigungsdatum Pflicht bei Übernahme |
@@ -454,6 +500,15 @@ Antragsnummer = Account-Name = 6-stellige ASt-Nummer. Wenn die Nummer nachträgl
 
 Das Feld "Führender Antrag" am Account aktualisiert sich nach Änderungen erst nach Page-Reload (CRM-335). UI-Refresh-Problem.
 
+### Aktenzeichen RP bei Verlegung (CRM-3041, CRM-2977 — deployed + backfilled 02.03.2026)
+
+Das Formelfeld `STLGS_FileNumberRPPreviousApprovalCalc__c` (`PredecessorStore.LeadingRequest.FileNumberRP`) zeigt nach einer Verlegung den falschen Wert, weil der LeadingRequest-Pointer am Account auf den neuen Antrag wechselt. Bei Verlegung ist das Feld immer NULL (kein PredecessorStore). Zusätzlich: bei **14 von 21 VL (67%)** zeigt das Calc-Feld eine Selbstreferenz (eigenes AZ statt Vorgänger-AZ), weil der VL-Antrag selbst Leading geworden ist.
+
+**Fix V1 (CRM-3041):** Snapshot-Feld `STLGS_FileNumberRPPrevious__c` + Before-Save Flow. Trigger: `FileNumberRP__c IsChanged` → zu spät (erst nach RP-Genehmigung).
+**Fix V2 (CRM-2977, deployed 02.03.2026):** Trigger geändert auf `Status = "An Zentrale übergeben"` → Snapshot wird beim Übergabe-Zeitpunkt erstellt (früher, VO hat den Wert sofort).
+**Backfill (02.03.2026):** 368 bestehende VL/ÜN-Requests (341 ÜN + 27 VL) per Apex-Script nachgefüllt — repliziert die exakte Flow-Logik (ÜN: PredecessorStore, VL: selber Store mit `Id != $Record.Id`). Backup-CSVs in `business/docs/FileNumberRP/`.
+**Geplant:** Screen Flow für nachträgliches Nachtragen — Button auf VL/ÜN-Request zeigt Vorgänger-Requests, VO kann AZ kopieren/eingeben.
+
 ### Fehlende Validierung bei Besteuerung
 
 Entweder Regelbesteuerung ODER Kleinunternehmer muss gesetzt sein — aber die Validierung lässt zu, dass keines oder beides gesetzt wird.
@@ -499,6 +554,7 @@ Gewerbeanmeldung kann bei Übergabe an Zentrale fehlen und muss spätestens 4 Wo
 - **CRM-1012:** Antrag Übernahme jur. Person kann nicht freigegeben werden
 
 **Verlegung:**
+- **CRM-3041:** Aktenzeichen RP bei Verlegung — Snapshot-Feld + Before-Save Flow
 - **CRM-224:** Anschrift nur bei Antragsart "Verlegung" anzeigen
 - **CRM-243:** Antrag Verlegung — Account bleibt read-only
 - **CRM-314:** Aktive ASt — neuer Antrag nur Typ Verlegung
@@ -571,7 +627,7 @@ Gewerbeanmeldung kann bei Übergabe an Zentrale fehlen und muss spätestens 4 Wo
 ### Codebase
 
 **Request Object:** `force-app/main/default/objects/STLGS_Request__c/` (~80 Fields, 4 RecordTypes, 6 VR)
-**Flows:** `force-app/main/default/flows/STLGS_*Request*`, `STLGS_Confirm*`, `STLGS_Handover*`, `STLGS_Create*Training*`, `STLGS_Create*Bankdata*`, `STLGS_Rollback*`, `STLGS_SetRequestToClosed`, `STLGS_Display*` (12 Flows)
+**Flows:** `force-app/main/default/flows/STLGS_*Request*`, `STLGS_Confirm*`, `STLGS_Handover*`, `STLGS_Create*Training*`, `STLGS_Create*Bankdata*`, `STLGS_Rollback*`, `STLGS_SetRequestToClosed`, `STLGS_Display*`, `STLGS_CopyPreviousRPFileNumber` (13 Flows)
 **Apex:** `force-app/main/default/classes/STLGS_Request*`, `STLGS_*PDF*`, `STLGS_TextMerge*` (~10 Klassen)
 **Quick Actions:** `force-app/main/default/quickActions/STLGS_Request__c.*` (6 Actions)
 **FlexiPages:** `force-app/main/default/flexipages/STLGS_*Request*` (5 Pages)
@@ -584,3 +640,5 @@ Gewerbeanmeldung kann bei Übergabe an Zentrale fehlen und muss spätestens 4 Wo
 | 2026-02-20 | Initiale Erstellung | Codebase-Analyse (~80 Fields, 12 Flows, 6 VR, 6 QA, 10 Apex, 4 RecordTypes, 5 FlexiPages), ~110 Jira-Stories, 5 Confluence-Seiten |
 | 2026-02-20 | Cross-Reference ergänzt | Verweis auf pflichtschulung.md |
 | 2026-02-20 | Cross-Reference ergänzt | Verweis auf vertragsrelevante-datenaenderung.md |
+| 2026-02-26 | CRM-3041 ergänzt | Neues Feld `STLGS_FileNumberRPPrevious__c`, Flow `STLGS_CopyPreviousRPFileNumber`, Verlegung-Pflichtfelder (Adresse, TransferDate) |
+| 2026-03-02 | CRM-2977 deployed + Backfill | Flow-Trigger geändert (Status → "An Zentrale übergeben"), 368 bestehende VL/ÜN-Requests backfilled (341 ÜN + 27 VL), VL-Selbstreferenz im Calc-Feld dokumentiert |
