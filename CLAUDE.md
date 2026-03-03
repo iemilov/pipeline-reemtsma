@@ -52,9 +52,39 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 8. `/release-notes [version]` — Generates release notes from the latest merge commit by resolving all referenced Jira stories
 9. `/code-review [space-key]` — Performs a comprehensive code review based on the project's tech stack and publishes results to Confluence or as local Markdown
 10. `/build-knowledge <epic-id|topic>` — Builds comprehensive internal domain documentation as Markdown topic files, consolidating knowledge from Jira, Confluence, codebase, and existing docs
+11. `/create-testdata [org-alias] [story-key | preset]` — Creates test data records in a Salesforce org based on `testdata.config.md`. Supports story-based section recommendations, interactive selection, or preset-based auto-selection
 
 ## Additional Skill Remarks
 
 - ALWAYS create a log file for each execution of a skill in this pattern: `<YYYY-MM-DD>-<customer-short-name>-<identifier>-<skill-name>.txt` where `<customer-short-name>` is the **Short Name** from `customer.config.md` and `<identifier>` is the story key, epic key, or version depending on the skill. Copy the complete output as text into this file and store it under the `logs/` subfolder of each skill's directory (e.g., `.claude/skills/02-implement-us/logs/`)
 - All Atlassian integration details (Jira URL, Cloud ID, Confluence URL, project key, components) are in `customer.config.md`
 - Deployment commits include the CI skip pattern from `customer.config.md`
+
+## Natural Language Shortcuts
+
+Wenn ein User eine der folgenden Formulierungen verwendet, den entsprechenden Skill mit dem angegebenen Preset ausführen. Default Org: UAT2 (Alias `LottoUAT2`).
+
+**Antrags-Presets** (jeweils NP und JP verfügbar):
+
+| Formulierung (sinngemäß) | Skill-Aufruf |
+|---------------------------|-------------|
+| "Antrag Neueröffnung NP" | `/create-testdata <org> neueroeffnung-np` |
+| "Antrag Neueröffnung JP/GmbH" | `/create-testdata <org> neueroeffnung-jp` |
+| "Antrag Übernahme NP" | `/create-testdata <org> uebernahme-np` |
+| "Antrag Übernahme JP/GmbH" | `/create-testdata <org> uebernahme-jp` |
+| "Antrag Verlegung NP" | `/create-testdata <org> verlegung-np` |
+| "Antrag Verlegung JP/GmbH" | `/create-testdata <org> verlegung-jp` |
+| "Antrag Agenturstandort NP" | `/create-testdata <org> agentur-np` |
+| "Antrag Agenturstandort JP/GmbH" | `/create-testdata <org> agentur-jp` |
+
+Wenn NP/JP nicht spezifiziert → nachfragen: "Natürliche Person (NP) oder juristische Person (JP)?"
+
+**Sammel-Presets:**
+
+| Formulierung (sinngemäß) | Skill-Aufruf |
+|---------------------------|-------------|
+| "B2B-Testdaten" | `/create-testdata <org> b2b-komplett` |
+| "B2C-Testdaten" | `/create-testdata <org> b2c-komplett` |
+| "alle Testdaten" | `/create-testdata <org> alles` |
+
+Preset-Namen und Record-Zuordnungen sind in `testdata.config.md > ## Presets` definiert.

@@ -30,7 +30,16 @@ This is the internal Lotto BW company account — a prerequisite for B2B process
 
 These are NOT created — the skill queries existing active users by their role name and stores the Id as a reference. If no user with the specified role is found, the skill logs a warning and skips the OwnerId assignment (fallback: running user remains owner).
 
-#### 0b-i. User: Regionaldirektion 1
+#### 0b-i. District: Stuttgart
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_District__c` |
+| operation | `lookup` |
+| lookupQuery | `SELECT Id FROM STLGS_District__c WHERE Name = 'Stuttgart, Landeshauptstadt' LIMIT 1` |
+| referenceId | `districtStuttgart` |
+
+#### 0b-ii. User: Regionaldirektion 1
 
 | Field | Value |
 |-------|-------|
@@ -39,7 +48,7 @@ These are NOT created — the skill queries existing active users by their role 
 | lookupQuery | `SELECT Id FROM User WHERE UserRole.Name LIKE 'RD%' AND IsActive = true ORDER BY UserRole.Name ASC LIMIT 1` |
 | referenceId | `userRD1` |
 
-#### 0b-ii. User: Regionaldirektion 2
+#### 0b-iii. User: Regionaldirektion 2
 
 | Field | Value |
 |-------|-------|
@@ -97,7 +106,7 @@ These are NOT created — the skill queries existing active users by their role 
 
 ### 2. B2B Accounts
 
-> **Sektion 2** | Tags: `b2b`, `account`, `store` | Abhängigkeiten: Sek. 0 | Records: 4 | Beschreibung: B2B Accounts & Stores (Business Account, Potenzielle ASt, VollASt, Lotto Kompakt)
+> **Sektion 2** | Tags: `b2b`, `account`, `store` | Abhängigkeiten: Sek. 0 | Records: 5 | Beschreibung: B2B Accounts & Stores (Business Account, Potenzielle ASt, VollASt, Lotto Kompakt, Vorgänger-ASt für Übernahme)
 
 #### 2a. B2B Business Account (Geschäftskunde — juristische Person)
 
@@ -129,6 +138,17 @@ These are NOT created — the skill queries existing active users by their role 
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
 | STLGS_StoreStatus__c | `Potentielle Ast` |
+| STLGS_StoreTerm__c | `Test Pot. ASt {{Today}}` |
+| STLGS_District__c | `{{Ref:districtStuttgart}}` |
+| STLGS_Email__c | `test.potast@example.com` |
+| STLGS_IBAN__c | `DE89370400440532013000` |
+| STLGS_BIC__c | `COBADEFFXXX` |
+| STLGS_Bankname__c | `Commerzbank Stuttgart` |
+| STLGS_BankAccountType__c | `Geschäftskonto` |
+| STLGS_LastCompanyName__c | `Test Pot. ASt {{Today}}` |
+| STLGS_Street__c | `Marktplatz 5` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
 | OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bPotentialStore` |
 
@@ -148,8 +168,19 @@ Natürliche Person: Lizenzinhaber betreibt die ASt selbst. Kein Business Account
 | BillingPostalCode | `70173` |
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
-| STLGS_StoreStatus__c | `Betriebsbereit` |
+| STLGS_StoreStatus__c | `Potentielle Ast` |
 | STLGS_StoreContractType__c | `natural person` |
+| STLGS_StoreTerm__c | `Test ASt VollASt {{Today}}` |
+| STLGS_District__c | `{{Ref:districtStuttgart}}` |
+| STLGS_Email__c | `test.vollast@example.com` |
+| STLGS_IBAN__c | `DE89370400440532013001` |
+| STLGS_BIC__c | `COBADEFFXXX` |
+| STLGS_Bankname__c | `Sparkasse Stuttgart` |
+| STLGS_BankAccountType__c | `Geschäftskonto` |
+| STLGS_LastCompanyName__c | `Test ASt VollASt {{Today}}` |
+| STLGS_Street__c | `Hauptstraße 42` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
 | OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bStoreVollASt` |
 
@@ -169,11 +200,62 @@ Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filial
 | BillingPostalCode | `70173` |
 | BillingCity | `Stuttgart` |
 | BillingCountry | `Germany` |
-| STLGS_StoreStatus__c | `Betriebsbereit` |
+| STLGS_StoreStatus__c | `Potentielle Ast` |
 | STLGS_StoreContractType__c | `legal person` |
+| STLGS_StoreTerm__c | `Test ASt LK {{Today}}` |
+| STLGS_District__c | `{{Ref:districtStuttgart}}` |
+| STLGS_Email__c | `test.lk@example.com` |
+| STLGS_IBAN__c | `DE89370400440532013002` |
+| STLGS_BIC__c | `COBADEFFXXX` |
+| STLGS_Bankname__c | `Volksbank Stuttgart` |
+| STLGS_BankAccountType__c | `Geschäftskonto` |
+| STLGS_LastCompanyName__c | `Test ASt LK {{Today}}` |
+| STLGS_Street__c | `Bahnhofstraße 15` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
 | ParentId | `{{Ref:b2bBusinessAccount}}` |
 | OwnerId | `{{Ref:userRD2}}` |
 | referenceId | `b2bStoreLK` |
+
+#### 2e. B2B Store — Vorgänger-ASt für Übernahme (mit Kündigungsdatum)
+
+Vorgänger-Store für Übernahme-Test (5b). Status bleibt "Betriebsbereit" — eine Vorgänger-ASt muss noch nicht geschlossen sein, es reicht wenn ein Kündigungsdatum (`STLGS_TerminatedOn__c`) gesetzt ist. VR `STLGS_TerminatedOnEmpty` blockiert die Freigabe wenn das Kündigungsdatum fehlt.
+
+> **Post-Creation Update:** Nach Erstellung von 2c und 2e müssen die bidirektionalen Verknüpfungen gesetzt werden: `STLGS_PredecessorStore__c` auf 2c → 2e, `STLGS_SuccessorStore__c` auf 2e → 2c. Diese Kreuzreferenz kann nicht im selben Composite-Tree-Batch erstellt werden.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Account` |
+| RecordType | `STLGS_Store` |
+| Name | `Test Vorgänger-ASt {{Today}}` |
+| Phone | `0711-5558888` |
+| BillingStreet | `Alte Straße 1` |
+| BillingPostalCode | `70173` |
+| BillingCity | `Stuttgart` |
+| BillingCountry | `Germany` |
+| STLGS_StoreStatus__c | `Betriebsbereit` |
+| STLGS_StoreContractType__c | `natural person` |
+| STLGS_StoreTerm__c | `Test Vorgänger-ASt {{Today}}` |
+| STLGS_District__c | `{{Ref:districtStuttgart}}` |
+| STLGS_Email__c | `test.vorgaenger@example.com` |
+| STLGS_TerminatedOn__c | `{{Today+60d}}` |
+| STLGS_IBAN__c | `DE89370400440532013003` |
+| STLGS_BIC__c | `COBADEFFXXX` |
+| STLGS_Bankname__c | `Sparkasse Stuttgart` |
+| STLGS_BankAccountType__c | `Geschäftskonto` |
+| STLGS_LastCompanyName__c | `Test Vorgänger-ASt {{Today}}` |
+| STLGS_Street__c | `Alte Straße 1` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
+| OwnerId | `{{Ref:userRD1}}` |
+| referenceId | `b2bStorePredecessor` |
+
+**Post-Creation Updates (nach Batch 1):**
+
+| sObject | Id-Ref                | Field                     | Value                          |
+|---------|-----------------------|---------------------------|--------------------------------|
+| Account | `b2bStoreVollASt`     | STLGS_PredecessorStore__c | `{{Ref:b2bStorePredecessor}}`  |
+| Account | `b2bStorePredecessor` | STLGS_SuccessorStore__c   | `{{Ref:b2bStoreVollASt}}`      |
 
 ---
 
@@ -187,11 +269,15 @@ Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filial
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
+| Salutation | `Herr` |
 | FirstName | `Max` |
 | MiddleName | `Johann` |
 | LastName | `Testgeschäftsführer-{{Today}}` |
 | Email | `max.testgf@example.com` |
 | Phone | `0711-5551111` |
+| Birthdate | `1975-03-20` |
+| STLGS_Birthplace__c | `München` |
+| STLGS_Nationality__c | `54` |
 | AccountId | `{{Ref:b2bBusinessAccount}}` |
 | referenceId | `contactGF` |
 
@@ -203,6 +289,7 @@ Antragsteller natürliche Person: braucht Privatanschrift (Other-Felder), Geburt
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
+| Salutation | `Frau` |
 | FirstName | `Anna` |
 | MiddleName | `Sophie` |
 | LastName | `Testinhaber-{{Today}}` |
@@ -226,11 +313,15 @@ Filialverantwortliche bei jur. Person: KEINE Privatanschrift nötig (Antragstell
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
+| Salutation | `Frau` |
 | FirstName | `Lisa` |
 | MiddleName | `Marie` |
 | LastName | `Testfiliale-{{Today}}` |
 | Email | `lisa.testfiliale@example.com` |
 | Phone | `0711-5553333` |
+| Birthdate | `1990-08-12` |
+| STLGS_Birthplace__c | `Karlsruhe` |
+| STLGS_Nationality__c | `54` |
 | AccountId | `{{Ref:b2bStoreLK}}` |
 | referenceId | `contactFilialverantwortliche` |
 
@@ -242,6 +333,7 @@ Antragsteller natürliche Person mit EU-Staatsangehörigkeit (nicht deutsch): te
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
+| Salutation | `Herr` |
 | FirstName | `Pierre` |
 | MiddleName | `Jean` |
 | LastName | `Testinhaber-EU-{{Today}}` |
@@ -265,6 +357,7 @@ Antragsteller natürliche Person mit Nicht-EU-Staatsangehörigkeit: testet zusä
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
+| Salutation | `Herr` |
 | FirstName | `Mehmet` |
 | MiddleName | `Ali` |
 | LastName | `Testinhaber-NonEU-{{Today}}` |
@@ -288,6 +381,7 @@ Antragsteller natürliche Person: 1. Staatsangehörigkeit Nicht-EU, 2. Staatsang
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
+| Salutation | `Frau` |
 | FirstName | `Elif` |
 | MiddleName | `Ayşe` |
 | LastName | `Testinhaber-NonEU-DE-{{Today}}` |
@@ -312,6 +406,7 @@ Antragsteller natürliche Person: 1. Staatsangehörigkeit Nicht-EU, 2. Staatsang
 |-------|-------|
 | sObject | `Contact` |
 | RecordType | `STLGS_SalesContact` |
+| Salutation | `Herr` |
 | FirstName | `Deniz` |
 | MiddleName | `Emre` |
 | LastName | `Testinhaber-NonEU-EU-{{Today}}` |
@@ -425,9 +520,11 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 
 ### 5. Requests (Anträge)
 
-> **Sektion 5** | Tags: `antrag`, `b2b`, `nationality` | Abhängigkeiten: Sek. 0, 2, 3, 4 | Records: 8 | Beschreibung: Anträge (Neueröffnung NP/JP, Übernahme, Verlegung, EU/Nicht-EU/Doppelstaatler-Szenarien)
+> **Sektion 5** | Tags: `antrag`, `b2b`, `nationality`, `negativ-test` | Abhängigkeiten: Sek. 0, 2, 3, 4 | Records: 15 | Beschreibung: Anträge (Neueröffnung/Übernahme/Verlegung/Agentur jeweils NP+JP, EU/Nicht-EU/Doppelstaatler-Szenarien, Vorgänger-Request für Übernahme, Negativ-Tests FileNumberRP) — **validierungsbereit für Prüfen/Freigabe**
 
-All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
+All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). All requests include document/compliance checkboxes required by the `STLGS_DisplayMandatoryRequestFields` validation flow, so they can pass the "Prüfen" button validation and proceed through the full status lifecycle.
+
+> **Vertragsbeginn-Formel (`STLGS_ContractStartCheck__c`):** Die VR prüft `ContractStartPlanned - TODAY() < (8 - WEEKDAY(TODAY()) + N)` wobei N=42 (Neueröffnung/Verlegung) bzw. N=28 (Übernahme). Durch die Wochentag-Korrektur (`8-WEEKDAY`) schwankt die Mindestfrist um bis zu 7 Tage. Sichere Werte: **+49d** (7 Wochen) für Neueröffnung/Verlegung, **+35d** (5 Wochen) für Übernahme. Verlegung prüft `TransferDate__c` statt `ContractStartPlanned__c`.
 
 #### 5a. Request: Neueröffnung — natürliche Person
 
@@ -441,7 +538,32 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
 | STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Tabakgeschäft` |
+| STLGS_Potential__c | `5000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 08:00-20:00, Sa 08:00-18:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung natürliche Person</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| STLGS_FileNumberRP__c | `RP-2024-TEST-002` |
+| STLGS_SetLeadingAt__c | `2024-01-15T10:00:00.000Z` |
 | referenceId | `requestNeueroeffnungNP` |
 
 #### 5b. Request: Übernahme — natürliche Person
@@ -456,7 +578,29 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
 | STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+28d}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+35d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Kiosk` |
+| STLGS_Potential__c | `3000` |
+| STLGS_IsStandardTaxation__c | `false` |
+| STLGS_IsSmallBusinessOwner__c | `true` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 07:00-21:00, Sa 08:00-20:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Übernahme</p>` |
+| STLGS_PredecessorStore__c | `{{Ref:b2bStorePredecessor}}` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
 | referenceId | `requestUebernahmeNP` |
 
 #### 5c. Request: Neueröffnung — juristische Person
@@ -473,8 +617,40 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 | STLGS_BranchManager__c | `{{Ref:contactFilialverantwortliche}}` |
 | STLGS_ManagingDirector__c | `{{Ref:contactGF}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Supermarkt` |
+| STLGS_Potential__c | `2000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Sa 07:00-22:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung juristische Person</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasCommercialRegisterExtract__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
 | referenceId | `requestNeueroeffnungJP` |
+
+#### 5c-ii. RequestContactRelation: Geschäftsführer → Neueröffnung JP
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_RequestContactRelation__c` |
+| Contact__c | `{{Ref:contactGF}}` |
+| STLGS_Request__c | `{{Ref:requestNeueroeffnungJP}}` |
+| STLGS_Type__c | `Managing Director` |
+| referenceId | `rcrNeueroeffnungJP` |
 
 #### 5d. Request: Verlegung — natürliche Person
 
@@ -488,10 +664,235 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account).
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
 | STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
-| referenceId | `requestVerlegung` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Schreibwaren` |
+| STLGS_Potential__c | `4000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 09:00-18:30, Sa 09:00-14:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Verlegung</p>` |
+| STLGS_Street__c | `Neue Straße 10` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
+| STLGS_TransferDate__c | `{{Today+49d}}` |
+| STLGS_AverageTurnoverPredecessor__c | `3800` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestVerlegungNP` |
 
-#### 5e. Request: Neueröffnung — natürliche Person, EU-Ausländer (Frankreich)
+#### 5e. Request: Übernahme — juristische Person
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_BusinessRequest` |
+| STLGS_Store__c | `{{Ref:b2bStoreLK}}` |
+| STLGS_Type__c | `Übernahme` |
+| STLGS_SalesType__c | `Lotto Kompakt` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_BusinessAccount__c | `{{Ref:b2bBusinessAccount}}` |
+| STLGS_BranchManager__c | `{{Ref:contactFilialverantwortliche}}` |
+| STLGS_ManagingDirector__c | `{{Ref:contactGF}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+35d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Tankstelle` |
+| STLGS_Potential__c | `3000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Sa 06:00-22:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Übernahme juristische Person</p>` |
+| STLGS_PredecessorStore__c | `{{Ref:b2bStorePredecessor}}` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasCommercialRegisterExtract__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestUebernahmeJP` |
+
+#### 5e-ii. RequestContactRelation: Geschäftsführer → Übernahme JP
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_RequestContactRelation__c` |
+| Contact__c | `{{Ref:contactGF}}` |
+| STLGS_Request__c | `{{Ref:requestUebernahmeJP}}` |
+| STLGS_Type__c | `Managing Director` |
+| referenceId | `rcrUebernahmeJP` |
+
+#### 5f. Request: Verlegung — juristische Person
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_BusinessRequest` |
+| STLGS_Store__c | `{{Ref:b2bStoreLK}}` |
+| STLGS_Type__c | `Verlegung` |
+| STLGS_SalesType__c | `Lotto Kompakt` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_BusinessAccount__c | `{{Ref:b2bBusinessAccount}}` |
+| STLGS_BranchManager__c | `{{Ref:contactFilialverantwortliche}}` |
+| STLGS_ManagingDirector__c | `{{Ref:contactGF}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Postfiliale` |
+| STLGS_Potential__c | `2500` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 09:00-18:00, Sa 09:00-13:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Verlegung juristische Person</p>` |
+| STLGS_Street__c | `Neue Straße 20` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
+| STLGS_TransferDate__c | `{{Today+49d}}` |
+| STLGS_AverageTurnoverPredecessor__c | `3800` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasCommercialRegisterExtract__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestVerlegungJP` |
+
+#### 5f-ii. RequestContactRelation: Geschäftsführer → Verlegung JP
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_RequestContactRelation__c` |
+| Contact__c | `{{Ref:contactGF}}` |
+| STLGS_Request__c | `{{Ref:requestVerlegungJP}}` |
+| STLGS_Type__c | `Managing Director` |
+| referenceId | `rcrVerlegungJP` |
+
+#### 5g. Request: Agenturstandort — natürliche Person
+
+Neueröffnung mit Agentur-Flag: `STLGS_IsOperatedByAgency__c = true` erfordert zusätzlich `STLGS_ECCard__c = true` für die Vorort-Gespräch-Validierung.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bStoreVollASt}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Postagentur` |
+| STLGS_Potential__c | `4000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 09:00-18:00, Sa 09:00-13:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung Agenturstandort NP</p>` |
+| STLGS_IsOperatedByAgency__c | `true` |
+| STLGS_ECCard__c | `true` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestAgenturNP` |
+
+#### 5h. Request: Agenturstandort — juristische Person
+
+Neueröffnung JP mit Agentur-Flag: `STLGS_IsOperatedByAgency__c = true` erfordert zusätzlich `STLGS_ECCard__c = true`.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_BusinessRequest` |
+| STLGS_Store__c | `{{Ref:b2bStoreLK}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Lotto Kompakt` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_BusinessAccount__c | `{{Ref:b2bBusinessAccount}}` |
+| STLGS_BranchManager__c | `{{Ref:contactFilialverantwortliche}}` |
+| STLGS_ManagingDirector__c | `{{Ref:contactGF}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Postagentur` |
+| STLGS_Potential__c | `2000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Sa 07:00-22:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung Agenturstandort JP</p>` |
+| STLGS_IsOperatedByAgency__c | `true` |
+| STLGS_ECCard__c | `true` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasCommercialRegisterExtract__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestAgenturJP` |
+
+#### 5h-ii. RequestContactRelation: Geschäftsführer → Agentur JP
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_RequestContactRelation__c` |
+| Contact__c | `{{Ref:contactGF}}` |
+| STLGS_Request__c | `{{Ref:requestAgenturJP}}` |
+| STLGS_Type__c | `Managing Director` |
+| referenceId | `rcrAgenturJP` |
+
+#### 5i. Request: Neueröffnung — natürliche Person, EU-Ausländer (Frankreich)
 
 Testet EU-Führungszeugnis-Pflicht: Contact hat `STLGS_Nationality__c = 72` (France), `STLGS_IsEU__c = true`, aber keine deutsche Staatsangehörigkeit.
 
@@ -505,10 +906,30 @@ Testet EU-Führungszeugnis-Pflicht: Contact hat `STLGS_Nationality__c = 72` (Fra
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
 | STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberEU}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Lebensmittel-Einzelhandel` |
+| STLGS_Potential__c | `4500` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Sa 08:00-20:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung EU-Ausländer</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
 | referenceId | `requestNeueroeffnungEU` |
 
-#### 5f. Request: Neueröffnung — natürliche Person, Nicht-EU (Türkei)
+#### 5j. Request: Neueröffnung — natürliche Person, Nicht-EU (Türkei)
 
 Testet zusätzliche Unterlagen: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS_IsEU__c = false`. Am Request müssen `STLGS_ResidencePermit__c` und `STLGS_PermissionSelfEmplyment__c` gesetzt sein.
 
@@ -522,12 +943,32 @@ Testet zusätzliche Unterlagen: Contact hat `STLGS_Nationality__c = 215` (Turkey
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
 | STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberNonEU}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
 | STLGS_ResidencePermit__c | `true` |
 | STLGS_PermissionSelfEmplyment__c | `true` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Getränkemarkt` |
+| STLGS_Potential__c | `3500` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Sa 09:00-21:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung Nicht-EU</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
 | referenceId | `requestNeueroeffnungNonEU` |
 
-#### 5g. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit DE
+#### 5k. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit DE
 
 Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS_Nationality2__c = 54` (Germany), `STLGS_IsEU__c = true`. Da eine Nationalität = "54" (deutsch), wird **kein** EU-Führungszeugnis und **keine** Aufenthaltserlaubnis verlangt.
 
@@ -541,10 +982,30 @@ Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
 | STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberNonEU_DE}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Bäckerei` |
+| STLGS_Potential__c | `2500` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 06:00-18:00, Sa 06:00-14:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung Doppelstaatler NonEU+DE</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
 | referenceId | `requestNeueroeffnungNonEU_DE` |
 
-#### 5h. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit EU (nicht deutsch)
+#### 5l. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit EU (nicht deutsch)
 
 Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS_Nationality2__c = 72` (France), `STLGS_IsEU__c = true`. Da **keine** Nationalität = "54" (deutsch), wird ein **EU-Führungszeugnis** verlangt. Keine Aufenthaltserlaubnis nötig (IsEU = true).
 
@@ -558,8 +1019,136 @@ Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS
 | STLGS_Status__c | `Zusammenarbeit prüfen` |
 | STLGS_AccountLead__c | `{{Ref:contactLizenzinhaberNonEU_EU}}` |
 | STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+42d}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Zeitschriftenladen` |
+| STLGS_Potential__c | `3000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Sa 08:00-19:00</p>` |
+| STLGS_Reason__c | `<p>Testbegründung Neueröffnung Doppelstaatler NonEU+EU</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
 | referenceId | `requestNeueroeffnungNonEU_EU` |
+
+#### 5m. Request: Vorgänger-Request am Predecessor Store (für Übernahme-Test)
+
+Simuliert einen genehmigten Antrag am Vorgänger-Store (`b2bStorePredecessor`). Wird vom Snapshot-Flow `STLGS_CopyPreviousRPFileNumber` als Quelle für `FileNumberRPPrevious__c` am Übernahme-Request (5b) verwendet.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_ReadOnlyRequest` |
+| STLGS_Store__c | `{{Ref:b2bStorePredecessor}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Vertrag abgeschlossen` |
+| STLGS_ApplicationDate__c | `2024-01-10` |
+| STLGS_ContractStartPlanned__c | `2024-03-01` |
+| STLGS_Industry__c | `Tabakgeschäft` |
+| STLGS_Potential__c | `3500` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_FileNumberRP__c | `RP-2024-TEST-001` |
+| STLGS_ApprovalDate__c | `2024-06-15` |
+| STLGS_ReceiptDate__c | `2024-02-01` |
+| STLGS_SetLeadingAt__c | `2024-06-15T10:00:00.000Z` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `2024-01-10` |
+| STLGS_DateIssueSchufa__c | `2024-01-10` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestPredecessorNE` |
+
+> **Hinweis:** 5m muss VOR 5b erstellt werden (Abhängigkeit: Vorgänger-Request muss existieren, damit der Snapshot-Flow ihn finden kann). In Apex-Scripts: `requestPredecessorNE` vor `requestUebernahmeNP` anlegen.
+
+#### 5n. Request: ÜN ohne Vorgänger-AZ (Negativ-Test FileNumberRP)
+
+Simuliert eine Übernahme wo der Vorgänger-Request KEIN Aktenzeichen RP hat. Der Snapshot-Flow `STLGS_CopyPreviousRPFileNumber` soll `FileNumberRPPrevious__c` **nicht** befüllen.
+
+Benötigt eigenen Predecessor Store + Predecessor Request ohne FileNumberRP. Verwendet denselben Contact wie 5b (`contactLizenzinhaber`).
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bStoreVollASt}}` |
+| STLGS_Type__c | `Übernahme` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+35d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Kiosk` |
+| STLGS_Potential__c | `2500` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_PredecessorStore__c | `{{Ref:b2bStorePredecessorNoAZ}}` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 08:00-20:00</p>` |
+| STLGS_Reason__c | `<p>Negativ-Test: ÜN ohne Vorgänger-AZ</p>` |
+| (alle Compliance-Checkboxen) | `true` |
+| referenceId | `requestUebernahmeNoAZ` |
+
+> **Abhängigkeit:** Benötigt einen Predecessor Store (`b2bStorePredecessorNoAZ`) mit einem Vorgänger-Request OHNE `FileNumberRP__c`. Dieser Predecessor Request ist analog zu 5m, aber ohne die Zeile `STLGS_FileNumberRP__c`.
+> **Erwartet nach Freigabe:** `FileNumberRPPrevious__c = null` (kein AZ am Vorgänger → nichts zu kopieren).
+
+#### 5o. Request: VL als einziger Request am Store (Negativ-Test FileNumberRP)
+
+Simuliert eine Verlegung an einem Store der nur diesen einen Request hat (keinen Vorgänger-NE-Request). Der Snapshot-Flow `STLGS_CopyPreviousRPFileNumber` sucht via `Store = $Record.Store AND Id != $Record.Id` und findet nichts → `FileNumberRPPrevious__c` bleibt null.
+
+Benötigt eigenen Store ohne vorherige Requests. Verwendet eigenen Contact.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bStoreAloneVL}}` |
+| STLGS_Type__c | `Verlegung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactAloneVL}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_TransferDate__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Schreibwaren` |
+| STLGS_Potential__c | `3000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_AverageTurnoverPredecessor__c | `3000` |
+| STLGS_Street__c | `Neue Teststraße 1` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 09:00-18:00</p>` |
+| STLGS_Reason__c | `<p>Negativ-Test: VL ohne Vorgänger-Request</p>` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| (alle Compliance-Checkboxen) | `true` |
+| referenceId | `requestVerlegungAlone` |
+
+> **Abhängigkeit:** Benötigt eigenen Store (`b2bStoreAloneVL`, Status "Betriebsbereit") und eigenen Contact (`contactAloneVL`). Der Store darf KEINEN anderen Request haben.
+> **Erwartet nach Freigabe:** `FileNumberRPPrevious__c = null` (kein anderer Request am Store → nichts zu kopieren).
+> **Hinweis:** Store muss auf "Betriebsbereit" stehen damit eine Verlegung fachlich Sinn macht (siehe `verlegung-np.apex` Zeile 172-177).
 
 ---
 
@@ -977,19 +1566,38 @@ B2C and B2B are **independent paths** — they share no dependencies.
 - **Non-EU** (`STLGS_IsEU__c = false`): Request needs `STLGS_ResidencePermit__c = true` + `STLGS_PermissionSelfEmplyment__c = true`
 - **Dual nationality** (`STLGS_Nationality2__c`): `STLGS_IsEU__c` checks BOTH nationalities — if either is EU, `IsEU = true`. EU-FZ is only required when `IsEU = true` AND neither nationality = "54" (deutsch)
 - **Nationality test matrix**: 3b=DE, 3d=EU, 3e=NonEU, 3f=NonEU+DE, 3g=NonEU+EU — covers all permutations
+- **Store-Pflichtfelder**: `STLGS_StoreTerm__c` (Bezeichnung der ASt, Text), `STLGS_District__c` (Gemeinde, Lookup auf `STLGS_District__c`) und `STLGS_Email__c` (E-Mail) müssen bei ALLEN Store-Accounts (2b, 2c, 2d) gesetzt werden. District wird per Lookup in Sektion 0b ermittelt.
+- **Besteuerung**: `STLGS_IsStandardTaxation__c` (Regelbesteuerung) und `STLGS_IsSmallBusinessOwner__c` (Kleinunternehmer) sind Gegenstücke — wenn eines `true` ist, muss das andere `false` sein. Hat nichts mit Nationalität zu tun.
+- **Request-Pflichtfelder für Tests**: `STLGS_PlayerProtectionTraining__c`, `STLGS_ProductTerminalTraining__c` (Schulungsdaten), `STLGS_Industry__c` (Branche), `STLGS_Potential__c` (Umsatzprognose), `STLGS_InitialTerminalHours__c` (Terminallaufzeiten), `STLGS_Reason__c` (Begründung) — alle bei Requests (5a-5h) setzen.
+- **Contact-Pflichtfelder**: `Salutation` (Herr/Frau) muss bei allen Sales Contacts gesetzt werden.
+- **Verlegung-Pflichtfelder**: `STLGS_Street__c` (neue Straße), `STLGS_Postalcode__c` (neue PLZ), `STLGS_City__c` (neuer Ort) und `STLGS_TransferDate__c` (Verlegungsdatum, mind. 6 Wochen in der Zukunft) — nur bei Requests mit `STLGS_Type__c = Verlegung` (5d).
+- **Validierungsbereit (Prüfen/Freigabe):** Alle Requests (5a-5h) enthalten die Dokument-/Compliance-Checkboxen aus `STLGS_DisplayMandatoryRequestFields`. Bei Bedarf Checkboxen auf `false` setzen um Validierungsfehler zu testen.
+- **Bankdaten am Store**: `STLGS_IBAN__c`, `STLGS_BIC__c`, `STLGS_Bankname__c`, `STLGS_BankAccountType__c`, `STLGS_LastCompanyName__c` (Kontoinhaber), `STLGS_Street__c`, `STLGS_Postalcode__c`, `STLGS_City__c` (Kontoinhaber-Adresse) — geprüft in `STLGS_IsBankdataVisible`. Auf allen Stores (2b-2e) gesetzt. **Hinweis:** Bankdaten werden in der Validierung als Pflicht angezeigt, der Regionaldirektor kann den Antrag aber auch ohne Bankdaten freigeben — er erhält dann den Hinweis, dass die Bankdaten spätestens 4 Wochen nach Freigabe nachgereicht werden müssen. Ein Antrag ohne Bankdaten ist daher ein valides Testszenario.
+- **Vorgänger-ASt (Übernahme)**: Store 2e mit `STLGS_TerminatedOn__c` — ohne Kündigungsdatum blockiert VR `STLGS_TerminatedOnEmpty` die Freigabe bei Übernahme-Anträgen (5b).
+- **CRM-3011 Wissensweitergabe**: `STLGS_HasKnowledgeTransfer__c = true` — VR `STLGS_ValidateKnowledgeTransfer` blockiert "An Zentrale übergeben" wenn false.
+- **Dokument-Gültigkeit**: `STLGS_IssueDateCriminalRecord__c` und `STLGS_DateIssueSchufa__c` dürfen max. 182 Tage vor `ContractStartPlanned__c` (bzw. `TransferDate__c` bei Verlegung) liegen. Testdaten setzen `{{Today}}` → immer gültig.
+- **ILO Profit**: `STLGS_IloProfit__c = true` für Vorort-Gespräch-Validierung (`STLGS_IsOnsiteDiscussionVisible`). Wenn `STLGS_IsOperatedByAgency__c = true`, ist zusätzlich `STLGS_ECCard__c = true` nötig.
+- **Verlegung AverageTurnoverPredecessor**: `STLGS_AverageTurnoverPredecessor__c` nur bei Verlegung (5d) Pflicht (Formel `STLGS_VerlegungMandatoryFields`). Bei Übernahme wird der Wert bei Freigabe automatisch aus `PredecessorStore.STLGS_AverageRevenueLast6Months__c` übernommen.
+- **Business-Request Zusatz-Dokumente**: Jur. Person (5c) braucht zusätzlich: `STLGS_HasSEPAMandate__c`, `STLGS_HasCriminalRecordBusinessAccount__c`, `STLGS_IssueDateCriminalRecordBA__c`, `STLGS_HasCommercialRegisterExtract__c`. Standard-Requests brauchen stattdessen `STLGS_HasSchufa__c` + `STLGS_DateIssueSchufa__c`.
+- **Nachreichbare Dokumente**: Bankdaten und Gewerbeanmeldung (`STLGS_HasBusinessRegistration__c`) werden in der Validierung als Pflicht angezeigt, der RD kann den Antrag aber auch ohne diese freigeben. Bankdaten müssen spätestens 4 Wochen nach Freigabe, Gewerbeanmeldung spätestens 4 Wochen nach Eröffnung nachgereicht werden. Anträge ohne diese Felder sind daher valide Testszenarien für den Nachreich-Prozess.
 
 ## Process Coverage Matrix
 
 | Business Process | Covered By | Record Type | Key Differentiator |
 | --- | --- | --- | --- |
 | Neueröffnung (nat. Person) | 5a | `STLGS_StandardRequest` | `STLGS_Type__c = Neueröffnung` |
+| Übernahme (nat. Person) | 5b | `STLGS_StandardRequest` | `STLGS_Type__c = Übernahme` |
 | Neueröffnung (jur. Person) | 5c | `STLGS_BusinessRequest` | `STLGS_Type__c = Neueröffnung` |
-| Übernahme | 5b | `STLGS_StandardRequest` | `STLGS_Type__c = Übernahme` |
-| Verlegung | 5d | `STLGS_StandardRequest` | `STLGS_Type__c = Verlegung` |
-| Neueröffnung (EU-Ausländer) | 5e | `STLGS_StandardRequest` | EU-Führungszeugnis-Pflicht |
-| Neueröffnung (Nicht-EU) | 5f | `STLGS_StandardRequest` | Aufenthalts-/Gewerbeerlaubnis |
-| Neueröffnung (NonEU + DE) | 5g | `STLGS_StandardRequest` | Doppelstaatler, keine Sonderunterlagen |
-| Neueröffnung (NonEU + EU) | 5h | `STLGS_StandardRequest` | Doppelstaatler, EU-FZ Pflicht |
+| Verlegung (nat. Person) | 5d | `STLGS_StandardRequest` | `STLGS_Type__c = Verlegung` |
+| Übernahme (jur. Person) | 5e | `STLGS_BusinessRequest` | `STLGS_Type__c = Übernahme` |
+| Verlegung (jur. Person) | 5f | `STLGS_BusinessRequest` | `STLGS_Type__c = Verlegung` |
+| Agenturstandort (nat. Person) | 5g | `STLGS_StandardRequest` | `STLGS_IsOperatedByAgency__c = true` |
+| Agenturstandort (jur. Person) | 5h | `STLGS_BusinessRequest` | `STLGS_IsOperatedByAgency__c = true` |
+| Neueröffnung (EU-Ausländer) | 5i | `STLGS_StandardRequest` | EU-Führungszeugnis-Pflicht |
+| Neueröffnung (Nicht-EU) | 5j | `STLGS_StandardRequest` | Aufenthalts-/Gewerbeerlaubnis |
+| Neueröffnung (NonEU + DE) | 5k | `STLGS_StandardRequest` | Doppelstaatler, keine Sonderunterlagen |
+| Neueröffnung (NonEU + EU) | 5l | `STLGS_StandardRequest` | Doppelstaatler, EU-FZ Pflicht |
+| Vorgänger-Request (Übernahme) | 5m | `STLGS_StandardRequest` | FileNumberRP + Status "Vertrag abgeschlossen" am Predecessor Store |
 | Service Desk (B2B) | 7a | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = General__c` |
 | VDE Prüfung (VollASt) | 7b | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = VDE Prüfung` |
 | VDE Prüfung (LK) | 7c | `STLGS_ServiceDeskCase` | `STLGS_TopicArea__c = VDE Prüfung` |
@@ -1011,3 +1619,53 @@ B2C and B2B are **independent paths** — they share no dependencies.
 | B2C Erwin | 6c | `STLG_ErwinCase` | `Type = ERWIN_Kundenkonto` |
 | Besuchsbericht | 8a | `STLGS_VisitReport__c` | Eigenes Objekt |
 | VDE Asset-Prüfung | 9a, 9b | `Asset` | Manuelle Test-Assets |
+
+## Presets
+
+Vordefinierte Record-Sets für häufige Testszenarien. Jedes Preset listet exakt die Sub-Records die angelegt werden. Der Skill `/create-testdata` überspringt die interaktive Auswahl.
+
+### neueroeffnung-np
+
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5a | **~6 Records** | Neueröffnung natürliche Person (Vollannahmestelle, deutscher Lizenzinhaber)
+
+### neueroeffnung-jp
+
+> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5c | **~9 Records** | Neueröffnung juristische Person (Lotto Kompakt, GmbH mit Geschäftsführer + Filialverantwortliche)
+
+### uebernahme-np ✅
+
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 2e, 3b, 4a, 5m, 5b | **~8 Records** | Übernahme natürliche Person (mit Vorgänger-ASt + Vorgänger-Request mit Aktenzeichen RP)
+
+### uebernahme-jp
+
+> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 2e, 3a, 3c, 4b, 4c, 5e | **~10 Records** | Übernahme juristische Person (mit Vorgänger-ASt)
+
+### verlegung-np
+
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5a, 5d | **~7 Records** | Verlegung natürliche Person (mit Vorgänger-NE inkl. Aktenzeichen RP + neue Adresse + Durchschnittsumsatz)
+>
+> **Hinweis:** Store wird am Ende auf `STLGS_Store` (RecordType) + `Betriebsbereit` (Status) gesetzt — bei Verlegung ist die ASt bereits aktiv. Flows ändern den RT nach Request-Insert auf `STLGS_PotentialStore`, daher abschließender Fix nötig.
+
+### verlegung-jp
+
+> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5f | **~9 Records** | Verlegung juristische Person (neue Adresse + Durchschnittsumsatz)
+
+### agentur-np
+
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5g | **~6 Records** | Agenturstandort natürliche Person (IsOperatedByAgency + ECCard)
+
+### agentur-jp
+
+> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5h | **~9 Records** | Agenturstandort juristische Person (IsOperatedByAgency + ECCard)
+
+### b2b-komplett
+
+> **Records:** alle aus Sek. 0, 2, 3, 4, 5, 7a-7p, 8, 9 | **~60+ Records** | Vollständiger B2B-Datensatz — Anträge + Cases + Besuchsberichte + Assets
+
+### b2c-komplett
+
+> **Records:** alle aus Sek. 0, 1, 6 | **~6 Records** | Vollständiger B2C-Datensatz — Person Accounts + B2C Cases
+
+### alles
+
+> **Records:** alle | **~70+ Records** | Kompletter Datensatz (B2B + B2C)

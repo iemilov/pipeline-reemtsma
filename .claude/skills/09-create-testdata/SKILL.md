@@ -1,7 +1,7 @@
 ---
 name: create-testdata
 description: Create test data records in a Salesforce org based on customer-specific test data configuration
-argument-hint: "[org-alias] [story-key]"
+argument-hint: "[org-alias] [story-key | preset]"
 ---
 
 ## Configuration
@@ -10,9 +10,10 @@ Before executing, read `pipeline/customer.config.md` for customer-specific value
 
 ## Workflow: Create Test Data in Salesforce Org
 
-Generate and insert test data into the Salesforce org specified by **$ARGUMENTS** (org alias, optional story key). Parse arguments as follows:
+Generate and insert test data into the Salesforce org specified by **$ARGUMENTS** (org alias, optional story key or preset). Parse arguments as follows:
 - First argument that matches `CRM-\d+` pattern → story key
-- First argument that does not match → org alias
+- Argument that matches a preset name from `testdata.config.md > ## Presets` section → preset (auto-selects sections, skips interactive selection)
+- Remaining argument → org alias
 - If no org alias is provided, use the default development org from `stack.config.md`
 
 ### Step 1: Validate Environment
@@ -25,7 +26,14 @@ Generate and insert test data into the Salesforce org specified by **$ARGUMENTS*
 3. If the org is not authenticated, inform the user and abort
 4. Read `pipeline/customers/<customer>/testdata.config.md` to load the test data definitions including all section metadata (tags, depends_on, record counts)
 
-### Step 2: Analyze Story & Build Section Recommendations
+### Step 2: Analyze Story, Preset & Build Section Recommendations
+
+**If a preset name was provided:**
+
+1. Read the `## Presets` section from `testdata.config.md`
+2. Find the matching preset by name (case-insensitive)
+3. Parse the sub-record IDs from the preset's metadata line (e.g., "Records: 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5a"). If the preset uses "alle aus Sek. X, Y" format, expand to all sub-records within those sections.
+4. Mark these records as `[PRESET]` — skip interactive selection in Step 3. Only create the listed sub-records, not entire sections.
 
 **If a story key was provided:**
 
@@ -55,7 +63,41 @@ Generate and insert test data into the Salesforce org specified by **$ARGUMENTS*
 
 - Skip this step — no sections are pre-recommended
 
-### Step 3: Interactive Section Selection
+### Step 2b: Apex Fast-Path (Presets only)
+
+**If a preset was matched in Step 2**, check for a pre-built Anonymous Apex script:
+
+1. Look for `scripts/apex/testdata/<preset-name>.apex` (e.g., `scripts/apex/testdata/uebernahme-np.apex`)
+2. **If the file exists:**
+   - Display: `Preset **<name>** → Apex Fast-Path (~5-10s)`
+   - Execute:
+     ```bash
+     sf apex run -f scripts/apex/testdata/<preset-name>.apex -o <org-alias>
+     ```
+   - Parse debug output lines matching these patterns:
+     - `CREATED|<sObject>|<Id>|<Name>|<RecordType>` → created record
+     - `UPDATED|<sObject>|<Id>|<detail>` → updated record
+     - `SKIPPED|<sObject>|<Id>|<reason>` → skipped (e.g., company account exists)
+     - `TOTAL|<N> operations` → total count
+     - `URL|<path>` → direct link to the main record (Request)
+   - Build summary table from parsed lines
+   - Write log file as usual
+   - **Skip Steps 3–7 entirely** — all lookups, DML, cross-references, and ACR updates happen natively in Apex
+   - Proceed directly to Step 8 (Summary)
+3. **If no `.apex` file exists** → continue with Step 3 (standard flow)
+
+### Step 3: Section Selection
+
+**If a preset was matched (sections already determined):**
+
+Display the preset summary (informational, no user question):
+
+> Preset **\<name\>**: \<description\>
+> Records: \<sub-record-list\> (~\<count\>)
+
+Then skip directly to Step 4 (dependency resolution) — no interactive selection needed.
+
+**Otherwise — Interactive Selection:**
 
 Present a selection table to the user with ALL available sections from the config:
 
