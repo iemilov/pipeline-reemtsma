@@ -35,7 +35,8 @@ Analyze the existing codebase to inform the implementation approach:
    - Identify potential conflicts or order-of-execution concerns
 4. **Existing metadata** — check what already exists that the implementation can build on or must integrate with
 5. **Test patterns** — if Apex is likely needed, check the **test data factory** class from config for existing test data methods
-6. **Domain knowledge** — cross-reference `pipeline/customer.domain.md` for business logic rules, field name pitfalls, and glossary terms relevant to this story
+6. **Test data templates** — analyze `testdata.config.md` presets and record sections relevant to this story's affected objects. Identify which existing presets/sections can be reused for testing, and which custom records would need to be added
+7. **Domain knowledge** — cross-reference `pipeline/customer.domain.md` for business logic rules, field name pitfalls, and glossary terms relevant to this story
 
 ### Step 3: Resolve Open Questions (Interactive)
 
@@ -135,6 +136,22 @@ Based on the requirements, codebase analysis, and resolved questions, decide the
 |---|---------------------|--------------------------|
 | 1 | <criterion from story> | <which component fulfills it> |
 
+## Test Scenarios
+
+Aus den Akzeptanzkriterien abgeleitete Testfälle mit konkreten Testdaten-Anforderungen.
+
+| # | Szenario | Typ | Testdaten | Erwartetes Ergebnis |
+|---|----------|-----|-----------|---------------------|
+| T1 | <Testfall-Beschreibung> | Happy Path / Negativ / Edge Case | <Preset oder Custom-Records aus testdata.config.md> | <Was nach Ausführung verifiziert werden soll> |
+
+### Testdaten-Anforderungen
+
+<Falls Custom-Records nötig sind die nicht in testdata.config.md existieren:>
+
+| Record | sObject | Besonderheit | Config-Sektion |
+|--------|---------|--------------|----------------|
+| <Name> | <sObject> | <Was ist anders als Standard> | <existierende Sektion oder "NEU"> |
+
 ## Resolved Questions
 
 | # | Question | Answer | Impact on Design |
@@ -164,6 +181,7 @@ Based on the requirements, codebase analysis, and resolved questions, decide the
    - For each new component: specify the exact metadata type and configuration
    - Reference relevant entries from `testdata.config.md` if the story involves objects with test data templates
    - Flag any field name pitfalls from `customer.domain.md`
+   - For the Test Scenarios section: derive at least one test case per acceptance criterion. Include Happy Path, Negativ-Test, and Edge Case scenarios where applicable. Reference existing `testdata.config.md` presets by name (e.g., `uebernahme-np`). If the story requires records that don't exist in the config, describe them in the "Testdaten-Anforderungen" table — these will later inform updates to `testdata.config.md` and the `/create-testdata` skill.
 
 ### Step 6: Present Summary
 
@@ -175,6 +193,7 @@ Present a summary to the user:
 - Dependencies identified
 - Questions resolved during the interactive session (count)
 - Remaining open questions / assumptions (if any)
+- Test scenarios defined (count of Happy Path / Negativ / Edge Case)
 - File path of the generated implementation notes
 - **Suggested next step**: `/implement-us $ARGUMENTS`
 

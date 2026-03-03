@@ -320,7 +320,7 @@ Record Type: `STLGS_TerminationRecordType` (CRM-2700)
 | `STLGS_ValidateTerminationLetterDate` | Case | Briefdatum Pflicht bei "Übergeben an VO" |
 | `STLGS_PreventClosureOnDisruption` | Case | Keine Schließung bei aktiver Vollstörung |
 | `STLGS_MandatoryFieldsForShutdown` | STLGS_Request__c | Shutdown-Datum + Grund Pflicht für "Erlaubnis erloschen" |
-| `STLGS_TerminatedOnEmpty` | STLGS_Request__c | Validierung des TerminatedOn-Feldes |
+| `STLGS_TerminatedOnEmpty` | STLGS_Request__c | Vorgänger-Kündigungsdatum (`Account.STLGS_TerminatedOn__c`) muss gesetzt sein bevor Übernahme-Antrag freigegeben werden kann |
 
 **VF Pages (1):**
 
@@ -488,3 +488,4 @@ Flow `STLGS_ResetTerminationOnRDChange` zählt einen Handover-Counter hoch bei j
 | 2026-02-20 | Jira/Confluence-Anreicherung | ~51 Jira-Stories, 3 Confluence-Seiten: Event-basiertes Modell (CRM-2610), Leitungslogik korrigiert (2 vs. 3 Felder), Dokumentvorlagen (8 Templates), Handover-Logik (CRM-2758/-2779), 6 Bugs dokumentiert, vollständige Jira-Referenzen |
 | 2026-02-20 | Cross-Reference ergänzt | Verweis auf ruecklastschrift.md |
 | 2026-02-20 | Cross-Reference ergänzt | Verweis auf vertragsrelevante-datenaenderung.md |
+| 2026-03-03 | VR-Beschreibung verbessert | `STLGS_TerminatedOnEmpty` Beschreibung präzisiert (Vorgänger-Kündigungsdatum bei Übernahme) |

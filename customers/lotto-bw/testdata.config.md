@@ -4,6 +4,47 @@
 
 This configuration defines the test data records to be created in a Lotto-BW Salesforce org. Records are organized by dependency order — parent records are created first.
 
+### Antragsnummer / StoreNumber
+
+Die Antragsnummer (`STLGS_Request__c.Name`) ist ein **Text-Feld** (kein AutoNumber) und entspricht der 6-stelligen ASt-Nummer. Sie ist gekoppelt mit `Account.STLGS_StoreNumber__c` — beide Felder tragen denselben Wert.
+
+**Nummernbereiche in Produktion (nach Regionaldirektion):**
+
+| RD | Bereich | Prod-Max (Stand 03/2026) |
+|----|---------|--------------------------|
+| RD 01 | 100000–199999 | ~118700 |
+| RD 02 | 200000–299999 | ~261211 |
+| RD 03 | 300000–399999 | ~309891 |
+| RD 04 | 400000–499999 | ~462830 |
+| RD 05 | 500000–599999 | ~508960 |
+| RD 06 | 600000–699999 | ~609090 |
+| RD 07 | 700000–799999 | ~757730 |
+
+**Testdaten-Nummernlogik:** Feste Testnummern am oberen Ende des RD-Bereichs: `X99901`, `X99902`, etc. (weit entfernt von Prod-Nummern). Die RD-Nummer wird aus `User.UserRole.DeveloperName` extrahiert (`STLGS_RD0X` → X).
+
+**Regeln:**
+- **Neueröffnung / Übernahme:** Neue Nummer vergeben → auf `Account.STLGS_StoreNumber__c` + `Request.Name` setzen
+- **Verlegung:** Gleiche Nummer wie der bestehende Store — `Request.Name` wird aus `Account.STLGS_StoreNumber__c` übernommen
+- VR `STLGS_ValidateNameOnUpdate` erzwingt `^[0-9]{6}$` bei jeder Namensänderung
+
+**Suffix-Allocation pro Preset:**
+
+| Bereich | Suffix | Preset / Script | Verwendung |
+|---------|--------|-----------------|------------|
+| Standard | 99901 | NE-NP, NE-JP, VL-NP, VL-JP, Agentur-NP, ÜN (Pred), Nat. (Store) | Basis-Store + Basis-Request |
+| Standard | 99902 | ÜN-NP, ÜN-JP | Neuer Store bei Übernahme |
+| Nachreichen | 99903 | nachreichen-test | Store ohne Bankdaten |
+| Nachreichen | 99904 | nachreichen-test | 2. Request (5r) |
+| Flow-Tests | 99905 | flow-test T3 | VL ohne Vorgänger-AZ |
+| Flow-Tests | 99906 | flow-test T4 | VL mit mehreren Vorgängern |
+| Nationalität | 99911–14 | nationalitaet-szenarien | 4 NE-Requests (EU/NonEU/Mix) |
+| Aktenzeichen | 99920–25 | aktenzeichen-crm3053 S1–S6 | FileNumberRP-Tests |
+| Negativ | 99930 | negativ-uebernahme-noaz | Predecessor ohne AZ |
+| Negativ | 99931 | negativ-uebernahme-noaz | Neuer Store |
+| Negativ | 99932 | negativ-verlegung-alone | Alleiniger VL-Store |
+
+> **Regel:** Standardpresets (NE, ÜN, VL, Agentur) teilen sich bewusst 99901 — sie sind nicht für gleichzeitige Nutzung gedacht. Spezial-Presets (Nachreichen, Flow-Tests, Nationalität, Aktenzeichen, Negativ) haben jeweils eigene Bereiche.
+
 ## Record Groups
 
 ---
@@ -149,6 +190,7 @@ These are NOT created — the skill queries existing active users by their role 
 | STLGS_Street__c | `Marktplatz 5` |
 | STLGS_Postalcode__c | `70173` |
 | STLGS_City__c | `Stuttgart` |
+| STLGS_StoreNumber__c | `{{StoreNumber}}` |
 | OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bPotentialStore` |
 
@@ -181,6 +223,7 @@ Natürliche Person: Lizenzinhaber betreibt die ASt selbst. Kein Business Account
 | STLGS_Street__c | `Hauptstraße 42` |
 | STLGS_Postalcode__c | `70173` |
 | STLGS_City__c | `Stuttgart` |
+| STLGS_StoreNumber__c | `{{StoreNumber}}` |
 | OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bStoreVollASt` |
 
@@ -213,6 +256,7 @@ Juristische Person: GmbH als Vertragspartner (Business Account = Parent), Filial
 | STLGS_Street__c | `Bahnhofstraße 15` |
 | STLGS_Postalcode__c | `70173` |
 | STLGS_City__c | `Stuttgart` |
+| STLGS_StoreNumber__c | `{{StoreNumber}}` |
 | ParentId | `{{Ref:b2bBusinessAccount}}` |
 | OwnerId | `{{Ref:userRD2}}` |
 | referenceId | `b2bStoreLK` |
@@ -247,6 +291,7 @@ Vorgänger-Store für Übernahme-Test (5b). Status bleibt "Betriebsbereit" — e
 | STLGS_Street__c | `Alte Straße 1` |
 | STLGS_Postalcode__c | `70173` |
 | STLGS_City__c | `Stuttgart` |
+| STLGS_StoreNumber__c | `{{StoreNumber:X99901}}` |
 | OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bStorePredecessor` |
 
@@ -279,14 +324,80 @@ Potentielle ASt ohne IBAN/BIC/Bankname/BankAccountType. Wird für Tests der auto
 | STLGS_Street__c | `Teststraße 10` |
 | STLGS_Postalcode__c | `70173` |
 | STLGS_City__c | `Stuttgart` |
+| STLGS_StoreNumber__c | `{{StoreNumber:X99903}}` |
 | OwnerId | `{{Ref:userRD1}}` |
 | referenceId | `b2bPotentialStoreNoBankdata` |
+
+#### 2g. B2B Store — Vorgänger-ASt für ÜN OHNE Aktenzeichen (Negativ-Test 5n)
+
+Vorgänger-Store für Negativ-Test 5n (Übernahme ohne Vorgänger-AZ). Wie 2e, aber der zugehörige Vorgänger-Request hat KEIN `STLGS_FileNumberRP__c`.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Account` |
+| RecordType | `STLGS_Store` |
+| Name | `Test Vorgänger-ASt ohne AZ {{Today}}` |
+| Phone | `0711-5558801` |
+| BillingStreet | `Alte Straße 2` |
+| BillingPostalCode | `70173` |
+| BillingCity | `Stuttgart` |
+| BillingCountry | `Germany` |
+| STLGS_StoreStatus__c | `Betriebsbereit` |
+| STLGS_StoreContractType__c | `natural person` |
+| STLGS_StoreTerm__c | `Test Vorgänger-ASt ohne AZ {{Today}}` |
+| STLGS_District__c | `{{Ref:districtStuttgart}}` |
+| STLGS_Email__c | `test.vorgaenger.noaz@example.com` |
+| STLGS_TerminatedOn__c | `{{Today+60d}}` |
+| STLGS_IBAN__c | `DE89370400440532013010` |
+| STLGS_BIC__c | `COBADEFFXXX` |
+| STLGS_Bankname__c | `Sparkasse Stuttgart` |
+| STLGS_BankAccountType__c | `Geschäftskonto` |
+| STLGS_LastCompanyName__c | `Test Vorgänger-ASt ohne AZ {{Today}}` |
+| STLGS_Street__c | `Alte Straße 2` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
+| STLGS_StoreNumber__c | `{{StoreNumber:X99905}}` |
+| OwnerId | `{{Ref:userRD1}}` |
+| referenceId | `b2bStorePredecessorNoAZ` |
+
+#### 2h. B2B Store — Alleiniger VL-Store (Negativ-Test 5o)
+
+Store für Negativ-Test 5o (Verlegung als einziger Request). Status "Betriebsbereit", KEIN anderer Request vorhanden. Damit der Snapshot-Flow `STLGS_CopyPreviousRPFileNumber` nichts finden kann.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Account` |
+| RecordType | `STLGS_Store` |
+| Name | `Test ASt Allein-VL {{Today}}` |
+| Phone | `0711-5558802` |
+| BillingStreet | `Einsame Straße 1` |
+| BillingPostalCode | `70173` |
+| BillingCity | `Stuttgart` |
+| BillingCountry | `Germany` |
+| STLGS_StoreStatus__c | `Betriebsbereit` |
+| STLGS_StoreContractType__c | `natural person` |
+| STLGS_StoreTerm__c | `Test ASt Allein-VL {{Today}}` |
+| STLGS_District__c | `{{Ref:districtStuttgart}}` |
+| STLGS_Email__c | `test.alleinvl@example.com` |
+| STLGS_IBAN__c | `DE89370400440532013011` |
+| STLGS_BIC__c | `COBADEFFXXX` |
+| STLGS_Bankname__c | `Sparkasse Stuttgart` |
+| STLGS_BankAccountType__c | `Geschäftskonto` |
+| STLGS_LastCompanyName__c | `Test ASt Allein-VL {{Today}}` |
+| STLGS_Street__c | `Einsame Straße 1` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
+| STLGS_StoreNumber__c | `{{StoreNumber:X99906}}` |
+| OwnerId | `{{Ref:userRD1}}` |
+| referenceId | `b2bStoreAloneVL` |
+
+> **Post-Creation Update:** Store muss nach Insert auf RecordType `STLGS_Store` + Status `Betriebsbereit` gesetzt werden (Flows ändern RT auf PotentialStore bei Request-Insert).
 
 ---
 
 ### 3. Contacts
 
-> **Sektion 3** | Tags: `b2b`, `contact`, `nationality`, `antrag` | Abhängigkeiten: Sek. 0, 2 | Records: 7 | Beschreibung: Sales Contacts inkl. Nationalitäts-Szenarien (DE, EU, Nicht-EU, Doppelstaatler)
+> **Sektion 3** | Tags: `b2b`, `contact`, `nationality`, `antrag` | Abhängigkeiten: Sek. 0, 2 | Records: 9 | Beschreibung: Sales Contacts inkl. Nationalitäts-Szenarien (DE, EU, Nicht-EU, Doppelstaatler) + Lizenzinhaber an Predecessor-Stores
 
 #### 3a. Geschäftsführer (Business Account)
 
@@ -448,11 +559,81 @@ Antragsteller natürliche Person: 1. Staatsangehörigkeit Nicht-EU, 2. Staatsang
 | AccountId | `{{Ref:b2bPotentialStore}}` |
 | referenceId | `contactLizenzinhaberNonEU_EU` |
 
+#### 3h. Lizenzinhaber — Allein-VL-Store (für Negativ-Test 5o)
+
+Contact für den alleinigen VL-Store (2h). Eigener Contact weil der Store keinen anderen Request/Contact haben darf.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Contact` |
+| RecordType | `STLGS_SalesContact` |
+| Salutation | `Herr` |
+| FirstName | `Thomas` |
+| MiddleName | `Peter` |
+| LastName | `Testinhaber-AlleinVL-{{Today}}` |
+| Email | `thomas.testalleinvl@example.com` |
+| Phone | `0711-5558803` |
+| OtherStreet | `Einsame Straße 1` |
+| OtherPostalCode | `70173` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
+| Birthdate | `1980-02-28` |
+| STLGS_Birthplace__c | `Stuttgart` |
+| STLGS_Nationality__c | `54` |
+| AccountId | `{{Ref:b2bStoreAloneVL}}` |
+| referenceId | `contactAloneVL` |
+
+#### 3-pred. Contact: Alter Lizenzinhaber am Vorgänger-Store (für ÜN-Tests)
+
+Bisheriger Lizenzinhaber am Predecessor Store (`b2bStorePredecessor`). Wird als `AccountLead` am Vorgänger-Request (5m) benötigt — ohne AccountLead sind die Testdaten nicht produktionsnah.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Contact` |
+| RecordType | `STLGS_SalesContact` |
+| Salutation | `Herr` |
+| FirstName | `Alt` |
+| LastName | `Testinhaber-{{Today}}` |
+| Email | `alt.testinhaber.{{Today}}@example.com` |
+| Phone | `0711-5559999` |
+| OtherStreet | `Alte Straße 1` |
+| OtherPostalCode | `70173` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
+| Birthdate | `1970-04-15` |
+| STLGS_Birthplace__c | `Stuttgart` |
+| STLGS_Nationality__c | `54` |
+| AccountId | `{{Ref:b2bStorePredecessor}}` |
+| referenceId | `contactPredecessorLI` |
+
+#### 3-pred-noaz. Contact: Alter Lizenzinhaber am Vorgänger-Store ohne AZ (für Negativ-Test 5n)
+
+Analog zu 3-pred, aber am `b2bStorePredecessorNoAZ`. Wird als `AccountLead` am Vorgänger-Request ohne Aktenzeichen (5n-prereq) benötigt.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Contact` |
+| RecordType | `STLGS_SalesContact` |
+| Salutation | `Herr` |
+| FirstName | `Alt` |
+| LastName | `Testinhaber-NoAZ-{{Today}}` |
+| Email | `alt.testinhaber.noaz.{{Today}}@example.com` |
+| Phone | `0711-5559998` |
+| OtherStreet | `Alte Straße 2` |
+| OtherPostalCode | `70173` |
+| OtherCity | `Stuttgart` |
+| OtherCountry | `Germany` |
+| Birthdate | `1968-07-22` |
+| STLGS_Birthplace__c | `Stuttgart` |
+| STLGS_Nationality__c | `54` |
+| AccountId | `{{Ref:b2bStorePredecessorNoAZ}}` |
+| referenceId | `contactPredecessorNoAZLI` |
+
 ---
 
 ### 4. AccountContactRelation Updates
 
-> **Sektion 4** | Tags: `b2b`, `acr` | Abhängigkeiten: Sek. 0, 2, 3 | Records: 7 (Updates) | Beschreibung: ACR-Updates (Lizenzinhaber, Filialverantwortliche, Geschäftsführer — Rollen + Flags setzen)
+> **Sektion 4** | Tags: `b2b`, `acr` | Abhängigkeiten: Sek. 0, 2, 3 | Records: 10 (Updates) | Beschreibung: ACR-Updates (Lizenzinhaber, Filialverantwortliche, Geschäftsführer, Predecessor-Lizenzinhaber — Rollen + Flags setzen)
 
 These are UPDATE operations on the auto-created ACR records (Salesforce creates ACRs automatically when a Contact is linked to an Account). The skill must query the ACR by AccountId + ContactId, then update the custom fields.
 
@@ -541,11 +722,47 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 | STLGS_Role__c | `Geschäftsinhaber` |
 | IsActive | `true` |
 
+#### 4h. ACR: Store Allein-VL ↔ Lizenzinhaber Allein-VL
+
+| Field | Value |
+|-------|-------|
+| sObject | `AccountContactRelation` |
+| operation | `update` |
+| lookupKey | `AccountId={{Ref:b2bStoreAloneVL}}, ContactId={{Ref:contactAloneVL}}` |
+| STLGS_LicenseOwner__c | `true` |
+| STLGS_MainContact__c | `true` |
+| STLGS_Role__c | `Geschäftsinhaber` |
+| IsActive | `true` |
+
+#### 4-pred. ACR: Vorgänger-Store ↔ Alter Lizenzinhaber (für ÜN-Tests)
+
+| Field | Value |
+|-------|-------|
+| sObject | `AccountContactRelation` |
+| operation | `update` |
+| lookupKey | `AccountId={{Ref:b2bStorePredecessor}}, ContactId={{Ref:contactPredecessorLI}}` |
+| STLGS_LicenseOwner__c | `true` |
+| STLGS_MainContact__c | `true` |
+| STLGS_Role__c | `Geschäftsinhaber` |
+| IsActive | `true` |
+
+#### 4-pred-noaz. ACR: Vorgänger-Store ohne AZ ↔ Alter Lizenzinhaber (für Negativ-Test 5n)
+
+| Field | Value |
+|-------|-------|
+| sObject | `AccountContactRelation` |
+| operation | `update` |
+| lookupKey | `AccountId={{Ref:b2bStorePredecessorNoAZ}}, ContactId={{Ref:contactPredecessorNoAZLI}}` |
+| STLGS_LicenseOwner__c | `true` |
+| STLGS_MainContact__c | `true` |
+| STLGS_Role__c | `Geschäftsinhaber` |
+| IsActive | `true` |
+
 ---
 
 ### 5. Requests (Anträge)
 
-> **Sektion 5** | Tags: `antrag`, `b2b`, `nationality`, `negativ-test`, `nachreichen` | Abhängigkeiten: Sek. 0, 2, 3, 4 | Records: 17 | Beschreibung: Anträge (Neueröffnung/Übernahme/Verlegung/Agentur jeweils NP+JP, EU/Nicht-EU/Doppelstaatler-Szenarien, Vorgänger-Request für Übernahme, Negativ-Tests FileNumberRP, Nachreich-Tests CRM-2882/CRM-3057) — **validierungsbereit für Prüfen/Freigabe**
+> **Sektion 5** | Tags: `antrag`, `b2b`, `nationality`, `negativ-test`, `nachreichen` | Abhängigkeiten: Sek. 0, 2, 3, 4 | Records: 18 | Beschreibung: Anträge (Neueröffnung/Übernahme/Verlegung jeweils NP+JP, Agentur NP, EU/Nicht-EU/Doppelstaatler-Szenarien, Vorgänger-Request für Übernahme, Negativ-Tests FileNumberRP, Nachreich-Tests CRM-2882/CRM-3057) — **validierungsbereit für Prüfen/Freigabe**
 
 All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). All requests include document/compliance checkboxes required by the `STLGS_DisplayMandatoryRequestFields` validation flow, so they can pass the "Prüfen" button validation and proceed through the full status lifecycle.
 
@@ -587,9 +804,10 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). A
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
-| STLGS_FileNumberRP__c | `RP-2024-TEST-002` |
-| STLGS_SetLeadingAt__c | `2024-01-15T10:00:00.000Z` |
+| Name | `{{StoreNumber}}` |
 | referenceId | `requestNeueroeffnungNP` |
+
+> **Hinweis:** `Name` = Antragsnummer = 6-stellige ASt-Nummer (siehe Overview-Sektion). Wird zusammen mit `Account.STLGS_StoreNumber__c` gesetzt. `STLGS_FileNumberRP__c` und `STLGS_SetLeadingAt__c` werden hier NICHT gesetzt — die gehören nur an historische/Vorgänger-Requests (siehe 5m, 5m-ii).
 
 #### 5b. Request: Übernahme — natürliche Person
 
@@ -626,6 +844,7 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). A
 | STLGS_DateIssueSchufa__c | `{{Today}}` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99902}}` |
 | referenceId | `requestUebernahmeNP` |
 
 #### 5c. Request: Neueröffnung — juristische Person
@@ -665,6 +884,7 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). A
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber}}` |
 | referenceId | `requestNeueroeffnungJP` |
 
 #### 5c-ii. RequestContactRelation: Geschäftsführer → Neueröffnung JP
@@ -718,7 +938,10 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). A
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber}}` |
 | referenceId | `requestVerlegungNP` |
+
+> **Hinweis:** Verlegung übernimmt dieselbe ASt-Nummer wie der bestehende Store. `Name` = `Account.STLGS_StoreNumber__c` des Verlegungs-Stores.
 
 #### 5e. Request: Übernahme — juristische Person
 
@@ -756,6 +979,7 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). A
 | STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99902}}` |
 | referenceId | `requestUebernahmeJP` |
 
 #### 5e-ii. RequestContactRelation: Geschäftsführer → Übernahme JP
@@ -810,7 +1034,10 @@ All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). A
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber}}` |
 | referenceId | `requestVerlegungJP` |
+
+> **Hinweis:** Verlegung übernimmt dieselbe ASt-Nummer wie der bestehende Store.
 
 #### 5f-ii. RequestContactRelation: Geschäftsführer → Verlegung JP
 
@@ -862,60 +1089,8 @@ Neueröffnung mit Agentur-Flag: `STLGS_IsOperatedByAgency__c = true` erfordert z
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber}}` |
 | referenceId | `requestAgenturNP` |
-
-#### 5h. Request: Agenturstandort — juristische Person
-
-Neueröffnung JP mit Agentur-Flag: `STLGS_IsOperatedByAgency__c = true` erfordert zusätzlich `STLGS_ECCard__c = true`.
-
-| Field | Value |
-|-------|-------|
-| sObject | `STLGS_Request__c` |
-| RecordType | `STLGS_BusinessRequest` |
-| STLGS_Store__c | `{{Ref:b2bStoreLK}}` |
-| STLGS_Type__c | `Neueröffnung` |
-| STLGS_SalesType__c | `Lotto Kompakt` |
-| STLGS_Status__c | `Zusammenarbeit prüfen` |
-| STLGS_BusinessAccount__c | `{{Ref:b2bBusinessAccount}}` |
-| STLGS_BranchManager__c | `{{Ref:contactFilialverantwortliche}}` |
-| STLGS_ManagingDirector__c | `{{Ref:contactGF}}` |
-| STLGS_ApplicationDate__c | `{{Today}}` |
-| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
-| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
-| STLGS_ProductTerminalTraining__c | `{{Today}}` |
-| STLGS_Industry__c | `Postagentur` |
-| STLGS_Potential__c | `2000` |
-| STLGS_IsStandardTaxation__c | `true` |
-| STLGS_IsSmallBusinessOwner__c | `false` |
-| STLGS_InitialTerminalHours__c | `<p>Mo-Sa 07:00-22:00</p>` |
-| STLGS_Reason__c | `<p>Testbegründung Neueröffnung Agenturstandort JP</p>` |
-| STLGS_IsOperatedByAgency__c | `true` |
-| STLGS_ECCard__c | `true` |
-| STLGS_HasRequest__c | `true` |
-| STLGS_HasAdditionPermission__c | `true` |
-| STLGS_DidHandoverDataProtectionASt__c | `true` |
-| STLGS_HasCriminalRecord__c | `true` |
-| STLGS_HasBusinessRegistration__c | `true` |
-| STLGS_HasSEPAMandate__c | `true` |
-| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
-| STLGS_HasCommercialRegisterExtract__c | `true` |
-| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
-| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
-| STLGS_HasFurtherExplanation__c | `true` |
-| STLGS_HasSitePlan__c | `true` |
-| STLGS_IloProfit__c | `true` |
-| STLGS_HasKnowledgeTransfer__c | `true` |
-| referenceId | `requestAgenturJP` |
-
-#### 5h-ii. RequestContactRelation: Geschäftsführer → Agentur JP
-
-| Field | Value |
-|-------|-------|
-| sObject | `STLGS_RequestContactRelation__c` |
-| Contact__c | `{{Ref:contactGF}}` |
-| STLGS_Request__c | `{{Ref:requestAgenturJP}}` |
-| STLGS_Type__c | `Managing Director` |
-| referenceId | `rcrAgenturJP` |
 
 #### 5i. Request: Neueröffnung — natürliche Person, EU-Ausländer (Frankreich)
 
@@ -952,6 +1127,7 @@ Testet EU-Führungszeugnis-Pflicht: Contact hat `STLGS_Nationality__c = 72` (Fra
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99911}}` |
 | referenceId | `requestNeueroeffnungEU` |
 
 #### 5j. Request: Neueröffnung — natürliche Person, Nicht-EU (Türkei)
@@ -991,6 +1167,7 @@ Testet zusätzliche Unterlagen: Contact hat `STLGS_Nationality__c = 215` (Turkey
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99912}}` |
 | referenceId | `requestNeueroeffnungNonEU` |
 
 #### 5k. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit DE
@@ -1028,6 +1205,7 @@ Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99913}}` |
 | referenceId | `requestNeueroeffnungNonEU_DE` |
 
 #### 5l. Request: Neueröffnung — Nicht-EU mit 2. Staatsangehörigkeit EU (nicht deutsch)
@@ -1065,6 +1243,7 @@ Testet Doppelstaatler: Contact hat `STLGS_Nationality__c = 215` (Turkey), `STLGS
 | STLGS_HasSitePlan__c | `true` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99914}}` |
 | referenceId | `requestNeueroeffnungNonEU_EU` |
 
 #### 5m. Request: Vorgänger-Request am Predecessor Store (für Übernahme-Test)
@@ -1089,6 +1268,7 @@ Simuliert einen genehmigten Antrag am Vorgänger-Store (`b2bStorePredecessor`). 
 | STLGS_ApprovalDate__c | `2024-06-15` |
 | STLGS_ReceiptDate__c | `2024-02-01` |
 | STLGS_SetLeadingAt__c | `2024-06-15T10:00:00.000Z` |
+| STLGS_AccountLead__c | `{{Ref:contactPredecessorLI}}` |
 | STLGS_HasRequest__c | `true` |
 | STLGS_HasAdditionPermission__c | `true` |
 | STLGS_DidHandoverDataProtectionASt__c | `true` |
@@ -1100,9 +1280,93 @@ Simuliert einen genehmigten Antrag am Vorgänger-Store (`b2bStorePredecessor`). 
 | STLGS_DateIssueSchufa__c | `2024-01-10` |
 | STLGS_IloProfit__c | `true` |
 | STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99901}}` |
 | referenceId | `requestPredecessorNE` |
 
 > **Hinweis:** 5m muss VOR 5b erstellt werden (Abhängigkeit: Vorgänger-Request muss existieren, damit der Snapshot-Flow ihn finden kann). In Apex-Scripts: `requestPredecessorNE` vor `requestUebernahmeNP` anlegen.
+>
+> **Post-Creation Update:** Nach Insert von 5m: `b2bStorePredecessor.STLGS_LeadingRequest__c = {{Ref:requestPredecessorNE}}` setzen. Der PredecessorStore braucht LeadingRequest damit die Testdaten produktionsnah sind.
+
+#### 5m-ii. Request: Vorgänger-NE am selben Store für Verlegung
+
+Simuliert einen genehmigten NE-Request am selben Store wie der Verlegungs-Request (5d/5f). Wird vom Snapshot-Flow `STLGS_CopyPreviousRPFileNumber` als Quelle für `FileNumberRPPrevious__c` am VL-Request verwendet. Unterschied zu 5m: lebt am selben Store (nicht am Predecessor Store).
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_ReadOnlyRequest` |
+| STLGS_Store__c | `{{Ref:b2bStoreVollASt}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Vertrag abgeschlossen` |
+| STLGS_ApplicationDate__c | `2024-01-10` |
+| STLGS_ContractStartPlanned__c | `2024-03-01` |
+| STLGS_Industry__c | `Tabakgeschäft` |
+| STLGS_Potential__c | `5000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_FileNumberRP__c | `RP-2024-TEST-002` |
+| STLGS_ApprovalDate__c | `2024-06-15` |
+| STLGS_ReceiptDate__c | `2024-02-01` |
+| STLGS_SetLeadingAt__c | `2024-06-15T10:00:00.000Z` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
+| Name | `{{StoreNumber}}` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `2024-01-10` |
+| STLGS_DateIssueSchufa__c | `2024-01-10` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestPredecessorNEForVL` |
+
+> **Hinweis:** 5m-ii muss VOR 5d erstellt werden. Der VL-Request (5d) übernimmt dieselbe `Name`/StoreNumber.
+>
+> **Post-Creation Update:** Nach Insert von 5m-ii: `b2bStoreVollASt.STLGS_LeadingRequest__c = {{Ref:requestPredecessorNEForVL}}` setzen. Nur bei Verlegung-Presets nötig (Store hat dann einen abgeschlossenen NE als "Leading").
+
+#### 5n-prereq. Request: Vorgänger-NE am Predecessor Store OHNE AZ (für Negativ-Test 5n)
+
+Simuliert einen genehmigten NE-Request am Predecessor Store ohne Aktenzeichen (`b2bStorePredecessorNoAZ`). Analog zu 5m, aber **ohne** `STLGS_FileNumberRP__c`. Wird vom Snapshot-Flow als Quelle gesucht — da kein AZ vorhanden, bleibt `FileNumberRPPrevious__c` am ÜN-Request null.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_ReadOnlyRequest` |
+| STLGS_Store__c | `{{Ref:b2bStorePredecessorNoAZ}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Vertrag abgeschlossen` |
+| STLGS_ApplicationDate__c | `2024-01-10` |
+| STLGS_ContractStartPlanned__c | `2024-03-01` |
+| STLGS_Industry__c | `Tabakgeschäft` |
+| STLGS_Potential__c | `3500` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_ApprovalDate__c | `2024-06-15` |
+| STLGS_ReceiptDate__c | `2024-02-01` |
+| STLGS_SetLeadingAt__c | `2024-06-15T10:00:00.000Z` |
+| STLGS_AccountLead__c | `{{Ref:contactPredecessorNoAZLI}}` |
+| Name | `{{StoreNumber:X99905}}` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `2024-01-10` |
+| STLGS_DateIssueSchufa__c | `2024-01-10` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| referenceId | `requestPredecessorNENoAZ` |
+
+> **Hinweis:** 5n-prereq muss VOR 5n erstellt werden. Kein `STLGS_FileNumberRP__c` — das ist der Testpunkt.
+>
+> **Post-Creation Update:** Nach Insert von 5n-prereq: `b2bStorePredecessorNoAZ.STLGS_LeadingRequest__c = {{Ref:requestPredecessorNENoAZ}}` setzen.
 
 #### 5n. Request: ÜN ohne Vorgänger-AZ (Negativ-Test FileNumberRP)
 
@@ -1130,10 +1394,23 @@ Benötigt eigenen Predecessor Store + Predecessor Request ohne FileNumberRP. Ver
 | STLGS_PredecessorStore__c | `{{Ref:b2bStorePredecessorNoAZ}}` |
 | STLGS_InitialTerminalHours__c | `<p>Mo-Fr 08:00-20:00</p>` |
 | STLGS_Reason__c | `<p>Negativ-Test: ÜN ohne Vorgänger-AZ</p>` |
-| (alle Compliance-Checkboxen) | `true` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99907}}` |
 | referenceId | `requestUebernahmeNoAZ` |
 
-> **Abhängigkeit:** Benötigt einen Predecessor Store (`b2bStorePredecessorNoAZ`) mit einem Vorgänger-Request OHNE `FileNumberRP__c`. Dieser Predecessor Request ist analog zu 5m, aber ohne die Zeile `STLGS_FileNumberRP__c`.
+> **Abhängigkeit:** Sek. 2g (`b2bStorePredecessorNoAZ`), 5n-prereq (`requestPredecessorNENoAZ`), Sek. 3b (`contactLizenzinhaber`)
 > **Erwartet nach Freigabe:** `FileNumberRPPrevious__c = null` (kein AZ am Vorgänger → nichts zu kopieren).
 
 #### 5o. Request: VL als einziger Request am Store (Negativ-Test FileNumberRP)
@@ -1166,12 +1443,25 @@ Benötigt eigenen Store ohne vorherige Requests. Verwendet eigenen Contact.
 | STLGS_City__c | `Stuttgart` |
 | STLGS_InitialTerminalHours__c | `<p>Mo-Fr 09:00-18:00</p>` |
 | STLGS_Reason__c | `<p>Negativ-Test: VL ohne Vorgänger-Request</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
 | STLGS_HasFurtherExplanation__c | `true` |
 | STLGS_HasSitePlan__c | `true` |
-| (alle Compliance-Checkboxen) | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| Name | `{{StoreNumber:X99906}}` |
 | referenceId | `requestVerlegungAlone` |
 
-> **Abhängigkeit:** Benötigt eigenen Store (`b2bStoreAloneVL`, Status "Betriebsbereit") und eigenen Contact (`contactAloneVL`). Der Store darf KEINEN anderen Request haben.
+> **Abhängigkeit:** Sek. 2h (`b2bStoreAloneVL`, Status "Betriebsbereit"), Sek. 3h (`contactAloneVL`), ACR 4h. Der Store darf KEINEN anderen Request haben.
 > **Erwartet nach Freigabe:** `FileNumberRPPrevious__c = null` (kein anderer Request am Store → nichts zu kopieren).
 > **Hinweis:** Store muss auf "Betriebsbereit" stehen damit eine Verlegung fachlich Sinn macht (siehe `verlegung-np.apex` Zeile 172-177).
 
@@ -1215,6 +1505,7 @@ Kopie von 5a, aber `STLGS_HasBusinessRegistration__c = false` und Store ohne IBA
 | STLGS_HasKnowledgeTransfer__c | `true` |
 | STLGS_FileNumberRP__c | `RP-2024-TEST-NOGEWERBE` |
 | STLGS_SetLeadingAt__c | `2024-01-15T10:00:00.000Z` |
+| Name | `{{StoreNumber:X99903}}` |
 | referenceId | `requestNEOhneGewerbeanmeldung` |
 
 > **Abhängigkeit:** Sek. 2f (`b2bPotentialStoreNoBankdata`), Sek. 3b (`contactLizenzinhaber`)
@@ -1261,6 +1552,7 @@ Kopie von 5a, aber Store ohne IBAN (`b2bPotentialStoreNoBankdata`). `STLGS_HasBu
 | STLGS_HasKnowledgeTransfer__c | `true` |
 | STLGS_FileNumberRP__c | `RP-2024-TEST-NOIBAN` |
 | STLGS_SetLeadingAt__c | `2024-01-15T10:00:00.000Z` |
+| Name | `{{StoreNumber:X99904}}` |
 | referenceId | `requestNEOhneIBAN` |
 
 > **Abhängigkeit:** Sek. 2f (`b2bPotentialStoreNoBankdata`), Sek. 3b (`contactLizenzinhaber`)
@@ -1637,6 +1929,55 @@ These are manually defined test assets. Note: The VDE Flow (`STLGS_CreateAssetsV
 
 ---
 
+### 10. Flow-Negativ-Tests (FileNumberRP Snapshot)
+
+> **Sektion 10** | Tags: `b2b`, `flow-test`, `filenumber` | Abhängigkeiten: Sek. 0 | Records: ~12 | Beschreibung: Negativ-Szenarien für den Snapshot-Flow `STLGS_CopyPreviousRPFileNumber` (CRM-2977). Erzeugt eigene Stores/Contacts — unabhängig von den Haupt-Testdaten.
+
+Diese Tests validieren die korrekte Funktionsweise des Snapshot-Flows, der beim Status-Übergang auf "An Zentrale übergeben" das `FileNumberRPPrevious__c` vom neuesten anderen Request am selben Store kopiert. Die Testdaten werden erzeugt und dann manuell in der UI durch den Status-Lifecycle geführt (ZP → AV → FRD → AZÜ).
+
+**Script:** `scripts/apex/testdata/flow-test-filenumber-setup.apex`
+
+#### 10a. T3: VL wo Vorgänger KEIN AZ hat
+
+Erwartet: `FileNumberRPPrevious__c` bleibt `null` nach "An Zentrale übergeben".
+
+- **Store:** Eigener Store (T3), natürliche Person, Betriebsbereit
+- **Vorgänger-Request:** NE, ReadOnly, "Vertrag abgeschlossen", **OHNE** `FileNumberRP__c`
+- **Contact + ACR:** Eigener Lizenzinhaber
+- **Test-Request:** VL, StandardRequest, "Zusammenarbeit prüfen"
+- **StoreNumber:** `{{StoreNumber:X99905}}`
+- **Name (Requests):** `{{StoreNumber:X99905}}`
+
+#### 10b. T4: VL mit mehreren Requests am Store
+
+Erwartet: `FileNumberRPPrevious__c` = `RP-T4-NEU` (neuester anderer Request, nicht der älteste).
+
+- **Store:** Eigener Store (T4), natürliche Person, Betriebsbereit
+- **Vorgänger 1:** NE, ReadOnly, "Vertrag abgeschlossen", `FileNumberRP__c = 'RP-T4-ALT'` (2023)
+- **Vorgänger 2:** VL1, ReadOnly, "Vertrag abgeschlossen", `FileNumberRP__c = 'RP-T4-NEU'` (2024)
+- **Contact + ACR:** Eigener Lizenzinhaber
+- **Test-Request:** VL2, StandardRequest, "Zusammenarbeit prüfen"
+- **StoreNumber:** `{{StoreNumber:X99906}}`
+- **Name (Requests):** `{{StoreNumber:X99906}}`
+
+#### 10c. T5: NE — kein Snapshot (Decision-Default-Pfad)
+
+Erwartet: `FileNumberRPPrevious__c` bleibt `null` (Flow-Decision erkennt Typ ≠ Verlegung).
+
+- **Store:** Mitnutzung T3-Store
+- **Test-Request:** NE, StandardRequest, "Zusammenarbeit prüfen"
+- **Name:** `{{StoreNumber:X99905}}`
+
+#### 10d. T6: VL — Status nicht "An Zentrale übergeben"
+
+Erwartet: Kein Snapshot (Flow feuert nur bei Status = "An Zentrale übergeben").
+
+- **Store:** Mitnutzung T3-Store
+- **Test-Request:** VL, StandardRequest, "Zusammenarbeit prüfen" → User führt nur bis "Genehmigt durch RP"
+- **Name:** `{{StoreNumber:X99905}}`
+
+---
+
 ## Dependency Order
 
 B2C and B2B are **independent paths** — they share no dependencies.
@@ -1698,6 +2039,9 @@ B2C and B2B are **independent paths** — they share no dependencies.
 - **Verlegung AverageTurnoverPredecessor**: `STLGS_AverageTurnoverPredecessor__c` nur bei Verlegung (5d) Pflicht (Formel `STLGS_VerlegungMandatoryFields`). Bei Übernahme wird der Wert bei Freigabe automatisch aus `PredecessorStore.STLGS_AverageRevenueLast6Months__c` übernommen.
 - **Business-Request Zusatz-Dokumente**: Jur. Person (5c) braucht zusätzlich: `STLGS_HasSEPAMandate__c`, `STLGS_HasCriminalRecordBusinessAccount__c`, `STLGS_IssueDateCriminalRecordBA__c`, `STLGS_HasCommercialRegisterExtract__c`. Standard-Requests brauchen stattdessen `STLGS_HasSchufa__c` + `STLGS_DateIssueSchufa__c`.
 - **Nachreichbare Dokumente**: Bankdaten und Gewerbeanmeldung (`STLGS_HasBusinessRegistration__c`) werden in der Validierung als Pflicht angezeigt, der RD kann den Antrag aber auch ohne diese freigeben. Bankdaten müssen spätestens 4 Wochen nach Freigabe, Gewerbeanmeldung spätestens 4 Wochen nach Eröffnung nachgereicht werden. Anträge ohne diese Felder sind daher valide Testszenarien für den Nachreich-Prozess.
+- **RecordType-Switch bei Status-Lifecycle:** Status-Werte sind per RecordType restricted. `STLGS_StandardRequest` / `STLGS_BusinessRequest` erlauben Status bis "Genehmigt durch RP". Ab "An Zentrale übergeben" muss der RT auf `STLGS_ReadOnlyRequest` (NP) bzw. `STLGS_ReadOnlyBusinessRequest` (JP) gewechselt werden. RT und Status müssen **in derselben DML-Operation** gesetzt werden — separate Updates schlagen fehl weil der alte RT den neuen Status nicht erlaubt und umgekehrt. Vorgänger-Requests (5m, 5m-ii, 5n-prereq) werden direkt mit ReadOnlyRT + "Vertrag abgeschlossen" insertiert — dort ist kein RT-Switch nötig.
+- **Store-RecordType-Fix nach Request-Insert:** Der Flow `STLGS_UpdateAccStatusOnCreateUpdateRequest` ändert beim Insert eines Requests den Store-RT auf `STLGS_PotentialStore`. Bei Stores die bereits "Betriebsbereit" sein müssen (Verlegung, Übernahme-PredecessorStore, Flow-Test-Stores), muss der Store NACH dem Request-Insert explizit zurückgesetzt werden: RecordType → `STLGS_Store`, `STLGS_StoreStatus__c` → `Betriebsbereit`. In Apex-Scripts geschieht das als separater `update`-Aufruf nach dem Request-Insert.
+- **Produktionsnahe Vorgänger-Requests:** Jeder Predecessor-Request (ReadOnly, "Vertrag abgeschlossen") braucht: (1) `STLGS_AccountLead__c` → Contact am selben Store (= alter Lizenzinhaber), (2) `STLGS_SetLeadingAt__c` → DateTime wann der Request "Leading" wurde, (3) `STLGS_FileNumberRP__c` → Aktenzeichen RP (außer bei Negativ-Tests). Der zugehörige Store braucht `STLGS_LeadingRequest__c` → Lookup auf den neuesten abgeschlossenen Request. Ohne diese Felder sind die Testdaten nicht produktionsnah und Flows/Trigger die auf Leading-Requests prüfen können fehlschlagen.
 
 ## Process Coverage Matrix
 
@@ -1737,6 +2081,10 @@ B2C and B2B are **independent paths** — they share no dependencies.
 | B2C Erwin | 6c | `STLG_ErwinCase` | `Type = ERWIN_Kundenkonto` |
 | Besuchsbericht | 8a | `STLGS_VisitReport__c` | Eigenes Objekt |
 | VDE Asset-Prüfung | 9a, 9b | `Asset` | Manuelle Test-Assets |
+| Flow-Test: VL ohne AZ | 10a (T3) | `STLGS_StandardRequest` | Vorgänger ohne FileNumberRP |
+| Flow-Test: VL mehrere Requests | 10b (T4) | `STLGS_StandardRequest` | Neuester anderer Request = AZprev |
+| Flow-Test: NE kein Snapshot | 10c (T5) | `STLGS_StandardRequest` | Decision-Default (Typ ≠ Verlegung) |
+| Flow-Test: VL falscher Status | 10d (T6) | `STLGS_StandardRequest` | Kein Snapshot ohne "An Zentrale" |
 
 ## Presets
 
@@ -1744,37 +2092,89 @@ Vordefinierte Record-Sets für häufige Testszenarien. Jedes Preset listet exakt
 
 ### neueroeffnung-np
 
-> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5a | **~6 Records** | Neueröffnung natürliche Person (Vollannahmestelle, deutscher Lizenzinhaber)
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5a | **~6 Records**
+>
+> **Szenario:** Standard-Neueröffnung natürliche Person (Vollannahmestelle, deutscher Lizenzinhaber). Deckt den häufigsten Antragstyp ab.
+>
+> **Testablauf:**
+> 1. Request öffnen — Status "Zusammenarbeit prüfen"
+> 2. "Antrag vorbereiten" — "Genehmigt durch RP" (Checkliste: alle Pflichtfelder grün)
+> 3. "Freigeben" klicken — Validierungs-Flow prüft alle Sektionen
+> 4. "An Zentrale übergeben" — RT wechselt zu ReadOnly
+>
+> **Erwartetes Ergebnis:** Antrag durchläuft kompletten Lifecycle ohne Validierungsfehler. Nach "An Zentrale übergeben": RT = ReadOnly, Status = "An Zentrale übergeben".
 
 ### neueroeffnung-jp
 
-> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5c | **~9 Records** | Neueröffnung juristische Person (Lotto Kompakt, GmbH mit Geschäftsführer + Filialverantwortliche)
+> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5c | **~9 Records**
+>
+> **Szenario:** Neueröffnung juristische Person (Lotto Kompakt, GmbH). Prüft Business-Request-Pfad mit Geschäftsführer + Filialverantwortliche.
+>
+> **Testablauf:**
+> 1. Request öffnen — Geschäftsführer + Filialverantwortliche verknüpft
+> 2. Lifecycle wie NE-NP, aber zusätzliche JP-Validierung (Handelsregisterauszug, GF-Führungszeugnis)
+>
+> **Erwartetes Ergebnis:** JP-Pfad im Validierungs-Flow korrekt. Alle JP-spezifischen Sektionen (Business Account, Geschäftsführer) geprüft.
 
-### uebernahme-np ✅
+### uebernahme-np
 
-> **Records:** 0a, 0b-i, 0b-ii, 2c, 2e, 3b, 4a, 5m, 5b | **~8 Records** | Übernahme natürliche Person (mit Vorgänger-ASt + Vorgänger-Request mit Aktenzeichen RP)
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 2e, 3b, 3-pred, 4a, 4-pred, 5m, 5b | **~10 Records**
+>
+> **Szenario:** Standard-Übernahme mit Vorgänger-ASt + Vorgänger-Request mit AZ RP. Prüft Snapshot-Flow (`FileNumberRPPrevious`).
+>
+> **Testablauf:**
+> 1. ÜN-Request öffnen — PredecessorStore verknüpft, Vorgänger-Request (5m) existiert mit AZ
+> 2. Lifecycle bis "An Zentrale übergeben"
+> 3. Snapshot-Flow feuert — `FileNumberRPPrevious__c` wird vom Vorgänger kopiert
+>
+> **Erwartetes Ergebnis:** `FileNumberRPPrevious__c` = `RP-2024-TEST-001` (Wert vom Vorgänger 5m). PredecessorStore hat LeadingRequest. Predecessor-Request hat AccountLead.
 
 ### uebernahme-jp
 
-> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 2e, 3a, 3c, 4b, 4c, 5e | **~10 Records** | Übernahme juristische Person (mit Vorgänger-ASt)
+> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 2e, 3a, 3c, 3-pred, 4b, 4c, 4-pred, 5m, 5e | **~13 Records**
+>
+> **Szenario:** Übernahme juristische Person mit Vorgänger-ASt + Vorgänger-Request. Prüft JP-Pfad + Predecessor-Logik.
+>
+> **Testablauf:** Analog uebernahme-np, aber JP-Validierungs-Pfad (Business Account, GF, FV).
+>
+> **Erwartetes Ergebnis:** JP-Lifecycle + Snapshot wie bei ÜN-NP. PredecessorStore hat LeadingRequest + Contact mit AccountLead.
 
 ### verlegung-np
 
-> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5a, 5d | **~7 Records** | Verlegung natürliche Person (mit Vorgänger-NE inkl. Aktenzeichen RP + neue Adresse + Durchschnittsumsatz)
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5m-ii, 5d | **~7 Records**
 >
-> **Hinweis:** Store wird am Ende auf `STLGS_Store` (RecordType) + `Betriebsbereit` (Status) gesetzt — bei Verlegung ist die ASt bereits aktiv. Flows ändern den RT nach Request-Insert auf `STLGS_PotentialStore`, daher abschließender Fix nötig.
+> **Szenario:** Verlegung natürliche Person. Store ist bereits "Betriebsbereit" (aktive ASt zieht um). Prüft VL-Pflichtfelder + Snapshot-Flow.
+>
+> **Testablauf:**
+> 1. VL-Request öffnen — neue Adresse + Verlegungsdatum gesetzt
+> 2. Lifecycle bis "An Zentrale übergeben"
+> 3. Snapshot-Flow: `FileNumberRPPrevious__c` vom Vorgänger-NE (5m-ii) kopiert
+>
+> **Erwartetes Ergebnis:** `FileNumberRPPrevious__c` = `RP-2024-TEST-002`. Store nach Erstellung: RT = STLGS_Store, Status = Betriebsbereit.
+>
+> **Hinweis:** Store wird am Ende auf `STLGS_Store` (RT) + `Betriebsbereit` (Status) zurückgesetzt — Flows ändern RT nach Request-Insert auf PotentialStore. LeadingRequest am Store = 5m-ii.
 
 ### verlegung-jp
 
-> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5f | **~9 Records** | Verlegung juristische Person (neue Adresse + Durchschnittsumsatz)
+> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5f | **~9 Records**
+>
+> **Szenario:** Verlegung juristische Person. Analog VL-NP, aber JP-Pfad (Business Account, GF, FV).
+>
+> **Testablauf:** Wie VL-NP, aber JP-Validierung. Store-Status-Fix nach Request-Insert nötig.
+>
+> **Erwartetes Ergebnis:** JP-Lifecycle + Store auf Betriebsbereit nach Erstellung.
 
 ### agentur-np
 
-> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5g | **~6 Records** | Agenturstandort natürliche Person (IsOperatedByAgency + ECCard)
-
-### agentur-jp
-
-> **Records:** 0a, 0b-i, 0b-ii, 0b-iii, 2a, 2d, 3a, 3c, 4b, 4c, 5h | **~9 Records** | Agenturstandort juristische Person (IsOperatedByAgency + ECCard)
+> **Records:** 0a, 0b-i, 0b-ii, 2c, 3b, 4a, 5g | **~6 Records**
+>
+> **Szenario:** Agenturstandort natürliche Person. Prüft `IsOperatedByAgency` + `ECCard` Validierung (Vorort-Gespräch-Sektion).
+>
+> **Testablauf:**
+> 1. Request öffnen — `IsOperatedByAgency = true`, `ECCard = true`
+> 2. Lifecycle bis Freigabe — Vorort-Gespräch-Sektion muss IloProfit + ECCard prüfen
+>
+> **Erwartetes Ergebnis:** Validierungs-Flow zeigt "Vorort-Gespräch"-Sektion mit IloProfit + ECCard-Prüfung (ECCard nur bei Agenturbetrieb sichtbar).
 
 ### b2b-komplett
 

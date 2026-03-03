@@ -37,9 +37,18 @@ Generate and insert test data into the Salesforce org specified by **$ARGUMENTS*
 
 **If a story key was provided:**
 
-1. Load the Jira story (summary, description, component, labels, epic key) using the Atlassian MCP tool
-2. Read relevant topic docs from `pipeline/customers/lotto-bw/docs/` based on keywords in the story summary and description
-3. Identify the domain area and map to section tags using the following rules:
+1. **Check for Design Notes** — look for `implementation-design/<story-key>/implementation-notes.md`
+   - If it exists AND contains a `## Test Scenarios` section:
+     - Parse the Test Scenarios table for preset names and config section references
+     - Parse the "Testdaten-Anforderungen" sub-table for custom records
+     - Use these as **primary recommendations** (more precise than keyword-derived tags)
+     - Display: `Design Notes gefunden → Testszenarien-basierte Empfehlung`
+     - Skip the keyword-based tag derivation below (steps 2-4)
+   - If it does not exist or has no Test Scenarios section → fall through to keyword-based analysis
+
+2. Load the Jira story (summary, description, component, labels, epic key) using the Atlassian MCP tool
+3. Read relevant topic docs from `pipeline/customers/lotto-bw/docs/` based on keywords in the story summary and description
+4. Identify the domain area and map to section tags using the following rules:
 
    | Keywords in story | Recommended tags |
    |---|---|
@@ -56,8 +65,8 @@ Generate and insert test data into the Salesforce org specified by **$ARGUMENTS*
    | Component = B2C | `b2c` |
    | Component = B2B | `b2b` |
 
-4. Select all sections whose tags overlap with the identified tags — these are the **recommended sections**
-5. Section `0` (prerequisites) is always included and marked `[IMMER]`
+5. Select all sections whose tags overlap with the identified tags — these are the **recommended sections**
+6. Section `0` (prerequisites) is always included and marked `[IMMER]`
 
 **If no story key was provided:**
 
@@ -96,6 +105,19 @@ Display the preset summary (informational, no user question):
 > Records: \<sub-record-list\> (~\<count\>)
 
 Then skip directly to Step 4 (dependency resolution) — no interactive selection needed.
+
+**If section recommendations came from Design Notes:**
+
+Display the test scenarios table (informational) before the section selection:
+
+> **Testszenarien aus Design Notes** (`implementation-design/<story-key>/implementation-notes.md`):
+>
+> | # | Szenario | Typ | Testdaten |
+> |---|----------|-----|-----------|
+> | T1 | ... | Happy Path | Preset: uebernahme-np |
+> | T2 | ... | Negativ | Custom: Store ohne AZ |
+
+Then proceed with the interactive selection below, using the Design Notes-derived sections as `[EMPFOHLEN]` instead of keyword-based recommendations.
 
 **Otherwise — Interactive Selection:**
 
@@ -199,9 +221,11 @@ Process the selected sections **in dependency order** (parents before children).
 Present:
 - Target org alias
 - Story key (if provided) + derived recommendation basis
+- Design Notes used: Yes/No + file path (if story key was provided and Design Notes with Test Scenarios were found)
 - Selected sections
 - Table of created records (sObject, Name/Subject, Record Type, Id)
 - Total record count
+- Test scenario coverage (if Design Notes were used): which T-scenarios from the Design Notes are covered by the created records, and which require additional manual setup
 - Any errors or warnings encountered
 
 ## Important Rules

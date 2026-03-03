@@ -53,6 +53,7 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 9. `/code-review [space-key]` — Performs a comprehensive code review based on the project's tech stack and publishes results to Confluence or as local Markdown
 10. `/build-knowledge <epic-id|topic>` — Builds comprehensive internal domain documentation as Markdown topic files, consolidating knowledge from Jira, Confluence, codebase, and existing docs
 11. `/create-testdata [org-alias] [story-key | preset]` — Creates test data records in a Salesforce org based on `testdata.config.md`. Supports story-based section recommendations, interactive selection, or preset-based auto-selection
+12. `/cleanup-testdata [org-alias] [preset | all | today]` — Deletes test data records from a Salesforce org interactively. Scans for records by StoreNumber suffix, groups by preset, and generates cleanup Apex
 
 ## Additional Skill Remarks
 
@@ -75,7 +76,6 @@ Wenn ein User eine der folgenden Formulierungen verwendet, den entsprechenden Sk
 | "Antrag Verlegung NP" | `/create-testdata <org> verlegung-np` |
 | "Antrag Verlegung JP/GmbH" | `/create-testdata <org> verlegung-jp` |
 | "Antrag Agenturstandort NP" | `/create-testdata <org> agentur-np` |
-| "Antrag Agenturstandort JP/GmbH" | `/create-testdata <org> agentur-jp` |
 
 Wenn NP/JP nicht spezifiziert → nachfragen: "Natürliche Person (NP) oder juristische Person (JP)?"
 
@@ -88,3 +88,11 @@ Wenn NP/JP nicht spezifiziert → nachfragen: "Natürliche Person (NP) oder juri
 | "alle Testdaten" | `/create-testdata <org> alles` |
 
 Preset-Namen und Record-Zuordnungen sind in `testdata.config.md > ## Presets` definiert.
+
+**Testdaten aufräumen:**
+
+| Formulierung (sinngemäß) | Skill-Aufruf |
+| --------------------------- | ------------- |
+| "Testdaten aufräumen" | `/cleanup-testdata <org>` |
+| "alle Testdaten löschen" | `/cleanup-testdata <org> all` |
+| "heutige Testdaten löschen" | `/cleanup-testdata <org> today` |

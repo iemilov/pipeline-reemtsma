@@ -32,6 +32,7 @@ Die folgenden Topic-Dateien enthalten detaillierte fachliche und technische Doku
 
 | Thema | Datei | Aktualisiert |
 |-------|-------|--------------|
+| Antrag (Zulassungsantrag) | [docs/antrag.md](docs/antrag.md) | 2026-03-03 |
 | Testkauf | [docs/testkauf.md](docs/testkauf.md) | 2026-02-20 |
 | Kündigung & Außerbetriebnahme | [docs/kuendigung.md](docs/kuendigung.md) | 2026-02-20 |
 | Filialverantwortung wechseln | [docs/filialverantwortung-wechseln.md](docs/filialverantwortung-wechseln.md) | 2026-02-20 |
@@ -97,10 +98,14 @@ Die folgenden Topic-Dateien enthalten detaillierte fachliche und technische Doku
 - **Vollannahmestelle**: Vollsortiment Lotto-Produkte
 - **Lotto Kompakt**: Eingeschränktes Sortiment
 
-### Account Status
+### Account Status (`STLGS_StoreStatus__c`)
 
-- `Potentielle ASt` → `Betriebsbereit` → `Geschlossen` → `Löschbereit`
-- `Erlaubnis erloschen` (nach Außerbetriebnahme + RP-Meldung)
+```text
+Potentielle ASt → Betriebsbereit → [Gesperrt] → Geschlossen → Löschbereit → Erlaubnis erloschen
+```
+
+- `Gesperrt`: Reversibler Zustand bei TK-Sperrung (4 Wochen Betriebssperre, nur juristische Person)
+- `Erlaubnis erloschen`: Endstatus nach Außerbetriebnahme + RP-Meldung
 
 ### Bankverbindung
 
@@ -139,6 +144,14 @@ Ablehnungspfade: `Durch ASt abgelehnt`, `Durch RD abgelehnt`, `Abgelehnt durch R
 - **Geprüft durch Zentrale**: 2x Pflichtschulung-Cases erstellt (Präsenz + Online)
 - **Übergeben an RP**: Telefonleitung automatisch bestellt
 - **Genehmigt durch RP** (bei Verlegung/Übernahme): Außerbetriebnahme-Datum am alten Antrag auto-gesetzt
+
+### Antragsnummer & Leading Request
+
+- **Antragsnummer** (`Request.Name`): 6-stellige ASt-Nummer, validiert durch VR `STLGS_ValidateNameOnUpdate` (Regex `^[0-9]{6}$`)
+- **Leading Request**: Jeder aktive Account hat genau einen führenden Antrag (`Account.STLGS_LeadingRequest__c`). Guard-Feld `STLGS_SetLeadingAt__c` verhindert Re-Assignment bei späteren Updates.
+- **Aktenzeichen RP** (`STLGS_FileNumberRP__c`): Manueller Eintrag durch VO nach RP-Genehmigung. Snapshot-Feld `STLGS_FileNumberRPPrevious__c` kopiert das AZ des Vorgänger-Antrags bei Übernahme/Verlegung (Flow `STLGS_CopyPreviousRPFileNumber`, Trigger: Status = "An Zentrale übergeben").
+
+> **Detaillierte Dokumentation:** [docs/antrag.md](docs/antrag.md) — 2-Phasen-Architektur, RecordType-Switch, Leading Request Lifecycle, FileNumberRP-Mechanik, SetLeadingAt Backfill
 
 ### Antrag-Tabs
 
@@ -262,10 +275,6 @@ Sonderstatus: `TK-Beschwerde` (für Annullierung)
 - Week calculation uses `Date.today().toStartOfWeek().addDays(-7)` → **Monday to Sunday** (German locale)
 - `LAST_WEEK` in SOQL start query uses same locale-based week definition
 - Verified 2026-02-18: Simulation with Mon-Sun matched manual processing results
-
-### Key Validation Rules
-
-- `STLGS_PreventStatusChange2ndLevelSD`: Status "Zugewiesen an 2nd Level" requires `STLGS_ChecksToKBDone__c=true`
 
 ### Processing Logic
 
@@ -524,6 +533,15 @@ The **Mailing** fields (`MailingStreet`, `MailingCity` etc.) contain the **Store
 4. Result: `Contact.MailingAddress` = Store BillingAddress, `Contact.OtherAddress` = Privatanschrift
 
 The Mailing fields are **not shown on the Sales Contact Layout** — users cannot edit them directly. Do NOT use Mailing fields for private address entry.
+
+### Key Validation Rules
+
+| Validation Rule | Objekt | Beschreibung |
+| ---------------- | -------- | -------------- |
+| `STLGS_ValidateNameOnUpdate` | Request | Name muss `^[0-9]{6}$` matchen (6-stellige ASt-Nummer) |
+| `STLGS_ValidateIloProfit` | Request | `STLGS_IloProfit__c` Pflichtfeld bei Freigabe (CRM-3051) |
+| `STLGS_ValidateECCard` | Request | `STLGS_ECCard__c` Pflichtfeld bei Freigabe (CRM-3051) |
+| `STLGS_PreventStatusChange2ndLevelSD` | Case | Status "Zugewiesen an 2nd Level" erfordert `STLGS_ChecksToKBDone__c=true` |
 
 ### Common Field Name Pitfalls
 

@@ -1,6 +1,6 @@
 # Zulassungsantrag (Request) — Domain Knowledge
 
-> Letzte Aktualisierung: 2026-03-02 | Quellen: ~110 Jira-Stories, 5 Confluence-Seiten, 13 Flows, 10 Apex-Klassen, ~80 Custom Fields, 6 Validation Rules, 6 Quick Actions, 5 FlexiPages
+> Letzte Aktualisierung: 2026-03-03 | Quellen: ~110 Jira-Stories, 5 Confluence-Seiten, 13 Flows, 10 Apex-Klassen, ~80 Custom Fields, 9 Validation Rules, 6 Quick Actions, 5 FlexiPages
 
 ## Überblick
 
@@ -208,6 +208,9 @@ Beide Pfade → SetLeadingAt__c = NOW() + ~20 Compliance-Felder vom Request auf 
 - **Vorgänger-Kündigung bei Übernahme:** VR `STLGS_TerminatedOnEmpty` — Kündigungsdatum muss gesetzt sein
 - **Auto-Vertrag-abgeschlossen:** Wenn Status "Genehmigt durch RP" + alle 6 Checkboxen = true → Auto-Status "Vertrag abgeschlossen" (Before-Save Flow `STLGS_SetRequestToClosed`)
 - **Steuernummer-Sync:** Wenn Account-Steuernummer von leer auf Wert wechselt → `STLGS_TaxNumberAvailable__c` = true am führenden Antrag (Flow `STLGS_UpdateRequestTaxNumber`)
+- **IloProfit-Pflicht:** VR `STLGS_ValidateIloProfit` — IloProfit muss vor Übergabe an Zentrale gesetzt sein (CRM-3051)
+- **ECCard-Pflicht bei Agenturbetrieb:** VR `STLGS_ValidateECCard` — ECCard muss bei Agenturstandorten vor Übergabe gesetzt sein (CRM-3051)
+- **Wissensübergabe-Pflicht:** VR `STLGS_ValidateKnowledgeTransfer` — HasKnowledgeTransfer muss vor Übergabe gesetzt sein (CRM-3011)
 - **Freigabe = digitale Unterschrift:** RD-Freigabe im System ersetzt die bisherige physische Unterschrift des Regionaldirektors
 
 ## Technische Umsetzung
@@ -268,6 +271,7 @@ Beide Pfade → SetLeadingAt__c = NOW() + ~20 Compliance-Felder vom Request auf 
 | `STLGS_HasAdditionPermission__c` | Zusatzgenehmigung |
 | `STLGS_HasFurtherExplanation__c` | Weiterführende Begründung |
 | `STLGS_DidHandoverDataProtectionASt__c` | Datenschutz-Unterlage übergeben |
+| `STLGS_HasKnowledgeTransfer__c` | Wissensübergabe erfolgt (CRM-3011) |
 | `STLGS_ResidencePermit__c` | Aufenthaltserlaubnis (Nicht-EU) |
 | `STLGS_PermissionSelfEmplyment__c` | Erlaubnis zur Selbstständigkeit |
 | `STLGS_IssueDateCriminalRecord__c` | Ausstellungsdatum Führungszeugnis (Date) |
@@ -431,7 +435,7 @@ Verknüpft Contacts mit Anträgen (JP). Backed die "Geschäftsführer"-Related-L
 | `STLGS_UpdateRequestExtension` | Update | Antrag editieren (Extension-Version mit mehr Feldern) |
 | `STLGS_ReadRequestExtension` | Update | Antrag read-only anzeigen (Extension) |
 
-**Validation Rules (6):**
+**Validation Rules (9):**
 
 | Rule | Objekt | Zweck |
 |------|--------|-------|
@@ -440,6 +444,9 @@ Verknüpft Contacts mit Anträgen (JP). Backed die "Geschäftsführer"-Related-L
 | `STLGS_MandatoryFieldsForDecline` | Request | Ablehnungsgrund + Datum Pflicht bei Ablehnung |
 | `STLGS_MandatoryFieldsForShutdown` | Request | Shutdown-Datum + Grund Pflicht bei "Erlaubnis erloschen" |
 | `STLGS_TerminatedOnEmpty` | Request | Vorgänger-Kündigungsdatum Pflicht bei Übernahme |
+| `STLGS_ValidateECCard` | Request | ECCard Pflicht bei Agenturbetrieb + "An Zentrale übergeben" (CRM-3051) |
+| `STLGS_ValidateIloProfit` | Request | IloProfit Pflicht bei "An Zentrale übergeben" (CRM-3051) |
+| `STLGS_ValidateKnowledgeTransfer` | Request | Wissensübergabe Pflicht bei "An Zentrale übergeben" (CRM-3011) |
 | `STLGS_ValidateNameOnUpdate` | Request | Antragsnummer = exakt 6 Ziffern |
 
 **FlexiPages (5):**
@@ -508,6 +515,12 @@ Das Formelfeld `STLGS_FileNumberRPPreviousApprovalCalc__c` (`PredecessorStore.Le
 **Fix V2 (CRM-2977, deployed 02.03.2026):** Trigger geändert auf `Status = "An Zentrale übergeben"` → Snapshot wird beim Übergabe-Zeitpunkt erstellt (früher, VO hat den Wert sofort).
 **Backfill (02.03.2026):** 368 bestehende VL/ÜN-Requests (341 ÜN + 27 VL) per Apex-Script nachgefüllt — repliziert die exakte Flow-Logik (ÜN: PredecessorStore, VL: selber Store mit `Id != $Record.Id`). Backup-CSVs in `business/docs/FileNumberRP/`.
 **Geplant:** Screen Flow für nachträgliches Nachtragen — Button auf VL/ÜN-Request zeigt Vorgänger-Requests, VO kann AZ kopieren/eingeben.
+
+### Fehlende Validierung IloProfit/ECCard bei Freigabe (CRM-3051 — Fix geplant)
+
+Anträge konnten freigegeben werden obwohl `STLGS_IloProfit__c` und/oder `STLGS_ECCard__c` (bei Agenturbetrieb) nicht gesetzt waren. Root Cause: Flow `STLGS_DisplayMandatoryRequestFields` hatte die `IsOnsiteDiscussionVisible`-Prüfung in 3 von 4 Decision-Pfaden nicht (NP Confirmation, JP Confirmation, JP Non-Confirmation). Nur der NP Non-Confirmation-Pfad war korrekt. Bug war bereits in CRM-2609 gemeldet, Fix war unvollständig (1/4 Pfade).
+
+**Fix:** 3 fehlende `IsOnsiteDiscussionVisible == false` Conditions in Decision-Regeln ergänzen + 2 Validation Rules als Safety-Net (`STLGS_ValidateIloProfit`, `STLGS_ValidateECCard`).
 
 ### Fehlende Validierung bei Besteuerung
 
@@ -615,6 +628,8 @@ Gewerbeanmeldung kann bei Übergabe an Zentrale fehlen und muss spätestens 4 Wo
 - **CRM-1339:** Prüfbericht — Gewerbeanmeldung vom Antrag
 - **CRM-2483:** Status-Change Automation (Genehmigt → Case schließen)
 - **CRM-2568:** Auto-Schulung bei "Geprüft durch Zentrale"
+- **CRM-3011:** Wissensübergabe-Pflicht (HasKnowledgeTransfer + Validation Rule)
+- **CRM-3051:** Bug IloProfit/ECCard-Validierung bei Freigabe — Flow-Fix + 2 Validation Rules
 
 ### Confluence
 
@@ -626,7 +641,7 @@ Gewerbeanmeldung kann bei Übergabe an Zentrale fehlen und muss spätestens 4 Wo
 
 ### Codebase
 
-**Request Object:** `force-app/main/default/objects/STLGS_Request__c/` (~80 Fields, 4 RecordTypes, 6 VR)
+**Request Object:** `force-app/main/default/objects/STLGS_Request__c/` (~80 Fields, 4 RecordTypes, 9 VR)
 **Flows:** `force-app/main/default/flows/STLGS_*Request*`, `STLGS_Confirm*`, `STLGS_Handover*`, `STLGS_Create*Training*`, `STLGS_Create*Bankdata*`, `STLGS_Rollback*`, `STLGS_SetRequestToClosed`, `STLGS_Display*`, `STLGS_CopyPreviousRPFileNumber` (13 Flows)
 **Apex:** `force-app/main/default/classes/STLGS_Request*`, `STLGS_*PDF*`, `STLGS_TextMerge*` (~10 Klassen)
 **Quick Actions:** `force-app/main/default/quickActions/STLGS_Request__c.*` (6 Actions)
@@ -642,3 +657,4 @@ Gewerbeanmeldung kann bei Übergabe an Zentrale fehlen und muss spätestens 4 Wo
 | 2026-02-20 | Cross-Reference ergänzt | Verweis auf vertragsrelevante-datenaenderung.md |
 | 2026-02-26 | CRM-3041 ergänzt | Neues Feld `STLGS_FileNumberRPPrevious__c`, Flow `STLGS_CopyPreviousRPFileNumber`, Verlegung-Pflichtfelder (Adresse, TransferDate) |
 | 2026-03-02 | CRM-2977 deployed + Backfill | Flow-Trigger geändert (Status → "An Zentrale übergeben"), 368 bestehende VL/ÜN-Requests backfilled (341 ÜN + 27 VL), VL-Selbstreferenz im Calc-Feld dokumentiert |
+| 2026-03-03 | CRM-3051 + CRM-3011 ergänzt | IloProfit/ECCard-Validierungsbug dokumentiert, 3 neue VRs (ValidateIloProfit, ValidateECCard, ValidateKnowledgeTransfer), HasKnowledgeTransfer-Feld ergänzt, VR-Count 6→9 |
