@@ -257,6 +257,31 @@ Vorgänger-Store für Übernahme-Test (5b). Status bleibt "Betriebsbereit" — e
 | Account | `b2bStoreVollASt`     | STLGS_PredecessorStore__c | `{{Ref:b2bStorePredecessor}}`  |
 | Account | `b2bStorePredecessor` | STLGS_SuccessorStore__c   | `{{Ref:b2bStoreVollASt}}`      |
 
+#### 2f. B2B Potential Store — OHNE Bankdaten (für Nachreich-Tests CRM-2882/CRM-3057)
+
+Potentielle ASt ohne IBAN/BIC/Bankname/BankAccountType. Wird für Tests der automatischen Nachreich-Flows (Bankdaten + Gewerbeanmeldung) benötigt, da alle anderen Stores bereits Bankdaten haben.
+
+| Field | Value |
+|-------|-------|
+| sObject | `Account` |
+| RecordType | `STLGS_PotentialStore` |
+| Name | `Test Pot. ASt ohne Bankdaten {{Today}}` |
+| Phone | `0711-5550001` |
+| BillingStreet | `Teststraße 10` |
+| BillingPostalCode | `70173` |
+| BillingCity | `Stuttgart` |
+| BillingCountry | `Germany` |
+| STLGS_StoreStatus__c | `Potentielle Ast` |
+| STLGS_StoreTerm__c | `Test Pot. ASt ohne Bankdaten {{Today}}` |
+| STLGS_District__c | `{{Ref:districtStuttgart}}` |
+| STLGS_Email__c | `test.potast.nobankdata@example.com` |
+| STLGS_LastCompanyName__c | `Test Pot. ASt ohne Bankdaten {{Today}}` |
+| STLGS_Street__c | `Teststraße 10` |
+| STLGS_Postalcode__c | `70173` |
+| STLGS_City__c | `Stuttgart` |
+| OwnerId | `{{Ref:userRD1}}` |
+| referenceId | `b2bPotentialStoreNoBankdata` |
+
 ---
 
 ### 3. Contacts
@@ -520,7 +545,7 @@ These are UPDATE operations on the auto-created ACR records (Salesforce creates 
 
 ### 5. Requests (Anträge)
 
-> **Sektion 5** | Tags: `antrag`, `b2b`, `nationality`, `negativ-test` | Abhängigkeiten: Sek. 0, 2, 3, 4 | Records: 15 | Beschreibung: Anträge (Neueröffnung/Übernahme/Verlegung/Agentur jeweils NP+JP, EU/Nicht-EU/Doppelstaatler-Szenarien, Vorgänger-Request für Übernahme, Negativ-Tests FileNumberRP) — **validierungsbereit für Prüfen/Freigabe**
+> **Sektion 5** | Tags: `antrag`, `b2b`, `nationality`, `negativ-test`, `nachreichen` | Abhängigkeiten: Sek. 0, 2, 3, 4 | Records: 17 | Beschreibung: Anträge (Neueröffnung/Übernahme/Verlegung/Agentur jeweils NP+JP, EU/Nicht-EU/Doppelstaatler-Szenarien, Vorgänger-Request für Übernahme, Negativ-Tests FileNumberRP, Nachreich-Tests CRM-2882/CRM-3057) — **validierungsbereit für Prüfen/Freigabe**
 
 All requests reference a Store via `STLGS_Store__c` (MasterDetail to Account). All requests include document/compliance checkboxes required by the `STLGS_DisplayMandatoryRequestFields` validation flow, so they can pass the "Prüfen" button validation and proceed through the full status lifecycle.
 
@@ -1149,6 +1174,98 @@ Benötigt eigenen Store ohne vorherige Requests. Verwendet eigenen Contact.
 > **Abhängigkeit:** Benötigt eigenen Store (`b2bStoreAloneVL`, Status "Betriebsbereit") und eigenen Contact (`contactAloneVL`). Der Store darf KEINEN anderen Request haben.
 > **Erwartet nach Freigabe:** `FileNumberRPPrevious__c = null` (kein anderer Request am Store → nichts zu kopieren).
 > **Hinweis:** Store muss auf "Betriebsbereit" stehen damit eine Verlegung fachlich Sinn macht (siehe `verlegung-np.apex` Zeile 172-177).
+
+#### 5q. Request: Neueröffnung NP — OHNE Gewerbeanmeldung (Nachreich-Test CRM-2882)
+
+Kopie von 5a, aber `STLGS_HasBusinessRegistration__c = false` und Store ohne IBAN (`b2bPotentialStoreNoBankdata`). Testet nach Implementierung von CRM-2882 die automatische Erstellung eines Vorgangs "Änderung vertragsrelevanter Daten" mit Anliegen-Typ "Gewerbeanmeldung nachreichen". Da der Store auch keine IBAN hat, testet dieser Request gleichzeitig CRM-3057 (Bankdaten-Nachreichung mit Duplikat-Schutz).
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bPotentialStoreNoBankdata}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Tabakgeschäft` |
+| STLGS_Potential__c | `5000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 08:00-20:00, Sa 08:00-18:00</p>` |
+| STLGS_Reason__c | `<p>Nachreich-Test: Neueröffnung ohne Gewerbeanmeldung</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `false` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| STLGS_FileNumberRP__c | `RP-2024-TEST-NOGEWERBE` |
+| STLGS_SetLeadingAt__c | `2024-01-15T10:00:00.000Z` |
+| referenceId | `requestNEOhneGewerbeanmeldung` |
+
+> **Abhängigkeit:** Sek. 2f (`b2bPotentialStoreNoBankdata`), Sek. 3b (`contactLizenzinhaber`)
+> **Unterschied zu 5a:** `STLGS_HasBusinessRegistration__c = false`, Store ohne IBAN
+> **Testplan:** Status → "An Zentrale übergeben" → Gewerbeanmeldung-Case + Bankdaten-Case werden automatisch erstellt
+
+#### 5r. Request: Neueröffnung NP — MIT Gewerbeanmeldung, OHNE IBAN (Nachreich-Test CRM-3057)
+
+Kopie von 5a, aber Store ohne IBAN (`b2bPotentialStoreNoBankdata`). `STLGS_HasBusinessRegistration__c = true` (Gewerbeanmeldung vorhanden). Testet isoliert CRM-3057 (Bankdaten-Nachreichung) — nur der Bankdaten-Case wird erstellt, kein Gewerbeanmeldung-Case.
+
+| Field | Value |
+|-------|-------|
+| sObject | `STLGS_Request__c` |
+| RecordType | `STLGS_StandardRequest` |
+| STLGS_Store__c | `{{Ref:b2bPotentialStoreNoBankdata}}` |
+| STLGS_Type__c | `Neueröffnung` |
+| STLGS_SalesType__c | `Vollannahmestelle` |
+| STLGS_Status__c | `Zusammenarbeit prüfen` |
+| STLGS_AccountLead__c | `{{Ref:contactLizenzinhaber}}` |
+| STLGS_ApplicationDate__c | `{{Today}}` |
+| STLGS_ContractStartPlanned__c | `{{Today+49d}}` |
+| STLGS_PlayerProtectionTraining__c | `{{Today}}` |
+| STLGS_ProductTerminalTraining__c | `{{Today}}` |
+| STLGS_Industry__c | `Tabakgeschäft` |
+| STLGS_Potential__c | `5000` |
+| STLGS_IsStandardTaxation__c | `true` |
+| STLGS_IsSmallBusinessOwner__c | `false` |
+| STLGS_InitialTerminalHours__c | `<p>Mo-Fr 08:00-20:00, Sa 08:00-18:00</p>` |
+| STLGS_Reason__c | `<p>Nachreich-Test: Neueröffnung mit Gewerbeanmeldung, ohne IBAN</p>` |
+| STLGS_HasRequest__c | `true` |
+| STLGS_HasAdditionPermission__c | `true` |
+| STLGS_DidHandoverDataProtectionASt__c | `true` |
+| STLGS_HasCriminalRecord__c | `true` |
+| STLGS_HasBusinessRegistration__c | `true` |
+| STLGS_HasSEPAMandate__c | `true` |
+| STLGS_HasCriminalRecordBusinessAccount__c | `true` |
+| STLGS_HasSchufa__c | `true` |
+| STLGS_IssueDateCriminalRecord__c | `{{Today}}` |
+| STLGS_IssueDateCriminalRecordBA__c | `{{Today}}` |
+| STLGS_DateIssueSchufa__c | `{{Today}}` |
+| STLGS_HasFurtherExplanation__c | `true` |
+| STLGS_HasSitePlan__c | `true` |
+| STLGS_IloProfit__c | `true` |
+| STLGS_HasKnowledgeTransfer__c | `true` |
+| STLGS_FileNumberRP__c | `RP-2024-TEST-NOIBAN` |
+| STLGS_SetLeadingAt__c | `2024-01-15T10:00:00.000Z` |
+| referenceId | `requestNEOhneIBAN` |
+
+> **Abhängigkeit:** Sek. 2f (`b2bPotentialStoreNoBankdata`), Sek. 3b (`contactLizenzinhaber`)
+> **Unterschied zu 5a:** Store ohne IBAN, `HasBusinessRegistration__c = true`
+> **Testplan:** Status → "An Zentrale übergeben" → nur Bankdaten-Case wird erstellt (kein Gewerbeanmeldung-Case)
 
 ---
 
