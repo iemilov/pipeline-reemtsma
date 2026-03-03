@@ -1,0 +1,20 @@
+Commit Log: 2026-03-03 — LottoBW
+=====================================
+
+Commit Message: kanban error handling [skip ci]
+
+Changes Summary:
+- Main repo only (no submodule changes)
+
+Security Check: PASSED (no sensitive content detected)
+
+Main Repo Files:
+  M projects/kanban/functions/api/ai/suggest.js
+  M projects/kanban/functions/api/auth/login.js
+  M projects/kanban/functions/api/cards/[id]/prompt.js
+  M projects/kanban/functions/api/cards/sync.js
+
+Description:
+Improved error handling across kanban API endpoints:
+- suggest.js & prompt.js: Parse Anthropic API error responses to extract meaningful error messages
+- login.js & sync.js: Return actual error messages instead of generic strings
