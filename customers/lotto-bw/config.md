@@ -56,9 +56,9 @@
 
 | Key | Value |
 |-----|-------|
-| Organization | `https://dev.azure.com/LottoBW` |
+| Organization | `https://dev.azure.com/DEV-LottoBW` |
 | Project | `CRM` |
-| Repository | `DEV-LottoBW` |
+| Repository | `CRM` |
 
 ### Pipeline Environments
 

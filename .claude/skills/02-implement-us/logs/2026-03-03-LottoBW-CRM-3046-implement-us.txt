@@ -1,0 +1,43 @@
+== CRM-3046 Implementation Log ==
+Date: 2026-03-03
+Story: CRM-3046 — Rücklauf in KV halbstündige Zeit ermöglichen
+Customer: LottoBW
+
+== Story Summary ==
+Als Fachbereich / Sachbearbeiter in der Kundenverwaltung möchte ich, dass die Rückläufe
+mittwochs nicht um 13:00 Uhr, sondern um 13:30 Uhr verarbeitet werden.
+
+== Analysis ==
+- Scheduler: STLG_CaseCreationScheduler (Schedulable class)
+- Uses Custom Metadata STLG_2ndLvlCaseCreationConfig__mdt for config
+- CMT record: Abo_Ruecklauf with ScheduledTime 11:00 UTC (13:00 CEST), ScheduledDays=3 (Wednesday)
+- isSameTime() method uses ±5 min tolerance — no double processing risk with 30 min gap
+
+== Implementation Approach ==
+Declarative only — CMT metadata change + manual scheduling step.
+
+1. Updated CMT Abo_Ruecklauf: ScheduledTime from 2025-08-01T11:00:00.000Z to 2025-08-01T11:30:00.000Z
+2. Manual step: Schedule second job with cron '0 30 * * * ?'
+
+== No Double Processing Guarantee ==
+isSameTime compares hour (exact match) and minute (±5 tolerance).
+- Config at 13:30: :00 job → |0-30|=30 > 5 → no match. :30 job → |30-30|=0 ≤ 5 → match.
+- Config at 13:00: :00 job → |0-0|=0 ≤ 5 → match. :30 job → |30-0|=30 > 5 → no match.
+
+== Files Changed ==
+1. force-app/main/default/customMetadata/STLG_2ndLvlCaseCreationConfig.Abo_Ruecklauf.md-meta.xml
+2. deployment/1.10.5/Release-1.10.5-Manual-Deployment-Steps.md
+
+== Deployment ==
+- DEV: Deployed successfully (1/1 components)
+- Manual step documented in Release-1.10.5-Manual-Deployment-Steps.md
+
+== Branch & PR ==
+- Branch: feature/CRM-3046 pushed to origin
+- PR: CLI creation failed (Azure DevOps repo name mismatch) — manual PR creation needed
+
+== Manual Deployment Steps ==
+1. Keep existing Scheduled Job STLG_CaseCreationScheduler (Cron: 0 0 * * * ?)
+2. Create second Scheduled Job:
+   System.schedule('STLG_CaseCreationScheduler_30', '0 30 * * * ?', new STLG_CaseCreationScheduler());
+3. Verify: Setup → Scheduled Jobs → both jobs visible
