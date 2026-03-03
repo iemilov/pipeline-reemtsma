@@ -52,6 +52,14 @@
 | Co-Author Policy | **Never** — do not add `Co-Authored-By` lines to any commit |
 | AI Attribution Policy | **Never** — do not reference Claude or AI in customer-visible commits or metadata |
 
+### Azure DevOps
+
+| Key | Value |
+|-----|-------|
+| Organization | `https://dev.azure.com/LottoBW` |
+| Project | `CRM` |
+| Repository | `DEV-LottoBW` |
+
 ### Pipeline Environments
 
 | Branch | Target Environment |

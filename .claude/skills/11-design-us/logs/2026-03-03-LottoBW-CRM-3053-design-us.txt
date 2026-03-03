@@ -1,0 +1,77 @@
+/design-us CRM-3053 — Backfill Aktenzeichen RP am Vorgänger bei Übernahme/Verlegung
+================================================================================
+Date: 2026-03-03
+Customer: LottoBW
+Story: CRM-3053
+
+## Step 1: Read User Story
+- Fetched CRM-3053 from Jira (Cloud ID: 2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4)
+- Status: In Progress (already transitioned)
+- Assignee: Joachim Lintl
+- No parent Epic linked
+- No issue links / blockers found
+
+## Step 2: Explore Codebase
+
+### Fields analyzed (STLGS_Request__c):
+- STLGS_FileNumberRP__c: Text(255), Label "File Number RP"
+- STLGS_FileNumberRPPrevious__c: Text(255), Label "File Number RP Previous", @see CRM-3041
+- STLGS_ApprovalDate__c: Date, Label "Approval Date"
+- STLGS_ApprovalDuration__c: Date, Label "Approval Duration"
+- STLGS_SetLeadingAt__c: DateTime, Label "Set Leading At", @see CRM-2775
+- STLGS_PredecessorStore__c: Lookup(Account), Label "Predecessor Store"
+- STLGS_Store__c: MasterDetail(Account), Label "Store"
+- STLGS_Type__c: Picklist (Neueröffnung, Verlegung, Übernahme, Migration)
+- STLGS_FileNumberRPPreviousApprovalCalc__c: Formula = STLGS_PredecessorStore__r.STLGS_LeadingRequest__r.STLGS_FileNumberRP__c
+- STLGS_Status__c: Picklist (13 values in lifecycle)
+
+### FlexiPages analyzed (5 total):
+1. STLGS_RequestRecordPage (2886 lines) - Standard Person Account requests
+2. STLGS_BusinessRequestRecordPage (2996 lines) - Business Account requests
+3. STLGS_ReadOnlyRequestRecordPage (2239 lines) - Read-only variant for Sales users
+4. STLGS_ReadOnlyBusinessRequestRecordPage (2219 lines) - Read-only Business variant
+5. STLG_StandardApiRequestRecordPage (139 lines) - Minimal API page (excluded)
+
+### Quick Actions on STLGS_Request__c:
+- STLGS_ConfirmRequest (Flow → STLGS_ConfirmRequest)
+- STLGS_Handover (Flow → STLGS_HandoverRequest)
+- STLGS_UpdateRequest (Update)
+- STLGS_UpdateBusinessRequest (Update)
+- STLGS_UpdateRequestExtension (Update)
+
+### Existing Flow: STLGS_CopyPreviousRPFileNumber
+- Type: AutoLaunchedFlow (RecordBeforeSave)
+- Trigger: Status changes to "An Zentrale übergeben"
+- Logic: Identical predecessor query pattern (Übernahme = PredecessorStore, Verlegung = Store + Id != current)
+- Only copies FileNumberRP → FileNumberRPPrevious (first record only)
+
+### SetLeadingAt__c usage:
+- Flow STLGS_UpdateAccStatusOnCreateUpdateRequest sets it to $Flow.CurrentDateTime on request creation
+- Decision checks if SetLeadingAt__c is not blank before certain paths
+
+### Datatable patterns found:
+- STLGS_DisplayMatchedAccounts: SINGLE_SELECT datatable for Account selection
+- STLGS_DisplayMandatoryRequestFields: NO_SELECTION datatable for Contact display
+
+## Step 3: Open Questions
+No open questions — story is very well-specified with exact field names, query logic, and UI requirements.
+
+## Step 4: Implementation Approach
+Fully declarative: Screen Flow + Quick Action + FlexiPage modifications
+
+Components:
+1. NEW: Screen Flow STLGS_BackfillPredecessorRP
+2. NEW: Quick Action STLGS_Request__c.STLGS_BackfillPredecessorRP
+3. MODIFY: 4 Request FlexiPages (add button with visibility rule)
+
+## Step 5: Implementation Notes Generated
+File: implementation-design/CRM-3053/implementation-notes.md
+
+## Summary
+- Implementation approach: Fully declarative (Screen Flow)
+- Components to create: 2 (Flow + Quick Action)
+- Components to modify: 4 (FlexiPages)
+- Dependencies: CRM-3041 (Done), CRM-2775 (Done)
+- Questions resolved: 0 (none needed)
+- Remaining assumptions: 4 (documented in notes)
+- Next step: /implement-us CRM-3053

@@ -133,14 +133,15 @@ The promotion strategy depends on the target environment:
 
 ### Step 5: Monitor Pipeline
 
-1. **Check pipeline status** via Azure DevOps REST API:
-   ```bash
-   az pipelines runs list --org https://dev.azure.com/LottoBW --project "Salesforce CICD" --branch <branch> --top 1 --output table
-   ```
-   If `az` CLI is not available, provide the user with a direct link to the pipeline run:
-   ```
-   https://dev.azure.com/LottoBW/Salesforce%20CICD/_build
-   ```
+1. **Check pipeline status** — use the **Azure DevOps** config from `customer.config.md` if available:
+   - **Primary (if Azure DevOps is configured):**
+     ```bash
+     az pipelines runs list --org "<Organization>" --project "<Project>" --branch <branch> --top 1 --output table
+     ```
+   - **Fallback (if `az` CLI is unavailable, not authenticated, or Azure DevOps is not configured):** Provide the user with a direct link to the pipeline run:
+     ```
+     <Organization>/<Project-URL-encoded>/_build
+     ```
 
 2. **Poll for completion** (if `az` CLI is available):
    - Check every 30 seconds, up to 10 minutes

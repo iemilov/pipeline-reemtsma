@@ -61,11 +61,17 @@ Analyze the requirements and determine which Salesforce tools are most appropria
 - **Aura Components** — only if extending existing Aura components
 
 ### Step 4: Generate feature branch
-- **Determine the latest release branch** by querying the default branch from Azure DevOps:
-  ```bash
-  az repos show --repository "Salesforce CICD" --org https://dev.azure.com/LottoBW --project "Salesforce CICD" --query defaultBranch -o tsv
-  ```
-  This returns e.g. `refs/heads/release/1.10.4`. Strip the `refs/heads/` prefix to get the branch name.
+- **Determine the latest release branch** — use the **Azure DevOps** config from `customer.config.md` if available:
+  1. **Primary (if Azure DevOps is configured):** Query via `az repos show`:
+     ```bash
+     az repos show --repository "<Repository>" --org "<Organization>" --project "<Project>" --query defaultBranch -o tsv
+     ```
+     This returns e.g. `refs/heads/release/1.10.5`. Strip the `refs/heads/` prefix to get the branch name.
+  2. **Fallback (if `az` CLI is unavailable, not authenticated, or Azure DevOps is not configured):** Query via git:
+     ```bash
+     git remote show origin | grep 'HEAD branch' | awk '{print $NF}'
+     ```
+     This returns e.g. `release/1.10.5`.
 - Fetch and create a feature branch from that release branch: `git fetch origin <release-branch> && git checkout -b feature/<story-key> origin/<release-branch>`
 
 ### Step 5: Generate Implementation

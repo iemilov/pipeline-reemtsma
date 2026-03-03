@@ -52,6 +52,16 @@
 | Co-Author Policy | **Never** — do not add `Co-Authored-By` lines to any commit |
 | AI Attribution Policy | **Never** — do not reference Claude or AI in customer-visible commits or metadata |
 
+### Azure DevOps (optional)
+
+| Key | Value |
+|-----|-------|
+| Organization | `https://dev.azure.com/<org>` |
+| Project | `<project>` |
+| Repository | `<repo>` |
+
+> If Azure DevOps is configured, skills use `az repos show` to determine the default branch. If not configured or `az` CLI is unavailable, the fallback is `git remote show origin`.
+
 ### Pipeline Environments
 
 | Branch | Target Environment |

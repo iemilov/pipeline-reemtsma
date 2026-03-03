@@ -1,0 +1,93 @@
+/implement-us CRM-3053 — Backfill Aktenzeichen RP am Vorgänger bei Übernahme/Verlegung
+================================================================================
+Date: 2026-03-03
+Customer: LottoBW
+Story: CRM-3053
+
+## Step 1: Read User Story
+- Fetched CRM-3053 from Jira (Cloud ID: 2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4)
+- Status: In Progress
+- Implementation notes found at implementation-design/CRM-3053/implementation-notes.md
+- No blockers identified
+- Dependencies: CRM-3041 (Done), CRM-2775 (Done)
+
+## Step 2: Explore Codebase
+- Reference flow: STLGS_CopyPreviousRPFileNumber (same query logic for Übernahme/Verlegung)
+- Reference datatable: STLGS_DisplayMatchedAccounts (SINGLE_SELECT pattern)
+- Reference quick action: STLGS_Request__c.STLGS_ConfirmRequest (Flow type)
+- 4 Request FlexiPages identified for modification
+- Existing visibility rule patterns: EQUAL, NE, CONTAINS operators (NOT EqualTo)
+
+## Step 3: Implementation Approach
+- Fully declarative: Screen Flow + Quick Action + FlexiPage modifications
+- No Apex required
+
+## Step 4: Feature Branch
+- Default branch: release/1.10.5 (via git remote show origin)
+- Created: feature/CRM-3053 from origin/release/1.10.5
+- Updated SKILL.md Step 4: az repos show as primary, git remote show origin as fallback
+- Added Azure DevOps config to customer.config.md template and LottoBW config
+
+## Step 5: Implementation
+
+### Files Created
+1. force-app/main/default/flows/STLGS_BackfillPredecessorRP.flow-meta.xml (NEW)
+   - Screen Flow with recordId input variable
+   - Get Current Request → Decision (Type?) → recordLookup (Übernahme/Verlegung)
+   - Decision (Predecessors Found?) → Screen 1 (datatable SINGLE_SELECT) → Screen 2 (input fields)
+   - Assignment (SetLeadingAt value) → recordUpdate Predecessor → recordUpdate Current Request
+   - Error screens for no predecessors and unsupported type
+
+2. force-app/main/default/quickActions/STLGS_Request__c.STLGS_BackfillPredecessorRP.quickAction-meta.xml (NEW)
+   - Flow type quick action
+   - Label: Vorgänger-Aktenzeichen pflegen
+
+### Files Modified
+3. force-app/main/default/flexipages/STLGS_RequestRecordPage.flexipage-meta.xml
+4. force-app/main/default/flexipages/STLGS_BusinessRequestRecordPage.flexipage-meta.xml
+5. force-app/main/default/flexipages/STLGS_ReadOnlyRequestRecordPage.flexipage-meta.xml
+6. force-app/main/default/flexipages/STLGS_ReadOnlyBusinessRequestRecordPage.flexipage-meta.xml
+   - Added STLGS_BackfillPredecessorRP quick action to header region
+   - Visibility Rule: (Type=Verlegung OR Type=Übernahme) AND (Profile CONTAINS SalesCentral OR Profile CONTAINS dministrator)
+
+## Step 6: Deploy to DEV Org
+- First deployment failed: EqualTo operator not supported in FlexiPages (fixed to EQUAL)
+- First deployment failed: Merge conflict markers in BusinessRequestRecordPage (resolved)
+- Second deployment: SUCCEEDED — 6/6 components, 0 errors
+- Deploy ID: 0Af9M00000jc2uwSAA
+- Target: system.user@lotto-bw.de.dev
+
+## Step 7: Test Data Created in DEV Org
+
+| sObject | Name | Type | Id |
+|---------|------|------|----|
+| Account | Test Vorgaenger-ASt CRM-3053 | Store (predecessor) | 0019M00001TVuLCQA1 |
+| Account | Test Aktuelle-ASt CRM-3053 | Store (current) | 0019M00001TW73lQAD |
+| Request | Neueröffnung (with RP-2025-TEST-001) | On predecessor store | a279M000004iKiHQAU |
+| Request | Neueröffnung (no RP) | On predecessor store | a279M000004iKjtQAE |
+| Request | Übernahme (PredecessorStore set) | On current store | a279M000004iKlVQAU |
+| Request | Neueröffnung (with RP-2025-TEST-002) | On current store | a279M000004iKn7QAE |
+| Request | Verlegung | On current store | a279M000004iKojQAE |
+
+Test scenarios:
+- Übernahme (a279M000004iKlV): Shows 2 predecessor requests from Vorgaenger store
+- Verlegung (a279M000004iKoj): Shows 2 other requests on same Aktuelle store
+
+## Step 8: Commit & Push
+- Commit: 56dedf2c on feature/CRM-3053
+- Pushed to origin/feature/CRM-3053
+- PR: Azure DevOps CLI auth expired — manual PR creation required
+- PR URL: https://dev.azure.com/DEV-LottoBW/CRM/_git/CRM/pullrequestcreate?sourceRef=feature/CRM-3053&targetRef=release/1.10.5
+
+## Step 9: Manual Deployment Steps
+- Saved to deployment/1.10.5/Release-1.10.5-Manual-Deployment-Steps.md
+- 1. Activate Flow STLGS_BackfillPredecessorRP in target org (verify)
+- 2. No further steps needed
+
+## Summary
+- Approach: Fully declarative (Screen Flow + Quick Action + FlexiPage)
+- Files created: 2 (Flow, Quick Action)
+- Files modified: 4 (FlexiPages)
+- Test data: 7 records (2 Accounts, 5 Requests)
+- Deployment: Succeeded to DEV
+- PR: Manual creation required (az CLI auth expired)
