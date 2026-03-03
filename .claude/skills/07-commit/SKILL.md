@@ -70,15 +70,10 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
    - Option 2: "Nein, ich möchte Dateien auswählen"
    - If the user wants to select files, ask which files to include
 
-3. **Create the log file** before staging:
-   - Write the log file `<YYYY-MM-DD>-<customer-short-name>-commit.txt` to `.claude/skills/07-commit/logs/`
-   - Include: changes summary, security check result, list of files being committed in each repo
-   - This file is created NOW so it is included in the submodule commit (no separate commit needed)
-
-4. **Stage and commit**:
+3. **Stage and commit**:
    ```bash
    cd pipeline
-   git add <files> .claude/skills/07-commit/logs/<YYYY-MM-DD>-<customer-short-name>-commit.txt
+   git add <files>
    git commit -m "<commit-message>"
    ```
    - The commit message is `$ARGUMENTS` as provided by the user
@@ -110,13 +105,17 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
 
 3. **Prepare commit message**:
    - Use `$ARGUMENTS` as the base message
-   - **Automatically append the CI skip pattern** from config if not already present
+   - **Ask the user** whether to append the CI skip pattern using `AskUserQuestion`:
+     - "Soll der CI Skip Pattern an die Commit-Message angehängt werden?"
+     - Option 1: "Ja, `[skip ci]` anhängen" — append the CI skip pattern from config
+     - Option 2: "Nein, ohne `[skip ci]`" — use the message as-is (CI pipeline will trigger)
    - Follow the **co-author policy** from config
 
 4. **Stage and commit**:
    ```bash
    git add <files>
-   git commit -m "<message> <ci-skip-pattern>"
+   git commit -m "<message>"              # without [skip ci]
+   git commit -m "<message> <ci-skip-pattern>"  # with [skip ci]
    ```
 
 5. **Push**:
@@ -142,13 +141,12 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
 - Follow all conventions from CLAUDE.md
 - Read all CI/CD and policy values from `customer.config.md` — do not hardcode
 - **Order matters**: ALWAYS commit submodule FIRST, then main repo
-- **CI skip pattern**: ALWAYS append to main repo commits (auto-added if missing)
+- **CI skip pattern**: Ask the user whether to append to main repo commits (via `AskUserQuestion`)
 - **Co-author policy**: Follow the policy from config
 - **No sensitive data in main repo**: Always run the security check before committing to the main repo
 - **Interactive**: Always ask the user for confirmation before committing. Show exactly which files will be included
 - **Submodule pointer**: When the submodule is updated, always stage `pipeline` in the main repo too
 - **Detached HEAD recovery**: Automatically recover from detached HEAD in the submodule
-- **Log file timing**: ALWAYS create the log file `<YYYY-MM-DD>-<customer-short-name>-commit.txt` in `.claude/skills/07-commit/logs/` BEFORE the submodule commit (Step 3.3), so it is included in the same commit — never as a separate follow-up commit
 
 ## Error Handling
 
