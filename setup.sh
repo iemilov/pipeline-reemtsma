@@ -31,6 +31,9 @@ ln -sf "../$SUBMODULE_NAME/.claude/settings.local.json" "$REPO_ROOT/.claude/sett
 # Symlink skills directory (from .claude/, go up one level to reach repo root)
 ln -sf "../$SUBMODULE_NAME/.claude/skills" "$REPO_ROOT/.claude/skills"
 
+# Symlink commands directory (Claude Code uses .claude/commands/ for slash commands)
+ln -sf "../$SUBMODULE_NAME/.claude/skills" "$REPO_ROOT/.claude/commands"
+
 # Symlink CLAUDE.md
 ln -sf "$SUBMODULE_NAME/CLAUDE.md" "$REPO_ROOT/CLAUDE.md"
 
@@ -44,6 +47,7 @@ echo "Claude Code symlinks created (customer: $CUSTOMER):"
 echo "  CLAUDE.md -> $SUBMODULE_NAME/CLAUDE.md"
 echo "  .claude/settings.local.json -> ../$SUBMODULE_NAME/.claude/settings.local.json"
 echo "  .claude/skills -> ../$SUBMODULE_NAME/.claude/skills"
+echo "  .claude/commands -> ../$SUBMODULE_NAME/.claude/skills"
 echo "  $SUBMODULE_NAME/customer.config.md -> customers/$CUSTOMER/config.md"
 echo "  $SUBMODULE_NAME/customer.domain.md -> customers/$CUSTOMER/domain-knowledge.md"
 echo "  $SUBMODULE_NAME/stack.config.md -> customers/$CUSTOMER/stack.config.md"
