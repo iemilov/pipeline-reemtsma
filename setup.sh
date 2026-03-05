@@ -14,11 +14,30 @@ SUBMODULE_NAME="$(basename "$SCRIPT_DIR")"
 CUSTOMER="${1:-lotto-bw}"
 CUSTOMER_DIR="$SCRIPT_DIR/customers/$CUSTOMER"
 
-# Validate customer folder exists
-if [ ! -d "$CUSTOMER_DIR" ]; then
-  echo "Error: Customer folder not found: customers/$CUSTOMER"
+# Initialize customer submodule if needed
+if [ -f "$SCRIPT_DIR/.gitmodules" ] && grep -q "customers/$CUSTOMER" "$SCRIPT_DIR/.gitmodules" 2>/dev/null; then
+  if [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
+    echo "Initializing customer submodule: customers/$CUSTOMER"
+    (cd "$SCRIPT_DIR" && git submodule update --init "customers/$CUSTOMER") || {
+      echo "Error: Failed to initialize submodule for customers/$CUSTOMER"
+      echo "You may not have access to this customer repository."
+      exit 1
+    }
+  fi
+fi
+
+# Validate customer config exists
+if [ ! -f "$CUSTOMER_DIR/config.md" ]; then
+  echo "Error: config.md not found in customers/$CUSTOMER"
+  if [ -f "$SCRIPT_DIR/.gitmodules" ]; then
+    echo "You may not have access to this customer repository."
+  fi
   echo "Available customers:"
-  ls -1 "$SCRIPT_DIR/customers/" | grep -v '^_'
+  for d in "$SCRIPT_DIR"/customers/*/; do
+    name="$(basename "$d")"
+    [ "$name" = "_template" ] && continue
+    [ -f "$d/config.md" ] && echo "  $name" || echo "  $name (not initialized)"
+  done
   exit 1
 fi
 
