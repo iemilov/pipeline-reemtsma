@@ -54,6 +54,8 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 10. `/build-knowledge <epic-id|topic>` — Builds comprehensive internal domain documentation as Markdown topic files, consolidating knowledge from Jira, Confluence, codebase, and existing docs
 11. `/create-testdata [org-alias] [story-key | preset]` — Creates test data records in a Salesforce org based on `testdata.config.md`. Supports story-based section recommendations, interactive selection, or preset-based auto-selection
 12. `/cleanup-testdata [org-alias] [preset | all | today]` — Deletes test data records from a Salesforce org interactively. Scans for records by StoreNumber suffix, groups by preset, and generates cleanup Apex
+13. `/write-crm-doc <story-key>` — Creates or updates a Salesforce Knowledge article as a draft based on Jira stories, domain knowledge, and the repository
+14. `/onboard-user <github-username> <project-repo>` — Adds a GitHub user as collaborator to a customer's main project repo and all required pipeline repos, then generates setup instructions for the new collaborator
 
 ## Additional Skill Remarks
 
