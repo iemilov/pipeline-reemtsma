@@ -205,7 +205,7 @@ Present a summary to the user:
 - Prefer declarative solutions over code when both can meet the requirement
 - Use the correct **naming prefixes** from config (B2C vs B2B based on the story's component)
 - Cross-reference `customer.domain.md` for every field name and business term to avoid common pitfalls
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-$ARGUMENTS-design-us.txt` in `.claude/skills/11-design-us/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-$ARGUMENTS-design-us.json` in `.claude/skills/11-design-us/logs/` — use the structured JSON format from CLAUDE.md
 
 ## Error Handling
 

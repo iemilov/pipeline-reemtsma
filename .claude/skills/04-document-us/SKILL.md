@@ -69,7 +69,7 @@ Present:
 - Use the Atlassian MCP tools for all Jira and Confluence operations
 - Read **Cloud ID** from `customer.config.md` — do not hardcode
 - If no Confluence space is obvious, ask the user which space to use
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-$ARGUMENTS-document-us.txt` in `.claude/skills/04-document-us/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-$ARGUMENTS-document-us.json` in `.claude/skills/04-document-us/logs/` — use the structured JSON format from CLAUDE.md
 - Link epic with title `$ARGUMENTS` into the Confluence page
 
 ## Error Handling

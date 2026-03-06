@@ -55,8 +55,10 @@ cd pipeline
 ```
 
 The setup script:
-1. Initializes the customer's nested submodule under `customers/<name>/`
-2. Creates symlinks for Claude Code to find config files
+1. If no customer name is provided, shows an interactive selection menu
+2. Initializes the customer's nested submodule under `customers/<name>/`
+3. Creates symlinks for Claude Code to find config files
+4. Validates config completeness and warns about missing or placeholder fields
 
 | Symlink | Target | Purpose |
 |---------|--------|---------|
@@ -159,9 +161,10 @@ This is by design — each customer's data is isolated by GitHub repository perm
 
 2. Fill in the config files in the new repo:
    - `config.md` — Atlassian credentials, CI/CD settings, folder paths, locale
-   - `domain-knowledge.md` — Business glossary, processes, field name pitfalls
+   - `domain-knowledge.md` — Business glossary, processes, field name pitfalls (add a `docs/` subfolder for detailed topic files)
    - `stack.config.md` — Tech stack, commands, libraries, conventions
    - `testdata.config.md` — Test data presets and record definitions
+   - `README.md` — Auto-generated from template; do not customize per customer
 
 3. Add as submodule in the pipeline repo:
    ```bash
@@ -301,7 +304,9 @@ pipeline/
 │   ├── drKade/                        # Submodule → pipeline-drkade
 │   └── _template/                     # Local template (not a submodule)
 │       ├── config.md
-│       └── domain-knowledge.md
+│       ├── domain-knowledge.md
+│       ├── stack.config.md
+│       └── testdata.config.md
 └── .claude/
     ├── settings.local.json            # Permissions and settings
     └── skills/
@@ -371,7 +376,7 @@ The `/commit` skill handles this automatically.
 
 - **Confidentiality:** The customer has no access to the pipeline submodule or other customers' repos. Sensitive information (skill prompts, internal processes) must only be committed here, never to the main repo.
 - **Access control:** Customer data isolation is enforced by GitHub repo permissions. Each `customers/<name>/` folder is a submodule pointing to a separate private repo.
-- **Logs:** Each skill execution creates a log file under `.claude/skills/<skill>/logs/`.
+- **Logs:** Each skill execution creates a structured JSON log file under `.claude/skills/<skill>/logs/`.
 - **No AI attribution:** Never include `Co-Authored-By: Claude` or similar AI attribution in commits to the main repo.
 - **`.gitignore` in main repo:** The entries for `CLAUDE.md`, `.claude/`, and `pipeline/.env` ensure that symlinks and sensitive files are never committed to the main repo.
 - **Customer config symlinks:** `customer.config.md`, `customer.domain.md`, `stack.config.md`, and `testdata.config.md` are local symlinks inside `pipeline/` — they are gitignored and not committed.

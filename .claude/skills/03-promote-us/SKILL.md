@@ -188,7 +188,7 @@ The promotion strategy depends on the target environment:
 - Commit messages for pipeline-triggering pushes must contain the story key (`CRM-XXXX`) — the pipeline extracts it
 - When test classes are executed, always return the code coverage from the test run in a table
 - ALWAYS comment on the related user story in Jira on successful deployment and validation
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<story-key>-promote-us.txt` in `.claude/skills/03-promote-us/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<story-key>-promote-us.json` in `.claude/skills/03-promote-us/logs/` — use the structured JSON format from CLAUDE.md
 
 ## Error Handling
 - If the Jira issue cannot be fetched, inform the user with the error details and abort

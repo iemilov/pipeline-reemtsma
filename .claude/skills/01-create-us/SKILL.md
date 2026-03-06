@@ -175,7 +175,7 @@ Present a summary of:
 - **Be interactive**: Ask questions to clarify requirements, story cuts, and priorities
 - **Quality over speed**: Better to ask 3 questions than to create 1 wrong story
 - **Implementation-ready**: Each story should be detailed enough for `/implement-us` to generate working code
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-$ARGUMENTS-create-story.txt` in `.claude/skills/01-create-us/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-$ARGUMENTS-create-story.json` in `.claude/skills/01-create-us/logs/` — use the structured JSON format from CLAUDE.md
 
 ## Error Handling
 - If the Epic cannot be fetched from Jira, inform the user with the error details and abort

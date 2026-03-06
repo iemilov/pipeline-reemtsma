@@ -140,7 +140,7 @@ Present:
 - Output text in the Confluence page uses the **documentation language** from config
 - Use the Atlassian MCP tools for all Confluence operations
 - Read **Cloud ID** from `customer.config.md` — do not hardcode
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-architecture-overview.txt` in `.claude/skills/05-architecture-overview/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-architecture-overview.json` in `.claude/skills/05-architecture-overview/logs/` — use the structured JSON format from CLAUDE.md
 - Be thorough but concise — group similar components rather than listing every single file
 - When reading classes, focus on understanding purpose rather than implementation details
 - If the repository is very large, prioritize reading service classes, batch jobs, and controllers over test classes and simple DTOs

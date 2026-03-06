@@ -239,7 +239,7 @@ Present:
 - **Avoid `sf data import bulk`** — it has persistent line ending issues on macOS (see domain knowledge)
 - **Do not create duplicate test data** — before creating, optionally query for existing records with the same name pattern and warn the user
 - **Always resolve dependencies** before starting creation — never create a child section without its parents
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<org-alias>-create-testdata.txt` in `.claude/skills/09-create-testdata/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<org-alias>-create-testdata.json` in `.claude/skills/09-create-testdata/logs/` — use the structured JSON format from CLAUDE.md
 
 ## Error Handling
 

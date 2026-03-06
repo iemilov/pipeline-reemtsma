@@ -189,7 +189,7 @@ Dann Inhalt per curl PATCH befüllen (wie oben, Schritt 3).
 
 **Log-Datei erstellen:**
 ```
-pipeline/.claude/skills/13-write-crm-doc/logs/YYYY-MM-DD-LottoBW-{story-key}-write-crm-doc.txt
+pipeline/.claude/skills/13-write-crm-doc/logs/YYYY-MM-DD-LottoBW-{story-key}-write-crm-doc.json
 ```
 Inhalt: komplette Ausgabe inkl. Story-Zusammenfassung, generiertem HTML, Draft-IDs und URLs.
 

@@ -59,7 +59,19 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 
 ## Additional Skill Remarks
 
-- ALWAYS create a log file for each execution of a skill in this pattern: `<YYYY-MM-DD>-<customer-short-name>-<identifier>-<skill-name>.txt` where `<customer-short-name>` is the **Short Name** from `customer.config.md` and `<identifier>` is the story key, epic key, or version depending on the skill. Copy the complete output as text into this file and store it under the `logs/` subfolder of each skill's directory (e.g., `.claude/skills/02-implement-us/logs/`)
+- ALWAYS create a structured JSON log file for each execution of a skill. File name pattern: `<YYYY-MM-DD>-<customer-short-name>-<identifier>-<skill-name>.json` where `<customer-short-name>` is the **Short Name** from `customer.config.md` and `<identifier>` is the story key, epic key, or version depending on the skill. Store it under the `logs/` subfolder of each skill's directory (e.g., `.claude/skills/02-implement-us/logs/`). Use this JSON structure:
+  ```json
+  {
+    "skill": "<skill-name>",
+    "customer": "<customer-short-name>",
+    "identifier": "<story-key, epic-id, or version>",
+    "timestamp": "<ISO 8601 start time>",
+    "status": "success | partial | failed",
+    "summary": "<1-2 sentence result summary>",
+    "artifacts": ["<list of created/modified file paths>"],
+    "output": "<full text output of the skill execution>"
+  }
+  ```
 - All Atlassian integration details (Jira URL, Cloud ID, Confluence URL, project key, components) are in `customer.config.md`
 - Deployment commits include the CI skip pattern from `customer.config.md`
 

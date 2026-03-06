@@ -1,17 +1,52 @@
 #!/bin/bash
 # Creates symlinks for Claude Code to find config in the pipeline submodule.
-# Run once after cloning: cd pipeline && ./setup.sh
+# Run once after cloning: cd pipeline && ./setup.sh <customer>
 #
 # Usage:
-#   ./setup.sh                  # Uses default customer (lotto-bw)
 #   ./setup.sh <customer-name>  # Uses specified customer folder
+#   ./setup.sh                  # Interactive selection
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUBMODULE_NAME="$(basename "$SCRIPT_DIR")"
-CUSTOMER="${1:-lotto-bw}"
+
+# Collect available customers
+CUSTOMERS=()
+for d in "$SCRIPT_DIR"/customers/*/; do
+  name="$(basename "$d")"
+  [ "$name" = "_template" ] && continue
+  CUSTOMERS+=("$name")
+done
+
+if [ ${#CUSTOMERS[@]} -eq 0 ]; then
+  echo "Error: No customer folders found in customers/"
+  exit 1
+fi
+
+# Select customer: argument or interactive
+if [ -n "$1" ]; then
+  CUSTOMER="$1"
+else
+  echo "Available customers:"
+  for i in "${!CUSTOMERS[@]}"; do
+    label="${CUSTOMERS[$i]}"
+    if [ -f "$SCRIPT_DIR/customers/$label/config.md" ]; then
+      echo "  $((i+1))) $label"
+    else
+      echo "  $((i+1))) $label (not initialized)"
+    fi
+  done
+  printf "\nSelect customer [1-%d]: " "${#CUSTOMERS[@]}"
+  read -r choice
+  if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#CUSTOMERS[@]}" ]; then
+    echo "Error: Invalid selection"
+    exit 1
+  fi
+  CUSTOMER="${CUSTOMERS[$((choice-1))]}"
+fi
+
 CUSTOMER_DIR="$SCRIPT_DIR/customers/$CUSTOMER"
 
 # Initialize customer submodule if needed
@@ -33,10 +68,8 @@ if [ ! -f "$CUSTOMER_DIR/config.md" ]; then
     echo "You may not have access to this customer repository."
   fi
   echo "Available customers:"
-  for d in "$SCRIPT_DIR"/customers/*/; do
-    name="$(basename "$d")"
-    [ "$name" = "_template" ] && continue
-    [ -f "$d/config.md" ] && echo "  $name" || echo "  $name (not initialized)"
+  for name in "${CUSTOMERS[@]}"; do
+    [ -f "$SCRIPT_DIR/customers/$name/config.md" ] && echo "  $name" || echo "  $name (not initialized)"
   done
   exit 1
 fi
@@ -71,6 +104,55 @@ echo "  $SUBMODULE_NAME/customer.config.md -> customers/$CUSTOMER/config.md"
 echo "  $SUBMODULE_NAME/customer.domain.md -> customers/$CUSTOMER/domain-knowledge.md"
 echo "  $SUBMODULE_NAME/stack.config.md -> customers/$CUSTOMER/stack.config.md"
 echo "  $SUBMODULE_NAME/testdata.config.md -> customers/$CUSTOMER/testdata.config.md"
+
+# Validate config completeness
+echo ""
+echo "Validating configuration..."
+WARNINGS=0
+
+check_field() {
+  local file="$1" field="$2" label="$3"
+  if ! grep -q "$field" "$file" 2>/dev/null || grep -q "| $field |.*| — |" "$file" 2>/dev/null || grep -q "| $field |.*| \`<" "$file" 2>/dev/null; then
+    echo "  Warning: $label not configured in $(basename "$file")"
+    WARNINGS=$((WARNINGS + 1))
+  fi
+}
+
+# Check required files exist
+for f in config.md domain-knowledge.md stack.config.md; do
+  if [ ! -f "$CUSTOMER_DIR/$f" ]; then
+    echo "  Warning: $f missing"
+    WARNINGS=$((WARNINGS + 1))
+  fi
+done
+
+# Check key config.md fields
+if [ -f "$CUSTOMER_DIR/config.md" ]; then
+  check_field "$CUSTOMER_DIR/config.md" "Short Name" "Customer Short Name"
+  check_field "$CUSTOMER_DIR/config.md" "Full Name" "Customer Full Name"
+fi
+
+# Check stack.config.md has content beyond template
+if [ -f "$CUSTOMER_DIR/stack.config.md" ]; then
+  if grep -q "<framework>" "$CUSTOMER_DIR/stack.config.md" 2>/dev/null; then
+    echo "  Warning: stack.config.md still contains template placeholders"
+    WARNINGS=$((WARNINGS + 1))
+  fi
+fi
+
+# Check domain-knowledge.md has content beyond template
+if [ -f "$CUSTOMER_DIR/domain-knowledge.md" ]; then
+  if grep -q "<ABR>" "$CUSTOMER_DIR/domain-knowledge.md" 2>/dev/null; then
+    echo "  Warning: domain-knowledge.md still contains template placeholders"
+    WARNINGS=$((WARNINGS + 1))
+  fi
+fi
+
+if [ "$WARNINGS" -eq 0 ]; then
+  echo "  All checks passed."
+else
+  echo "  $WARNINGS warning(s) found — some skills may not work correctly."
+fi
 
 # Rebundle knowledge for projects with bundle-knowledge.js
 for bundler in "$REPO_ROOT"/projects/*/scripts/bundle-knowledge.js; do

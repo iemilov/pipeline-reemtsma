@@ -173,7 +173,7 @@ Write a log file to `.claude/skills/12-cleanup-testdata/logs/`.
 - **Deletion order is mandatory:** RequestContactRelation → Request → Case → Asset → VisitReport → (clear cross-refs) → Contact → Account
 - Read suffix-to-preset mapping from `testdata.config.md` — do not hardcode
 - Read org aliases from `stack.config.md` — do not hardcode
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<org-alias>-cleanup-testdata.txt` in `.claude/skills/12-cleanup-testdata/logs/`
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<org-alias>-cleanup-testdata.json` in `.claude/skills/12-cleanup-testdata/logs/`
 
 ## Error Handling
 

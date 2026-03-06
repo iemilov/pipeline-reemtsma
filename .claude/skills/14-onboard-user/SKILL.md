@@ -131,7 +131,7 @@ Present a clear summary:
 - Customer config repos follow the naming pattern `pipeline-<customer-folder-name>`
 - Never hardcode customer names — always derive from `.gitmodules`
 - Always confirm the permission level with the user before adding collaborators
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<github-username>-onboard-user.txt` in `.claude/skills/14-onboard-user/logs/` — copy the complete output as text into this file
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<github-username>-onboard-user.json` in `.claude/skills/14-onboard-user/logs/` — use the structured JSON format from CLAUDE.md
 
 ## Error Handling
 

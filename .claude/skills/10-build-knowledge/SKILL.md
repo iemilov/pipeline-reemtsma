@@ -209,7 +209,7 @@ Die folgenden Topic-Dateien enthalten detaillierte fachliche und technische Doku
 
 ### Step 6: Create Log File
 
-Create a log file at `.claude/skills/10-build-knowledge/logs/<YYYY-MM-DD>-<customer-short-name>-<slug>-build-knowledge.txt`
+Create a log file at `.claude/skills/10-build-knowledge/logs/<YYYY-MM-DD>-<customer-short-name>-<slug>-build-knowledge.json`
 
 Log file format:
 
@@ -279,7 +279,7 @@ Present to the user:
 - Output text uses the **documentation language** from config (German for business, English for API names)
 - Use Atlassian MCP tools for all Jira and Confluence operations
 - Read **Cloud ID** and **Jira project key** from `customer.config.md` — do not hardcode
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<slug>-build-knowledge.txt` in `.claude/skills/10-build-knowledge/logs/`
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<slug>-build-knowledge.json` in `.claude/skills/10-build-knowledge/logs/`
 - **Scope control:** Read at most 10 Apex classes, 15 Flows, 10 Confluence pages, 10 local doc files per execution. For Jira stories: fetch ALL stories linked to the epic(s). If topic-search: max 50 results. Summarize rather than exhaustively list every field.
 - **Merge, don't overwrite:** When updating an existing topic file, never lose existing content. Add and refine.
 - **Be opinionated:** Document not just what exists, but call out inconsistencies, missing automation, and technical debt
