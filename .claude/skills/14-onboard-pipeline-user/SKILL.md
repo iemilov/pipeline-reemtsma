@@ -1,6 +1,6 @@
 ---
-name: onboard-user
-description: Add a GitHub user as collaborator to a customer project and all required repos so they can work with Claude skills from the central pipeline
+name: onboard-pipeline-user
+description: Add a GitHub user as collaborator to the pipeline repo and the matching customer config repo so they can work with Claude skills
 argument-hint: <github-username> <project-repo>
 ---
 
@@ -8,11 +8,11 @@ argument-hint: <github-username> <project-repo>
 
 Before executing, read `pipeline/customer.config.md` for customer-specific values and `pipeline/.gitmodules` for the customer submodule mapping.
 
-## Workflow: Onboard GitHub User to Customer Project
+## Workflow: Onboard GitHub User to Pipeline
 
-Add a GitHub user as collaborator to all repositories required for working with Claude skills on a customer project: the main project repo, the central pipeline repo, and the customer-specific pipeline config repo.
+Add a GitHub user as collaborator to the **pipeline repo** and the matching **customer config repo**, so they can work with Claude skills on a customer project. The user is assumed to already have access to the main project repo.
 
-**Usage:** `/onboard-user <github-username> <project-repo>`
+**Usage:** `/onboard-pipeline-user <github-username> <project-repo>`
 
 The `$ARGUMENTS` string contains the GitHub username and the main project repo name (space-separated). If either is missing, ask the user.
 
@@ -20,7 +20,7 @@ The `$ARGUMENTS` string contains the GitHub username and the main project repo n
 
 1. Split `$ARGUMENTS` into `<github-username>` and `<project-repo>`
 2. If either value is missing, ask the user to provide it using `AskUserQuestion`
-3. `<project-repo>` is the **main project repo** name on GitHub (e.g., `CloudRise`, `Lotto`, `LottoCRM`) — NOT the pipeline customer config repo (like `pipeline-cloudrise`). The customer config repo is auto-derived from `.gitmodules`.
+3. `<project-repo>` is the **main project repo** name on GitHub — used only to derive which customer config repo to grant access to (via `.gitmodules` lookup)
 
 ### Step 1: Validate Inputs
 
@@ -30,34 +30,33 @@ The `$ARGUMENTS` string contains the GitHub username and the main project repo n
    ```
    - If the user does not exist, inform and abort
 
-2. **Validate customer repo exists:**
-   ```bash
-   gh repo view Lintlinger/<project-repo> --json name
-   ```
-   - If the repo does not exist, list available repos and ask the user to pick one
-
-3. **Determine customer folder name** by inspecting the customer repo's `.gitmodules` to find the pipeline submodule, then inspecting `pipeline/.gitmodules` to find the matching customer config submodule:
+2. **Validate the project repo exists and has a pipeline submodule:**
    ```bash
    gh api repos/Lintlinger/<project-repo>/contents/.gitmodules
    ```
-   - Parse the pipeline submodule URL to confirm it points to `Lintlinger/pipeline.git`
-   - Then read the local `pipeline/.gitmodules` to find which `customers/<name>` submodule corresponds to this customer
+   - Parse the response to confirm a `pipeline` submodule pointing to `Lintlinger/pipeline.git`
+   - If no pipeline submodule is found, inform the user that this project doesn't use the pipeline and abort
+
+3. **Determine customer config repo** by inspecting `pipeline/.gitmodules` to find the matching customer config submodule:
+   - Read the local `pipeline/.gitmodules` to find which `customers/<name>` submodule corresponds to this customer
    - The customer config repo name follows the pattern `pipeline-<name>` (e.g., `pipeline-cloudrise`, `pipeline-lotto-bw`)
+   - Verify the repo exists:
+     ```bash
+     gh repo view Lintlinger/pipeline-<name> --json name
+     ```
    - If no matching customer config submodule is found, ask the user which customer folder to use
 
 4. **Determine permission level** — ask the user using `AskUserQuestion`:
-   - "Which permission level should the user get?"
+   - "Which permission level should the user get on the pipeline repos?"
    - Option 1: "push (read + write) — recommended for developers"
    - Option 2: "pull (read-only) — for reviewers or stakeholders"
-   - Option 3: "admin — full control including settings"
 
-### Step 2: Add Collaborator to All Repos
+### Step 2: Add Collaborator to Pipeline Repos
 
-The user needs access to **three repositories** to work with the full pipeline:
+Add the user to **two repositories** in this order:
 
-1. **Customer main repo** (`Lintlinger/<project-repo>`) — the project code
-2. **Central pipeline repo** (`Lintlinger/pipeline`) — skills, CLAUDE.md, workflow tooling
-3. **Customer config repo** (`Lintlinger/pipeline-<customer-name>`) — customer-specific configuration
+1. **Central pipeline repo** (`Lintlinger/pipeline`) — skills, CLAUDE.md, workflow tooling
+2. **Customer config repo** (`Lintlinger/pipeline-<customer-name>`) — customer-specific configuration (config.md, domain-knowledge.md, stack.config.md)
 
 For each repo, add the collaborator:
 ```bash
@@ -76,44 +75,44 @@ Permission: <level>
 
 ### Step 3: Generate Onboarding Instructions
 
-Generate setup instructions that can be shared with the new collaborator. Output them clearly and also save to a file.
-
-The instructions should include:
+Generate setup instructions that can be shared with the new collaborator. These assume the user already has access to the main project repo.
 
 ```markdown
-# Project Setup: <project-repo>
+# Pipeline Setup: <project-repo>
 
 ## 1. Accept GitHub Invitations
 Check your email or https://github.com/notifications for repository access invitations.
 You need to accept invitations for:
-- Lintlinger/<project-repo>
 - Lintlinger/pipeline
 - Lintlinger/pipeline-<customer-name>
 
-## 2. Clone the Repository
-git clone https://github.com/Lintlinger/<project-repo>.git
+## 2. Initialize Submodules
+If you have already cloned the main project repo:
 cd <project-repo>
-
-## 3. Initialize Submodules
 git submodule update --init --recursive
 
-## 4. Set Up Claude Code Symlinks
+If not yet cloned:
+git clone https://github.com/Lintlinger/<project-repo>.git
+cd <project-repo>
+git submodule update --init --recursive
+
+## 3. Set Up Claude Code Symlinks
 cd pipeline
 ./setup.sh <customer-name>
 cd ..
 
-## 5. Verify Setup
+## 4. Verify Setup
 You should now have:
 - `CLAUDE.md` symlinked to `pipeline/CLAUDE.md`
 - `.claude/skills/` symlinked to `pipeline/.claude/skills/`
 - `.claude/commands/` symlinked to `pipeline/.claude/skills/`
 - `pipeline/customer.config.md` pointing to `customers/<customer-name>/config.md`
 
-## 6. Start Working
+## 5. Start Working
 Open the project in your IDE and run Claude Code. All skills (`/commit`, `/implement-us`, etc.) should be available.
 ```
 
-Save the instructions to: `pipeline/.claude/skills/14-onboard-user/logs/<YYYY-MM-DD>-onboarding-<github-username>-<project-repo>.md`
+Save the instructions to: `pipeline/.claude/skills/14-onboard-pipeline-user/logs/<YYYY-MM-DD>-onboarding-<github-username>-<project-repo>.md`
 
 ### Step 4: Summary
 
@@ -121,7 +120,7 @@ Present a clear summary:
 - Which repos the user was added to (with status for each)
 - Permission level granted
 - Path to the saved onboarding instructions
-- Remind that the user needs to accept the GitHub invitations before they can clone
+- Remind that the user needs to accept the GitHub invitations before submodule init will work
 
 ## Important Rules
 
@@ -131,13 +130,15 @@ Present a clear summary:
 - Customer config repos follow the naming pattern `pipeline-<customer-folder-name>`
 - Never hardcode customer names — always derive from `.gitmodules`
 - Always confirm the permission level with the user before adding collaborators
-- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<github-username>-onboard-user.json` in `.claude/skills/14-onboard-user/logs/` — use the structured JSON format from CLAUDE.md
+- **Pipeline first, then customer config** — always add to the pipeline repo before the customer config repo
+- This skill does NOT add the user to the main project repo — that is managed separately
+- ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<github-username>-onboard-pipeline-user.json` in `.claude/skills/14-onboard-pipeline-user/logs/` — use the structured JSON format from CLAUDE.md
 
 ## Error Handling
 
 - **GitHub user not found**: Inform the user and abort — do not attempt to add a non-existent user
-- **Repository not found**: List available repos under `Lintlinger/` and ask the user to select
+- **Project repo has no pipeline submodule**: Inform the user that this project doesn't use the pipeline and abort
 - **Insufficient permissions**: If `gh api` returns a 403, inform the user that they need admin access to the repo
 - **Invitation already pending**: Note it and continue — this is not an error
 - **User already a collaborator**: Note it and continue — this is not an error
-- **Customer config repo not found**: Warn the user that the new collaborator won't have access to customer config, but continue with the other repos
+- **Customer config repo not found**: Warn the user that the new collaborator won't have access to customer config, but continue with the pipeline repo

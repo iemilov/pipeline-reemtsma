@@ -55,7 +55,8 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 11. `/create-testdata [org-alias] [story-key | preset]` — *(Salesforce only)* Creates test data records in a Salesforce org based on `testdata.config.md`. Supports story-based section recommendations, interactive selection, or preset-based auto-selection
 12. `/cleanup-testdata [org-alias] [preset | all | today]` — *(Salesforce only)* Deletes test data records from a Salesforce org interactively. Scans for records by StoreNumber suffix, groups by preset, and generates cleanup Apex
 13. `/write-crm-doc <story-key>` — *(Salesforce only)* Creates or updates a Salesforce Knowledge article as a draft based on Jira stories, domain knowledge, and the repository
-14. `/onboard-user <github-username> <project-repo>` — Adds a GitHub user as collaborator to a customer's main project repo and all required pipeline repos, then generates setup instructions for the new collaborator
+14. `/onboard-pipeline-user <github-username> <project-repo>` — Adds a GitHub user as collaborator to the pipeline repo and the matching customer config repo, then generates setup instructions for working with Claude skills
+15. `/create-customer [customer-name]` — Interactively scaffolds a new customer config repo with all required configuration files, creates the GitHub repo, and adds it as a submodule to the pipeline
 
 ## Creating New Skills (CRITICAL)
 
