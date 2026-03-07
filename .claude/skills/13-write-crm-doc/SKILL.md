@@ -4,9 +4,13 @@ description: Erstellt oder aktualisiert einen Salesforce Knowledge Artikel (CRM 
 argument-hint: [story-key(s), kommagetrennt]
 ---
 
+## Platform Guard
+
+This skill requires `Platform: salesforce` in `customer.config.md`. If the active customer uses a different platform, inform the user that this skill is Salesforce-specific and abort.
+
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, Jira project key) and `pipeline/stack.config.md` for Salesforce org aliases and naming conventions.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, Jira project key, including `Platform`) and `pipeline/stack.config.md` for Salesforce org aliases and naming conventions.
 
 ---
 

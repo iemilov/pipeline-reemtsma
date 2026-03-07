@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Customer-specific values:** See `pipeline/customer.config.md` for customer-specific configuration (Atlassian credentials, locale, CI/CD settings).
+**Customer-specific values:** See `pipeline/customer.config.md` for customer-specific configuration (Atlassian credentials, locale, CI/CD settings, **Platform**).
 
 **Stack configuration:** See `pipeline/stack.config.md` for tech stack details (commands, architecture, libraries, code quality). This is a symlink to the active customer's stack config — each customer may use a different tech stack.
 
@@ -52,9 +52,9 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 8. `/release-notes [version]` — Generates release notes from the latest merge commit by resolving all referenced Jira stories
 9. `/code-review [space-key]` — Performs a comprehensive code review based on the project's tech stack and publishes results to Confluence or as local Markdown
 10. `/build-knowledge <epic-id|topic>` — Builds comprehensive internal domain documentation as Markdown topic files, consolidating knowledge from Jira, Confluence, codebase, and existing docs
-11. `/create-testdata [org-alias] [story-key | preset]` — Creates test data records in a Salesforce org based on `testdata.config.md`. Supports story-based section recommendations, interactive selection, or preset-based auto-selection
-12. `/cleanup-testdata [org-alias] [preset | all | today]` — Deletes test data records from a Salesforce org interactively. Scans for records by StoreNumber suffix, groups by preset, and generates cleanup Apex
-13. `/write-crm-doc <story-key>` — Creates or updates a Salesforce Knowledge article as a draft based on Jira stories, domain knowledge, and the repository
+11. `/create-testdata [org-alias] [story-key | preset]` — *(Salesforce only)* Creates test data records in a Salesforce org based on `testdata.config.md`. Supports story-based section recommendations, interactive selection, or preset-based auto-selection
+12. `/cleanup-testdata [org-alias] [preset | all | today]` — *(Salesforce only)* Deletes test data records from a Salesforce org interactively. Scans for records by StoreNumber suffix, groups by preset, and generates cleanup Apex
+13. `/write-crm-doc <story-key>` — *(Salesforce only)* Creates or updates a Salesforce Knowledge article as a draft based on Jira stories, domain knowledge, and the repository
 14. `/onboard-user <github-username> <project-repo>` — Adds a GitHub user as collaborator to a customer's main project repo and all required pipeline repos, then generates setup instructions for the new collaborator
 
 ## Additional Skill Remarks
@@ -76,6 +76,8 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 - Deployment commits include the CI skip pattern from `customer.config.md`
 
 ## Natural Language Shortcuts
+
+> **Platform note:** The shortcuts below are Salesforce-specific (testdata presets). They only apply when `Platform` in `customer.config.md` is `salesforce`.
 
 Wenn ein User eine der folgenden Formulierungen verwendet, den entsprechenden Skill mit dem angegebenen Preset ausführen. Default Org: UAT2 (Alias `LottoUAT2`).
 

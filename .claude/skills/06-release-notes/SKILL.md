@@ -6,7 +6,9 @@ argument-hint: [version (optional)]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, release notes language, date format), and `pipeline/stack.config.md` for Salesforce-specific values (functional domains with release notes section headers, deployment folder path).
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, release notes language, date format, **Platform**), and `pipeline/stack.config.md` for stack-specific values (functional domains with release notes section headers, deployment folder path).
+
+> **Platform note:** If `Platform` in `customer.config.md` is not `salesforce`, adapt the Deployment Information section to reflect the project's actual deployment mechanism from `stack.config.md` (e.g., skip `package.xml` references).
 
 ## Workflow: Master Merge Commit → Release Notes
 

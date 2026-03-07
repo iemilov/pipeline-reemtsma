@@ -6,7 +6,13 @@ argument-hint: [story-key] [target-env]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, CI skip pattern, branch patterns), `pipeline/stack.config.md` for Salesforce-specific values (org aliases, PMD rules file, naming prefixes, deployment folder paths, API version), and review `azure-pipelines.yaml` for pipeline stage structure.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, CI skip pattern, branch patterns, **Platform**), `pipeline/stack.config.md` for stack-specific values (org aliases, PMD rules file, naming prefixes, deployment folder paths, API version), and review the CI/CD pipeline configuration for pipeline stage structure.
+
+## Platform Adaptation
+
+This skill contains Salesforce-specific references (sf CLI, Apex tests, PMD, `sfdx-git-delta`, `package.xml`). Read `Platform` from `customer.config.md`:
+- **If `salesforce`:** Follow all steps as written.
+- **If not `salesforce`:** Adapt all steps to the project's tech stack as described in `stack.config.md`. Replace Salesforce-specific validation (PMD, Apex tests, `sf deploy validate`) with the equivalent linting, testing, and deployment commands from the stack configuration. Skip steps that have no equivalent (e.g., `package.xml` generation, `sfdx-git-delta`, org validation).
 
 ## Workflow: Promote & Deploy
 

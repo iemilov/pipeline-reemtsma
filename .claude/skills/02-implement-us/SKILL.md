@@ -1,12 +1,18 @@
 ---
 name: implement-us
-description: Generate a first draft of implementation for an existing Jira user story using the appropriate Salesforce tools
+description: Generate a first draft of implementation for an existing Jira user story using the appropriate tools for the project's tech stack
 argument-hint: [story-key]
 ---
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, locale settings, CI skip pattern, folder paths), `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases, test data factory class, functional domains, source path), and `pipeline/customer.domain.md` for domain-specific business logic and field name pitfalls.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, locale settings, CI skip pattern, folder paths, **Platform**), `pipeline/stack.config.md` for stack-specific values (naming prefixes, API version, org aliases, test data factory class, functional domains, source path), and `pipeline/customer.domain.md` for domain-specific business logic and field name pitfalls.
+
+## Platform Adaptation
+
+This skill contains Salesforce-specific references (sf CLI, Apex, Flows, LWC, `force-app/`, PMD). Read `Platform` from `customer.config.md`:
+- **If `salesforce`:** Follow all steps as written.
+- **If not `salesforce`:** Adapt all steps to the project's tech stack as described in `stack.config.md`. Replace Salesforce-specific tools, commands, paths, and metadata types with their equivalents from the stack configuration. Skip steps that have no equivalent (e.g., PMD for Apex, `sf` CLI commands, Composite Tree API, `force-app/` paths). Use the deployment, testing, and linting commands from `stack.config.md` instead.
 
 ## Workflow: User Story → Implementation Draft
 

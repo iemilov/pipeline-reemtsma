@@ -20,6 +20,14 @@
 | Short Name | <Customer Short Name> |
 | Architecture Page Title | `<title>` |
 
+## Platform
+
+| Key | Value |
+|-----|-------|
+| Platform | `salesforce` / `node-cloudflare` / ... |
+
+> Skills read this value to determine which tech-stack-specific steps to execute. Salesforce-only skills (create-testdata, cleanup-testdata, write-crm-doc) require `salesforce`. Mixed skills adapt their steps to the active platform using `stack.config.md`.
+
 ## Locale & Language
 
 | Key | Value |

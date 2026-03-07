@@ -6,7 +6,9 @@ argument-hint: <epic-id|topic>
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, Jira project key, Confluence URL, documentation language, customer identity), `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, functional domains, source path), and `pipeline/customer.domain.md` for existing domain knowledge.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, Jira project key, Confluence URL, documentation language, customer identity, **Platform**), `pipeline/stack.config.md` for stack-specific values (naming prefixes, API version, functional domains, source path), and `pipeline/customer.domain.md` for existing domain knowledge.
+
+> **Platform note:** Step 2b (Codebase) references Salesforce-specific paths and components (`force-app/`, Flows, Apex, Trigger Actions, LWC). If `Platform` in `customer.config.md` is not `salesforce`, search the project's source directories from `stack.config.md` instead and look for the equivalent component types (e.g., React components, API routes, database migrations).
 
 ## Workflow: Build Internal Domain Knowledge
 

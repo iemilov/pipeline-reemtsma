@@ -4,9 +4,13 @@ description: Delete test data records from a Salesforce org interactively by pre
 argument-hint: "[org-alias] [preset | all | today]"
 ---
 
+## Platform Guard
+
+This skill requires `Platform: salesforce` in `customer.config.md`. If the active customer uses a different platform, inform the user that this skill is Salesforce-specific and abort.
+
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values, `pipeline/stack.config.md` for Salesforce-specific values (org aliases), and `pipeline/customers/<customer>/testdata.config.md` for the **Suffix-Allocation pro Preset** table that maps StoreNumber suffixes to preset names.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (including `Platform`), `pipeline/stack.config.md` for Salesforce-specific values (org aliases), and `pipeline/customers/<customer>/testdata.config.md` for the **Suffix-Allocation pro Preset** table that maps StoreNumber suffixes to preset names.
 
 ## Workflow: Delete Test Data from Salesforce Org
 

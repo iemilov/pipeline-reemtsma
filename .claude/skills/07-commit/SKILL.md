@@ -1,38 +1,50 @@
 ---
 name: commit
-description: Safely commit and push changes to both repositories (submodule + main) in the correct order, enforcing all project rules
+description: Safely commit and push changes to all repositories (submodules + main) in the correct order, enforcing all project rules
 argument-hint: [commit-message]
 ---
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (CI skip pattern, co-author policy, submodule branch, branch patterns), and `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases).
+Before executing, read `pipeline/customer.config.md` for customer-specific values (CI skip pattern, co-author policy, submodule branch, branch patterns), and `pipeline/stack.config.md` for stack-specific values.
 
-## Workflow: Two-Repo Commit & Push
+## Workflow: Multi-Repo Commit & Push
 
-Commit and push changes across the two-repo architecture (submodule `pipeline/` and main repo `Salesforce CICD`), enforcing all project conventions automatically.
+Commit and push changes across the full repository tree (all submodules + main project repo), enforcing all project conventions automatically.
 
 **Usage:** `/commit <commit-message>`
 
 The `$ARGUMENTS` string is the commit message. If empty, ask the user for a commit message.
 
-### Step 1: Analyze Changes
+### Step 1: Discover Submodules & Analyze Changes
 
-1. Run `git status` in the **main repo** (project root) — note modified, staged, and untracked files
-2. Run `git status` in the **submodule** (`pipeline/`) — note modified, staged, and untracked files
-3. Categorize the changes:
-   - **Submodule only**: Changes exclusively in `pipeline/`
-   - **Main repo only**: Changes exclusively outside `pipeline/`
-   - **Both**: Changes in both locations
-4. If **no changes** exist in either repo, inform the user and abort:
+1. **Discover all submodules recursively** — parse `.gitmodules` in the main repo AND in each submodule to build the full tree:
+   ```bash
+   git submodule status --recursive
    ```
-   Keine Änderungen gefunden. Beide Repos sind clean.
+   This reveals the nested structure, e.g.:
+   - `pipeline/` (submodule of main repo)
+   - `pipeline/customers/cloudrise/` (submodule of pipeline)
+   - `pipeline/customers/lotto-bw/` (submodule of pipeline)
+   - `pipeline/customers/drKade/` (submodule of pipeline)
+
+2. **Check for changes in each repo** — run `git status` in each discovered submodule (deepest first) and in the main repo. Note modified, staged, and untracked files per repo.
+
+3. **Build the commit plan** — determine which repos have changes and establish the commit order (depth-first, deepest submodules first):
+   - Level 2: `pipeline/customers/<name>/` (customer config submodules)
+   - Level 1: `pipeline/` (pipeline submodule)
+   - Level 0: Main project repo
+
+4. If **no changes** exist in any repo, inform the user and abort:
    ```
-5. Present a clear summary of all changes to the user
+   Keine Änderungen gefunden. Alle Repos sind clean.
+   ```
+
+5. **Present a clear summary** of all changes grouped by repo to the user.
 
 ### Step 2: Security Check (Main Repo Only)
 
-Scan all modified/new files **in the main repo** (not the submodule) for sensitive content:
+Scan all modified/new files **in the main repo** (not in any submodule) for sensitive content:
 
 1. **File name patterns** — warn if any of these are staged for the main repo:
    - `.env`, `.env.*`
@@ -42,7 +54,7 @@ Scan all modified/new files **in the main repo** (not the submodule) for sensiti
 2. **Content patterns** — scan modified files for:
    - API keys/tokens (strings matching `xox-`, `sk-`, `Bearer `, `AKIA`)
    - Hardcoded passwords (`password=`, `passwd=`, `secret=`)
-   - Internal workflow references that should stay in the submodule
+   - Internal workflow references that should stay in a submodule
 
 3. If sensitive content is detected:
    - **List the files and patterns found**
@@ -72,51 +84,65 @@ Before committing to the **main repo**, validate the commit message against forb
    - Feature descriptions without tooling references: `Add bulk update for store status`
    - **Submodule-pointer-only commits** (no other main repo changes): Always use `Update pipeline [skip ci]` as the commit message. Do not describe what changed inside the submodule — keep it generic
 
-### Step 3: Commit & Push Submodule (if changes exist)
+### Step 3: Commit & Push Submodules (depth-first, deepest first)
 
-**This step runs FIRST — the submodule must always be committed before the main repo.**
+Process submodules **from deepest to shallowest**. For each submodule with changes:
 
-1. **Check HEAD state** in `pipeline/`:
+#### 3a. Customer Config Submodules (`pipeline/customers/<name>/`)
+
+Only process the submodule(s) that have actual changes. For each:
+
+1. **Check HEAD state**:
    ```bash
-   cd pipeline && git symbolic-ref HEAD 2>/dev/null
+   cd <submodule-path> && git symbolic-ref HEAD 2>/dev/null
    ```
-   - If this fails (detached HEAD), recover:
+   - If detached HEAD, recover by checking out the tracked branch and merging:
      ```bash
-     git checkout <submodule-branch-from-config>
+     git checkout <tracked-branch>
      git merge <detached-commit-hash>
      ```
-   - Inform the user: `Detached HEAD im Submodule erkannt und automatisch behoben.`
 
 2. **Present files to commit** and ask the user for confirmation using `AskUserQuestion`:
-   - "Sollen diese Dateien im Submodule committed werden?"
+   - "Sollen diese Dateien in `<submodule-path>` committed werden?"
    - Option 1: "Ja, alle Dateien committen"
    - Option 2: "Nein, ich möchte Dateien auswählen"
-   - If the user wants to select files, ask which files to include
 
-3. **Stage and commit**:
+3. **Stage, commit, pull --rebase, push**:
+   ```bash
+   cd <submodule-path>
+   git add <files>
+   git commit -m "<commit-message>"
+   git pull --rebase origin <tracked-branch>
+   git push origin <tracked-branch>
+   ```
+   - Do NOT append CI skip pattern to submodule commits
+   - Follow the **co-author policy** from config
+
+#### 3b. Pipeline Submodule (`pipeline/`)
+
+1. **Stage pointers** for any customer config submodules committed in Step 3a:
+   ```bash
+   cd pipeline
+   git add customers/<name>
+   ```
+   (for each customer submodule that was updated)
+
+2. **Check HEAD state** — same detached HEAD recovery as above, using the **submodule branch** from `customer.config.md`
+
+3. **Present files to commit** (including staged submodule pointers + any direct pipeline changes) and ask the user for confirmation
+
+4. **Stage, commit, pull --rebase, push**:
    ```bash
    cd pipeline
    git add <files>
    git commit -m "<commit-message>"
-   ```
-   - The commit message is `$ARGUMENTS` as provided by the user
-   - Do NOT append the CI skip pattern to submodule commits (no CI pipeline on submodule)
-   - Follow the **co-author policy** from config
-
-5. **Pull with rebase** (handle remote-ahead):
-   ```bash
    git pull --rebase origin <submodule-branch-from-config>
-   ```
-   - If conflicts occur, inform the user and abort (do not auto-resolve)
-
-6. **Push**:
-   ```bash
    git push origin <submodule-branch-from-config>
    ```
 
 ### Step 4: Commit & Push Main Repo (if changes exist)
 
-1. **Stage the submodule pointer** if Step 3 was executed:
+1. **Stage the pipeline submodule pointer** if Step 3b was executed:
    ```bash
    git add pipeline
    ```
@@ -154,29 +180,40 @@ Before committing to the **main repo**, validate the commit message against forb
 
 ### Step 5: Verification & Summary
 
-1. Run `git status` on both repos to confirm clean state
-2. Run `git log -1 --oneline` on both repos to show the new commits
-3. Present a summary with commit hashes and push status for both repos
-4. If only one repo had changes, adjust the summary accordingly
+1. Run `git status` on **all repos** (main + all submodules) to confirm clean state
+2. Run `git log -1 --oneline` on each repo that was committed to show the new commits
+3. Present a summary table:
+
+   ```
+   REPO                              COMMIT    BRANCH         STATUS
+   ──────────────────────────────────────────────────────────────────
+   pipeline/customers/lotto-bw       a1b2c3d   main           pushed
+   pipeline                          e4f5g6h   main           pushed
+   Main Repo                         i7j8k9l   feature/CRM-X  pushed
+   ```
+
+4. If only some repos had changes, only show those repos
 
 ## Important Rules
 
 - Follow all conventions from CLAUDE.md
 - Read all CI/CD and policy values from `customer.config.md` — do not hardcode
-- **Order matters**: ALWAYS commit submodule FIRST, then main repo
-- **CI skip pattern**: Ask the user whether to append to main repo commits (via `AskUserQuestion`)
+- **Order matters**: ALWAYS commit deepest submodules FIRST, then their parents, then the main repo. The correct order is: customer config submodules → pipeline submodule → main repo
+- **CI skip pattern**: Ask the user whether to append to main repo commits (via `AskUserQuestion`). Never append to submodule commits
 - **Co-author policy**: Follow the policy from config
 - **No sensitive data in main repo**: Always run the security check before committing to the main repo
 - **Commit message validation**: ALWAYS validate the main repo commit message against forbidden patterns (Step 2b) before committing. This is non-negotiable — the customer has READ ACCESS to the main repo
 - **Interactive**: Always ask the user for confirmation before committing. Show exactly which files will be included
-- **Submodule pointer**: When the submodule is updated, always stage `pipeline` in the main repo too
-- **Detached HEAD recovery**: Automatically recover from detached HEAD in the submodule
+- **Submodule pointers**: When a submodule is updated, always stage its pointer in the parent repo. This cascades: customer config submodule → stage in pipeline → stage pipeline in main repo
+- **Detached HEAD recovery**: Automatically recover from detached HEAD in any submodule
+- **Only process changed repos**: Skip submodules that have no changes — do not create empty commits
 
 ## Error Handling
 
 - **No changes detected**: Inform the user and exit gracefully — do not create empty commits
-- **Detached HEAD in submodule**: Auto-recover by checking out the submodule branch from config and merging. If merge conflicts occur, inform the user and abort
+- **Detached HEAD in submodule**: Auto-recover by checking out the tracked branch and merging. If merge conflicts occur, inform the user and abort
 - **Push rejected (non-fast-forward)**: Automatically attempt `git pull --rebase` once. If rebase conflicts occur, inform the user with details and abort
 - **Merge conflicts**: Display the conflicting files and abort. Do NOT attempt to auto-resolve merge conflicts
 - **Sensitive content detected**: List the files/patterns and ask the user how to proceed. Never auto-commit sensitive content
-- **Submodule push fails**: Do NOT proceed to commit the main repo. The submodule must be pushed successfully before updating the main repo's submodule pointer
+- **Submodule push fails**: Do NOT proceed to commit the parent repo. A submodule must be pushed successfully before updating its pointer in the parent repo. This applies at every level of the submodule tree
+- **Unknown submodule branch**: If a submodule's tracked branch cannot be determined from `.gitmodules` or config, ask the user which branch to use

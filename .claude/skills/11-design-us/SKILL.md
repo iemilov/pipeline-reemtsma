@@ -8,9 +8,15 @@ argument-hint: [story-key]
 
 Before executing, read the following customer-specific configuration files:
 - `pipeline/customer.config.md` — Atlassian credentials, locale, folder paths, CI/CD settings
-- `pipeline/stack.config.md` — Salesforce tech stack (naming prefixes, API version, org aliases, functional domains, code quality rules)
+- `pipeline/stack.config.md` — Tech stack details (naming prefixes, API version, org aliases, functional domains, code quality rules)
 - `pipeline/customer.domain.md` — Business logic, glossary, field name pitfalls, linked topic documentation files
 - `pipeline/customers/<customer>/testdata.config.md` — Test data templates and record structures (resolve the active customer from the symlink in `pipeline/customer.config.md`)
+
+## Platform Adaptation
+
+This skill contains Salesforce-specific references (sObjects, Flows, Apex, LWC, Trigger Actions, `force-app/`). Read `Platform` from `customer.config.md`:
+- **If `salesforce`:** Follow all steps as written.
+- **If not `salesforce`:** Adapt all steps to the project's tech stack as described in `stack.config.md`. Replace Salesforce-specific tooling recommendations (Flows, Apex, LWC, Validation Rules) with the equivalent patterns and frameworks from the stack configuration. Analyze the project's actual source structure instead of `force-app/`.
 
 ## Workflow: User Story → Implementation Notes
 

@@ -6,7 +6,9 @@ argument-hint: [epic-id]
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, Confluence parent page, documentation language, customer identity), and `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, functional domains).
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, Confluence parent page, documentation language, customer identity, **Platform**), and `pipeline/stack.config.md` for stack-specific values (naming prefixes, API version, functional domains).
+
+> **Platform note:** This skill references Salesforce components (Apex, Flows, Custom Metadata, etc.) in documentation sections. If `Platform` in `customer.config.md` is not `salesforce`, document the equivalent components and architecture from `stack.config.md` instead.
 
 ## Workflow: Epic → Confluence Documentation
 

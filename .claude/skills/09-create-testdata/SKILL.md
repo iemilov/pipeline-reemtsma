@@ -4,9 +4,13 @@ description: Create test data records in a Salesforce org based on customer-spec
 argument-hint: "[org-alias] [story-key | preset]"
 ---
 
+## Platform Guard
+
+This skill requires `Platform: salesforce` in `customer.config.md`. If the active customer uses a different platform, inform the user that this skill is Salesforce-specific and abort.
+
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values, `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases, test data factory class), `pipeline/customer.domain.md` for domain-specific business logic, and `pipeline/customers/<customer>/testdata.config.md` for the test data definitions.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (including `Platform`), `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases, test data factory class), `pipeline/customer.domain.md` for domain-specific business logic, and `pipeline/customers/<customer>/testdata.config.md` for the test data definitions.
 
 ## Workflow: Create Test Data in Salesforce Org
 

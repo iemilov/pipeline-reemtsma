@@ -1,16 +1,22 @@
 ---
 name: architecture-overview
-description: Generate a comprehensive technical architecture and functionality overview of the Salesforce repository
+description: Generate a comprehensive technical architecture and functionality overview of the project repository
 argument-hint: [confluence-space-key (optional)]
 ---
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, customer identity, Confluence parent page, documentation language), `pipeline/stack.config.md` for Salesforce-specific values (naming prefixes, API version, org aliases, functional domains, source path, code quality rules), and `pipeline/customer.domain.md` for domain-specific business logic.
+Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, customer identity, Confluence parent page, documentation language, **Platform**), `pipeline/stack.config.md` for stack-specific values (naming prefixes, API version, org aliases, functional domains, source path, code quality rules), and `pipeline/customer.domain.md` for domain-specific business logic.
+
+## Platform Adaptation
+
+This skill contains Salesforce-specific references (`force-app/`, `sfdx-project.json`, Apex, LWC, Flows, Trigger Actions). Read `Platform` from `customer.config.md`:
+- **If `salesforce`:** Follow all steps as written.
+- **If not `salesforce`:** Adapt all steps to the project's tech stack as described in `stack.config.md`. Analyze the project structure, components, and architecture as defined in the stack configuration instead of Salesforce-specific metadata types. Replace references to `force-app/`, Apex, LWC, Flows, etc. with the equivalent source directories, frameworks, and component types from the stack.
 
 ## Workflow: Repository → Architecture & Functionality Overview
 
-Generate a complete technical architecture and functionality overview of this Salesforce repository.
+Generate a complete technical architecture and functionality overview of this repository.
 
 **Scope Guidance:** This skill analyzes a large repository. Prioritize breadth over depth:
 - Read at most 5 representative classes per functional group (service classes, batch jobs, controllers)
