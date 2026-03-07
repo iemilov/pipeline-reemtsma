@@ -24,9 +24,9 @@ The `$ARGUMENTS` string is the commit message. If empty, ask the user for a comm
    ```
    This reveals the nested structure, e.g.:
    - `pipeline/` (submodule of main repo)
-   - `pipeline/customers/cloudrise/` (submodule of pipeline)
-   - `pipeline/customers/lotto-bw/` (submodule of pipeline)
-   - `pipeline/customers/drKade/` (submodule of pipeline)
+   - `pipeline/customers/<customer-1>/` (submodule of pipeline)
+   - `pipeline/customers/<customer-2>/` (submodule of pipeline)
+   - `pipeline/customers/<customer-N>/` (submodule of pipeline)
 
 2. **Check for changes in each repo** — run `git status` in each discovered submodule (deepest first) and in the main repo. Note modified, staged, and untracked files per repo.
 
@@ -187,9 +187,9 @@ Only process the submodule(s) that have actual changes. For each:
    ```
    REPO                              COMMIT    BRANCH         STATUS
    ──────────────────────────────────────────────────────────────────
-   pipeline/customers/lotto-bw       a1b2c3d   main           pushed
+   pipeline/customers/<customer>      a1b2c3d   main           pushed
    pipeline                          e4f5g6h   main           pushed
-   Main Repo                         i7j8k9l   feature/CRM-X  pushed
+   Main Repo                         i7j8k9l   <branch>       pushed
    ```
 
 4. If only some repos had changes, only show those repos

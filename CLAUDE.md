@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Customer has **READ ACCESS** to this repository
 - Contains all project code and deployment configuration
 
-**Submodule:** `ai-project` (this repository)
+**Submodule:** `pipeline` (this repository)
 
 - Customer has **NO ACCESS** to this submodule
 - Contains CLAUDE.md, custom skills, and internal AI workflow documentation
@@ -79,7 +79,7 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 
 > **Platform note:** The shortcuts below are Salesforce-specific (testdata presets). They only apply when `Platform` in `customer.config.md` is `salesforce`.
 
-Wenn ein User eine der folgenden Formulierungen verwendet, den entsprechenden Skill mit dem angegebenen Preset ausführen. Default Org: UAT2 (Alias `LottoUAT2`).
+Wenn ein User eine der folgenden Formulierungen verwendet, den entsprechenden Skill mit dem angegebenen Preset ausführen. Default Org: aus `stack.config.md` (erster Alias mit Purpose "UAT" oder "testing").
 
 **Antrags-Presets** (jeweils NP und JP verfügbar):
 

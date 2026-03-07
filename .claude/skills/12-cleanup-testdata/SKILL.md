@@ -10,7 +10,12 @@ This skill requires `Platform: salesforce` in `customer.config.md`. If the activ
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (including `Platform`), `pipeline/stack.config.md` for Salesforce-specific values (org aliases), and `pipeline/customers/<customer>/testdata.config.md` for the **Suffix-Allocation pro Preset** table that maps StoreNumber suffixes to preset names.
+Before executing, read:
+- `pipeline/customer.config.md` for customer-specific values (including `Platform`)
+- `pipeline/stack.config.md` for org aliases
+- `pipeline/customers/<customer>/testdata.config.md` for:
+  - **Suffix-Allocation pro Preset** table (suffix-to-preset mapping)
+  - **Cleanup Configuration** section (store number field, request relationship, protected account, cross-reference fields, deletion order)
 
 ## Workflow: Delete Test Data from Salesforce Org
 
@@ -29,41 +34,31 @@ Identify and delete test data records in the Salesforce org specified by **$ARGU
    sf org display -o <org-alias>
    ```
 3. If the org is not authenticated, inform the user and abort
-4. Read the **Suffix-Allocation pro Preset** table from `pipeline/customers/<customer>/testdata.config.md` to load the suffix-to-preset mapping
+4. Read the **Suffix-Allocation pro Preset** table from `testdata.config.md` to load the suffix-to-preset mapping
+5. Read the **Cleanup Configuration** section from `testdata.config.md` to load:
+   - `<store-number-field>` — the field API name used to identify test stores (e.g., `STLGS_StoreNumber__c`)
+   - `<request-relationship>` — the child relationship name for requests (e.g., `STLGS_Requests__r`)
+   - `<protected-account>` — the company account name that must never be deleted
+   - Cross-reference fields to nullify before deletion
+   - Deletion order table with sObject names and query patterns
 
 ### Step 2: Scan for Test Records
 
-Query the org for all Accounts whose `STLGS_StoreNumber__c` ends with a known test data suffix. Build the WHERE clause from all suffixes listed in the Suffix-Allocation table:
+Query the org for all Accounts whose `<store-number-field>` ends with a known test data suffix. Build the WHERE clause from all suffixes listed in the Suffix-Allocation table:
 
 ```bash
 sf data query -q "<query>" -o <org-alias> --json
 ```
 
-Query:
+Query (build dynamically from config values):
 ```sql
-SELECT Id, Name, STLGS_StoreNumber__c, CreatedDate,
-  (SELECT Id, Name FROM STLGS_Requests__r)
+SELECT Id, Name, <store-number-field>, CreatedDate,
+  (SELECT Id, Name FROM <request-relationship>)
 FROM Account
-WHERE (STLGS_StoreNumber__c LIKE '%99901'
-  OR STLGS_StoreNumber__c LIKE '%99902'
-  OR STLGS_StoreNumber__c LIKE '%99903'
-  OR STLGS_StoreNumber__c LIKE '%99904'
-  OR STLGS_StoreNumber__c LIKE '%99905'
-  OR STLGS_StoreNumber__c LIKE '%99906'
-  OR STLGS_StoreNumber__c LIKE '%99911'
-  OR STLGS_StoreNumber__c LIKE '%99912'
-  OR STLGS_StoreNumber__c LIKE '%99913'
-  OR STLGS_StoreNumber__c LIKE '%99914'
-  OR STLGS_StoreNumber__c LIKE '%99920'
-  OR STLGS_StoreNumber__c LIKE '%99921'
-  OR STLGS_StoreNumber__c LIKE '%99922'
-  OR STLGS_StoreNumber__c LIKE '%99923'
-  OR STLGS_StoreNumber__c LIKE '%99924'
-  OR STLGS_StoreNumber__c LIKE '%99925'
-  OR STLGS_StoreNumber__c LIKE '%99930'
-  OR STLGS_StoreNumber__c LIKE '%99931'
-  OR STLGS_StoreNumber__c LIKE '%99932')
-ORDER BY STLGS_StoreNumber__c
+WHERE (<store-number-field> LIKE '%<suffix1>'
+  OR <store-number-field> LIKE '%<suffix2>'
+  ...)
+ORDER BY <store-number-field>
 ```
 
 If no records found → inform the user ("Keine Testdaten in <org-alias> gefunden.") and stop.
@@ -80,23 +75,17 @@ Group results by suffix range using the Suffix-Allocation table. For each group,
 
 **Otherwise — Interactive Selection:**
 
-Display a summary table:
+Display a summary table (build from actual data, group names from Suffix-Allocation table):
 
 ```
 Testdaten in <org-alias>:
 
 BEREICH          SUFFIX      STORES  REQUESTS  ERSTELLT
 ──────────────────────────────────────────────────────────
-Standard         99901       2       2         2026-03-03
-Übernahme        99902       1       1         2026-03-03
-Nachreichen      99903–04    2       3         2026-03-01
-Flow-Tests       99905–06    3       4         2026-02-28
-Nationalität     99911–14    4       4         2026-02-28
-Aktenzeichen     99920–25    6       12        2026-03-03
-Negativ-ÜN       99930–31    2       2         2026-03-03
-Negativ-VL       99932       1       1         2026-03-03
+<group-name>     <suffix>    N       N         YYYY-MM-DD
+...
 ──────────────────────────────────────────────────────────
-Gesamt                       21      29
+Gesamt                       N       N
 ```
 
 Only show rows where records actually exist. Ask the user via `AskUserQuestion`:
@@ -112,23 +101,10 @@ If "Bestimmte Bereiche" selected, ask a follow-up question listing the available
 
 Based on the selected Store IDs (from Step 3), generate an Anonymous Apex script. The script must:
 
-1. Query the selected Accounts by their concrete `STLGS_StoreNumber__c` values (not LIKE patterns)
-2. Delete child records in strict dependency order (children before parents)
-3. Clear cross-reference fields before deleting Accounts
+1. Query the selected Accounts by their concrete `<store-number-field>` values (not LIKE patterns)
+2. Delete child records in strict dependency order as defined in the **Deletion Order** table from `testdata.config.md` (children before parents)
+3. Clear cross-reference fields (from config) before deleting Accounts
 4. Output structured debug lines for parsing
-
-**Deletion order (mandatory, children first):**
-
-| # | Object | Query |
-|---|--------|-------|
-| 1 | `STLGS_RequestContactRelation__c` | `WHERE STLGS_Request__c IN (SELECT Id FROM STLGS_Request__c WHERE STLGS_Store__c IN :storeIds)` |
-| 2 | `STLGS_Request__c` | `WHERE STLGS_Store__c IN :storeIds` |
-| 3 | `Case` | `WHERE AccountId IN :storeIds` |
-| 4 | `Asset` | `WHERE AccountId IN :storeIds` |
-| 5 | `STLGS_VisitReport__c` | `WHERE STLGS_Account__c IN :storeIds` |
-| 6 | Cross-refs nullen | `PredecessorStore__c`, `SuccessorStore__c`, `LeadingRequest__c` auf null setzen + update |
-| 7 | `Contact` | `WHERE AccountId IN :storeIds` |
-| 8 | `Account` | Die Stores selbst |
 
 **Debug output pattern** (one line per object type):
 - `DELETED|<sObject>|<count>` — deleted N records of this type
@@ -144,27 +120,21 @@ Parse the debug output lines matching `DELETED|`, `TOTAL|`, and `STORE|` pattern
 
 ### Step 5: Summary
 
-Present the cleanup results:
+Present the cleanup results (object names from the Deletion Order table in config):
 
 ```
 Cleanup abgeschlossen in <org-alias>:
 
 OBJEKT                              GELÖSCHT
 ───────────────────────────────────────────
-STLGS_RequestContactRelation__c     12
-STLGS_Request__c                    8
-Case                                0
-Asset                               0
-STLGS_VisitReport__c                0
-Contact                             6
-Account (Stores)                    5
+<sObject-from-config>               N
+...
+Account (Stores)                    N
 ───────────────────────────────────────────
-Gesamt                              31
+Gesamt                              N
 
 Gelöschte Stores:
-  199901  Test ASt VollASt 2026-03-03
-  199930  Test Vorgänger-ASt ohne AZ 2026-03-03
-  199931  Test ASt ÜN-NoAZ 2026-03-03
+  <StoreNumber>  <Name>  <CreatedDate>
 ```
 
 Write a log file to `.claude/skills/12-cleanup-testdata/logs/`.
@@ -172,11 +142,12 @@ Write a log file to `.claude/skills/12-cleanup-testdata/logs/`.
 ## Important Rules
 
 - Follow all conventions from CLAUDE.md
-- **NEVER delete the Company Account** (`Staatliche Toto-Lotto GmbH Baden-Württemberg`) — the suffix-based selection excludes it automatically, but always verify before executing
-- **Cross-references first:** Always null out `STLGS_PredecessorStore__c`, `STLGS_SuccessorStore__c`, and `STLGS_LeadingRequest__c` on Store Accounts BEFORE deleting any records — otherwise delete will fail due to lookup constraints
-- **Deletion order is mandatory:** RequestContactRelation → Request → Case → Asset → VisitReport → (clear cross-refs) → Contact → Account
+- **NEVER delete the protected account** (name from Cleanup Configuration in `testdata.config.md`) — the suffix-based selection excludes it automatically, but always verify before executing
+- **Cross-references first:** Always null out the cross-reference fields (from config) on Store Accounts BEFORE deleting any records — otherwise delete will fail due to lookup constraints
+- **Deletion order is mandatory:** Follow the exact order from the Deletion Order table in `testdata.config.md`
 - Read suffix-to-preset mapping from `testdata.config.md` — do not hardcode
 - Read org aliases from `stack.config.md` — do not hardcode
+- Read all field names, object names, and relationship names from `testdata.config.md` — do not hardcode
 - ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<org-alias>-cleanup-testdata.json` in `.claude/skills/12-cleanup-testdata/logs/`
 
 ## Error Handling

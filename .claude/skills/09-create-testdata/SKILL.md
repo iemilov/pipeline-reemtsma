@@ -51,7 +51,7 @@ Generate and insert test data into the Salesforce org specified by **$ARGUMENTS*
    - If it does not exist or has no Test Scenarios section → fall through to keyword-based analysis
 
 2. Load the Jira story (summary, description, component, labels, epic key) using the Atlassian MCP tool
-3. Read relevant topic docs from `pipeline/customers/lotto-bw/docs/` based on keywords in the story summary and description
+3. Read relevant topic docs from `pipeline/customers/<customer>/docs/` based on keywords in the story summary and description
 4. Identify the domain area and map to section tags using the following rules:
 
    | Keywords in story | Recommended tags |
