@@ -57,6 +57,27 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 13. `/write-crm-doc <story-key>` — *(Salesforce only)* Creates or updates a Salesforce Knowledge article as a draft based on Jira stories, domain knowledge, and the repository
 14. `/onboard-user <github-username> <project-repo>` — Adds a GitHub user as collaborator to a customer's main project repo and all required pipeline repos, then generates setup instructions for the new collaborator
 
+## Creating New Skills (CRITICAL)
+
+New skills MUST be **platform-agnostic** and **customer-agnostic** from the start. This pipeline serves multiple customers with different tech stacks (Salesforce, Node.js/Cloudflare, etc.). Follow these rules:
+
+1. **Never hardcode customer-specific values** — read all configuration from the customer's config files:
+   - `pipeline/customer.config.md` — customer identity, Atlassian credentials, CI/CD settings, **Platform**
+   - `pipeline/stack.config.md` — tech stack, commands, org aliases, API versions, object/field names
+   - `pipeline/customer.domain.md` — business logic, glossary, field naming conventions
+   - `pipeline/customers/<customer>/` — additional customer-specific configs (e.g., `testdata.config.md`)
+
+2. **Never hardcode platform-specific logic** — check the `Platform` field in `customer.config.md` and adapt behavior accordingly. Use one of these patterns:
+   - **Platform Guard:** If the skill is inherently platform-specific (e.g., Salesforce DML, Apex execution), add a guard at the top that checks `Platform` and aborts with a clear message if the customer uses a different platform
+   - **Platform Adaptation:** If the skill has platform-varying steps (e.g., deployment, validation), read all tool names, commands, and object references from `stack.config.md` so behavior adapts automatically
+   - **Platform Note:** If the skill is mostly generic but has minor platform-specific hints, add a blockquote note (e.g., `> **Platform note:** ...`)
+
+3. **Never hardcode paths to a specific customer folder** — use `<customer>` as a placeholder in skill documentation and resolve the active customer dynamically at runtime (from the symlink targets or directory structure)
+
+4. **Never hardcode API object names, field names, Record Type IDs, article numbers, or URLs** — these belong in `stack.config.md` or a dedicated customer-level config file. The skill should read and reference them from config.
+
+5. **Test mentally against all customers** — before finalizing a new skill, verify that it would work correctly for a non-Salesforce customer (e.g., one using Node.js/Cloudflare). If any step would fail or be meaningless, gate it behind a Platform check.
+
 ## Additional Skill Remarks
 
 - ALWAYS create a structured JSON log file for each execution of a skill. File name pattern: `<YYYY-MM-DD>-<customer-short-name>-<identifier>-<skill-name>.json` where `<customer-short-name>` is the **Short Name** from `customer.config.md` and `<identifier>` is the story key, epic key, or version depending on the skill. Store it under the `logs/` subfolder of each skill's directory (e.g., `.claude/skills/02-implement-us/logs/`). Use this JSON structure:
