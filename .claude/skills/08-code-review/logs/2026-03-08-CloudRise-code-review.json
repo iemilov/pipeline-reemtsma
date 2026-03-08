@@ -1,0 +1,12 @@
+{
+  "skill": "code-review",
+  "customer": "CloudRise",
+  "identifier": "crm-app",
+  "timestamp": "2026-03-08T00:00:00Z",
+  "status": "success",
+  "summary": "Comprehensive code review of CRM app completed. 27 findings: 4 critical (auth ownership, file upload sanitization, setState-in-effect, missing transactions), 12 important (N+1 queries, missing indexes, code duplication, ESLint warnings), 11 improvements. Saved locally (no Atlassian configured).",
+  "artifacts": [
+    "projects/crm/code-review/2026-03-08-code-review.md"
+  ],
+  "output": "Gesamtbewertung: GELB. SQL-Injection: sicher. Secrets: sicher. Kritisch: Client-Portal Ownership-Checks fehlen, Dateinamen nicht sanitisiert, setState-in-Effect, fehlende Transaktionen. Wichtig: N+1 Queries, 89 ESLint-Warnungen, fehlende DB-Indizes, Code-Duplikation (formatCents 4x, Modal 6x). ESLint: 1 Error, 88 Warnings. Confluence-Veröffentlichung übersprungen (keine Atlassian-Verbindung konfiguriert)."
+}
