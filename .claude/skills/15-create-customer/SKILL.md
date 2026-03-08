@@ -1,12 +1,12 @@
 ---
 name: create-customer
-description: Interactively scaffold a new customer config repo with all required configuration files, create the GitHub repo, and add it as a submodule to the pipeline
+description: Interactively scaffold a new customer config repo with all required configuration files, create the GitHub repo, and clone it into the pipeline customers directory
 argument-hint: "[customer-name]"
 ---
 
 ## Workflow: Create New Customer Configuration
 
-Interactively create a new customer configuration repository with all required config files, register it as a pipeline submodule, and prepare it for use with Claude skills.
+Interactively create a new customer configuration repository with all required config files and prepare it for use with Claude skills.
 
 **Usage:** `/create-customer [customer-name]`
 
@@ -21,7 +21,7 @@ The `$ARGUMENTS` string is the customer folder name (lowercase, kebab-case). If 
    ls pipeline/customers/<name>/ 2>/dev/null
    ```
    - If it exists and has config files, inform the user and abort: "Customer `<name>` already exists."
-   - If the directory exists but is empty (uninitialized submodule), warn and ask whether to proceed
+   - If the directory exists but is empty, warn and ask whether to proceed
 
 4. **Validate the GitHub repo doesn't already exist:**
    ```bash
@@ -163,20 +163,16 @@ Read `pipeline/customers/_template/domain-knowledge.md` and replace:
    rm -rf /tmp/pipeline-<name>
    ```
 
-### Step 5: Add as Pipeline Submodule
+### Step 5: Clone into Pipeline Customers Directory
 
-1. **Add the submodule** to the pipeline repo:
-   ```bash
-   cd <pipeline-dir>
-   git submodule add https://github.com/Lintlinger/pipeline-<name>.git customers/<name>
-   ```
+Clone the new customer config repo into the pipeline's customers directory:
 
-2. **Verify the submodule was added** to `pipeline/.gitmodules`:
-   ```bash
-   cat pipeline/.gitmodules
-   ```
+```bash
+cd <pipeline-dir>
+git clone https://github.com/Lintlinger/pipeline-<name>.git customers/<name>
+```
 
-3. **Do NOT commit or push** the pipeline changes — the user will use `/commit` for that
+The `customers/` directory is gitignored (except `_template/`), so this clone is local-only and does not affect the pipeline repo's git state. No commit needed.
 
 ### Step 6: Summary & Next Steps
 
@@ -188,7 +184,7 @@ NEW CUSTOMER CONFIGURATION
 Customer:     <Full Name> (<Short Name>)
 Platform:     <platform>
 Repo:         Lintlinger/pipeline-<name> (private)
-Submodule:    pipeline/customers/<name>/
+Local clone:  pipeline/customers/<name>/
 Config files: config.md, stack.config.md, domain-knowledge.md[, testdata.config.md]
 
 NEXT STEPS
@@ -201,10 +197,7 @@ NEXT STEPS
    - pipeline/customers/<name>/stack.config.md — add project-specific tech stack details
    - pipeline/customers/<name>/domain-knowledge.md — add glossary and business processes
 
-3. Commit the pipeline changes:
-   /commit "add customer config: <name>"
-
-4. Onboard collaborators:
+3. Onboard collaborators:
    /onboard-pipeline-user <github-username> <project-repo>
 ```
 
@@ -216,7 +209,7 @@ NEXT STEPS
 - Customer folder names are **lowercase kebab-case**
 - Config repos must be **private** — they contain internal workflow configuration
 - **Never hardcode values** — read templates from `_template/` and replace placeholders
-- **Do NOT commit pipeline changes** in this skill — leave that to `/commit`
+- **Customer configs are gitignored** — cloning a customer repo into `customers/<name>/` does not require a pipeline commit. No pointer management needed.
 - **Platform-specific files**: Only create `testdata.config.md` for Salesforce customers
 - **Incomplete config is OK** — the user can fill in remaining placeholders later. Use `<not configured>` for values the user doesn't have yet
 - ALWAYS create a log file named `<YYYY-MM-DD>-<customer-short-name>-<name>-create-customer.json` in `.claude/skills/15-create-customer/logs/` — use the structured JSON format from CLAUDE.md
@@ -225,6 +218,6 @@ NEXT STEPS
 
 - **Customer already exists**: Inform the user and abort — do not overwrite existing config
 - **GitHub repo creation fails**: Report the error (likely insufficient permissions) and abort
-- **Submodule add fails**: Report the error. If the repo was created, inform the user that they can add the submodule manually
+- **Clone fails**: Report the error. If the repo was created, inform the user that they can clone it manually with `git clone https://github.com/Lintlinger/pipeline-<name>.git customers/<name>`
 - **User skips Atlassian config**: Use `<not configured>` placeholders — skills will prompt for values when needed
 - **`gh` CLI not authenticated**: Inform the user to run `gh auth login` first

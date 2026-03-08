@@ -6,7 +6,7 @@ argument-hint: <github-username> <project-repo>
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values and `pipeline/.gitmodules` for the customer submodule mapping.
+Before executing, read `pipeline/customer.config.md` for customer-specific values. Determine the active customer from the `pipeline/customer.config.md` symlink target (e.g., `customers/cloudrise/config.md` → customer name is `cloudrise`).
 
 ## Workflow: Onboard GitHub User to Pipeline
 
@@ -20,7 +20,6 @@ The `$ARGUMENTS` string contains the GitHub username and the main project repo n
 
 1. Split `$ARGUMENTS` into `<github-username>` and `<project-repo>`
 2. If either value is missing, ask the user to provide it using `AskUserQuestion`
-3. `<project-repo>` is the **main project repo** name on GitHub — used only to derive which customer config repo to grant access to (via `.gitmodules` lookup)
 
 ### Step 1: Validate Inputs
 
@@ -37,14 +36,15 @@ The `$ARGUMENTS` string contains the GitHub username and the main project repo n
    - Parse the response to confirm a `pipeline` submodule pointing to `Lintlinger/pipeline.git`
    - If no pipeline submodule is found, inform the user that this project doesn't use the pipeline and abort
 
-3. **Determine customer config repo** by inspecting `pipeline/.gitmodules` to find the matching customer config submodule:
-   - Read the local `pipeline/.gitmodules` to find which `customers/<name>` submodule corresponds to this customer
+3. **Determine customer config repo** by resolving the active customer:
+   - Read the symlink target of `pipeline/customer.config.md` to extract the customer name (e.g., `customers/cloudrise/config.md` → `cloudrise`)
+   - OR list `pipeline/customers/*/` directories that contain a `.git` directory and ask the user which one
    - The customer config repo name follows the pattern `pipeline-<name>` (e.g., `pipeline-cloudrise`, `pipeline-lotto-bw`)
    - Verify the repo exists:
      ```bash
      gh repo view Lintlinger/pipeline-<name> --json name
      ```
-   - If no matching customer config submodule is found, ask the user which customer folder to use
+   - If no matching customer config repo is found, ask the user which customer to use
 
 4. **Determine permission level** — ask the user using `AskUserQuestion`:
    - "Which permission level should the user get on the pipeline repos?"
@@ -86,20 +86,22 @@ You need to accept invitations for:
 - Lintlinger/pipeline
 - Lintlinger/pipeline-<customer-name>
 
-## 2. Initialize Submodules
+## 2. Initialize Pipeline
 If you have already cloned the main project repo:
 cd <project-repo>
-git submodule update --init --recursive
+git submodule update --init pipeline
 
 If not yet cloned:
 git clone https://github.com/Lintlinger/<project-repo>.git
 cd <project-repo>
-git submodule update --init --recursive
+git submodule update --init pipeline
 
-## 3. Set Up Claude Code Symlinks
+## 3. Set Up Claude Code
 cd pipeline
 ./setup.sh <customer-name>
 cd ..
+
+The setup script will automatically clone the customer config repo into `pipeline/customers/<customer-name>/`.
 
 ## 4. Verify Setup
 You should now have:
@@ -120,7 +122,7 @@ Present a clear summary:
 - Which repos the user was added to (with status for each)
 - Permission level granted
 - Path to the saved onboarding instructions
-- Remind that the user needs to accept the GitHub invitations before submodule init will work
+- Remind that the user needs to accept the GitHub invitations before `setup.sh` can clone the customer config repo
 
 ## Important Rules
 
@@ -128,7 +130,7 @@ Present a clear summary:
 - The GitHub org/user is `Lintlinger` — all repos live under this account
 - The central pipeline repo is always `Lintlinger/pipeline`
 - Customer config repos follow the naming pattern `pipeline-<customer-folder-name>`
-- Never hardcode customer names — always derive from `.gitmodules`
+- Determine the active customer from the symlink target of `pipeline/customer.config.md` or by listing cloned directories in `pipeline/customers/`
 - Always confirm the permission level with the user before adding collaborators
 - **Pipeline first, then customer config** — always add to the pipeline repo before the customer config repo
 - This skill does NOT add the user to the main project repo — that is managed separately

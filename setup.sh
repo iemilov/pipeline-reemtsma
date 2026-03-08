@@ -49,24 +49,21 @@ fi
 
 CUSTOMER_DIR="$SCRIPT_DIR/customers/$CUSTOMER"
 
-# Initialize customer submodule if needed
-if [ -f "$SCRIPT_DIR/.gitmodules" ] && grep -q "customers/$CUSTOMER" "$SCRIPT_DIR/.gitmodules" 2>/dev/null; then
-  if [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
-    echo "Initializing customer submodule: customers/$CUSTOMER"
-    (cd "$SCRIPT_DIR" && git submodule update --init "customers/$CUSTOMER") || {
-      echo "Error: Failed to initialize submodule for customers/$CUSTOMER"
-      echo "You may not have access to this customer repository."
-      exit 1
-    }
-  fi
+# Clone customer config repo if directory doesn't exist or is empty
+if [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
+  REPO_URL="https://github.com/Lintlinger/pipeline-${CUSTOMER}.git"
+  echo "Cloning customer config: $REPO_URL"
+  git clone "$REPO_URL" "$CUSTOMER_DIR" || {
+    echo "Error: Failed to clone $REPO_URL"
+    echo "You may not have access to this customer repository."
+    exit 1
+  }
 fi
 
 # Validate customer config exists
 if [ ! -f "$CUSTOMER_DIR/config.md" ]; then
   echo "Error: config.md not found in customers/$CUSTOMER"
-  if [ -f "$SCRIPT_DIR/.gitmodules" ]; then
-    echo "You may not have access to this customer repository."
-  fi
+  echo "You may not have access to this customer repository."
   echo "Available customers:"
   for name in "${CUSTOMERS[@]}"; do
     [ -f "$SCRIPT_DIR/customers/$name/config.md" ] && echo "  $name" || echo "  $name (not initialized)"

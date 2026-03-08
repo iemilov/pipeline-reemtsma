@@ -1,9 +1,0 @@
-[submodule "customers/cloudrise"]
-	path = customers/cloudrise
-	url = https://github.com/Lintlinger/pipeline-cloudrise.git
-[submodule "customers/lotto-bw"]
-	path = customers/lotto-bw
-	url = https://github.com/Lintlinger/pipeline-lotto-bw.git
-[submodule "customers/drKade"]
-	path = customers/drKade
-	url = https://github.com/Lintlinger/pipeline-drkade.git

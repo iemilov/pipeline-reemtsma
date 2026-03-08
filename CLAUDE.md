@@ -33,7 +33,7 @@ The tech stack and project details vary per customer. See `pipeline/stack.config
 
 ### Customer Switching
 
-All three config symlinks in `pipeline/` point to the active customer folder:
+Customer config repos are cloned into `pipeline/customers/<name>/` by `setup.sh` (gitignored, not tracked). All three config symlinks in `pipeline/` point to the active customer folder:
 - `customer.config.md` → `customers/<name>/config.md`
 - `customer.domain.md` → `customers/<name>/domain-knowledge.md`
 - `stack.config.md` → `customers/<name>/stack.config.md`
@@ -56,7 +56,7 @@ All three config symlinks in `pipeline/` point to the active customer folder:
 12. `/cleanup-testdata [org-alias] [preset | all | today]` — *(Salesforce only)* Deletes test data records from a Salesforce org interactively. Scans for records by StoreNumber suffix, groups by preset, and generates cleanup Apex
 13. `/write-crm-doc <story-key>` — *(Salesforce only)* Creates or updates a Salesforce Knowledge article as a draft based on Jira stories, domain knowledge, and the repository
 14. `/onboard-pipeline-user <github-username> <project-repo>` — Adds a GitHub user as collaborator to the pipeline repo and the matching customer config repo, then generates setup instructions for working with Claude skills
-15. `/create-customer [customer-name]` — Interactively scaffolds a new customer config repo with all required configuration files, creates the GitHub repo, and adds it as a submodule to the pipeline
+15. `/create-customer [customer-name]` — Interactively scaffolds a new customer config repo with all required configuration files, creates the GitHub repo, and clones it into the pipeline customers directory
 
 ## Creating New Skills (CRITICAL)
 

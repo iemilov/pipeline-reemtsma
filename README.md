@@ -4,59 +4,55 @@ Repository for all toolsets and skills for AI-assisted project implementation wi
 
 ## Prerequisites
 
-- Git (with submodule support)
+- Git
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed (`npm install -g @anthropic-ai/claude-code`)
 - Access to this repository (GitHub: `Lintlinger/pipeline`)
-- Access to the relevant customer repository (e.g., `Lintlinger/pipeline-cloudrise`)
+- Access to the relevant customer config repository (e.g., `Lintlinger/pipeline-cloudrise`)
 
 ## Architecture
 
-### Two-Layer Submodule Structure
+### Repository Structure
 
-This repository is embedded as a Git submodule in each customer's main project repo under the path `pipeline/`. Customer-specific configuration lives in **separate GitHub repos** that are nested as submodules inside `pipeline/customers/`.
+This repository is embedded as a Git submodule in each customer's main project repo under the path `pipeline/`. Customer-specific configuration lives in **separate private GitHub repos** that are cloned locally by `setup.sh` into `pipeline/customers/` (gitignored, not tracked).
 
 ```
 Main Project Repo (e.g., CloudRise)
 └── pipeline/                          ← this repo (submodule)
     ├── CLAUDE.md, setup.sh, skills/   ← shared across all customers
-    └── customers/
-        ├── cloudrise/                 ← submodule → pipeline-cloudrise
-        ├── lotto-bw/                  ← submodule → pipeline-lotto-bw
-        └── drKade/                    ← submodule → pipeline-drkade
+    └── customers/                     ← gitignored (except _template/)
+        ├── _template/                 ← tracked template for new customers
+        └── <customer>/               ← cloned by setup.sh (gitignored)
 ```
 
 ### Access Control
 
-Each customer's config is a separate GitHub repo with independent access permissions:
+Each customer's config is a separate private GitHub repo with independent access permissions:
 
 | Repository | Contains | Access |
 |------------|----------|--------|
 | `pipeline` | Shared skills, CLAUDE.md, setup.sh | All team members |
-| `pipeline-cloudrise` | CloudRise config, domain knowledge | CloudRise team |
-| `pipeline-lotto-bw` | Lotto BW config, domain knowledge | Lotto BW team |
-| `pipeline-drkade` | Dr. Kade config, domain knowledge | Dr. Kade team |
+| `pipeline-<customer>` | Customer config, domain knowledge | Customer team only |
 
-A team member only needs access to the customer repos they work on. `setup.sh` gracefully handles missing access — it will report which customer repos are unavailable.
+A team member only needs access to the customer config repos they work on. The pipeline repo itself contains **no customer names or references** — customer isolation is enforced by GitHub repo permissions and gitignore.
 
 ## First-Time Setup
 
 ```bash
 # 1. Clone the main project repo
-git clone https://github.com/Lintlinger/CloudRise.git
-cd CloudRise
+git clone https://github.com/Lintlinger/<main-project-repo>.git
+cd <main-project-repo>
 
 # 2. Initialize the pipeline submodule
-git submodule init
-git submodule update
+git submodule update --init pipeline
 
-# 3. Run setup for your customer (initializes nested customer submodule + creates symlinks)
+# 3. Run setup for your customer (clones customer config repo + creates symlinks)
 cd pipeline
-./setup.sh cloudrise
+./setup.sh <customer-name>
 ```
 
 The setup script:
-1. If no customer name is provided, shows an interactive selection menu
-2. Initializes the customer's nested submodule under `customers/<name>/`
+1. If no customer name is provided, shows an interactive selection menu (lists already-cloned customers)
+2. Clones the customer config repo (`pipeline-<name>`) into `customers/<name>/` if not already present
 3. Creates symlinks for Claude Code to find config files
 4. Validates config completeness and warns about missing or placeholder fields
 
@@ -79,13 +75,13 @@ These symlinks are listed in the main repo's `.gitignore` and are not committed.
 cd pipeline && ./setup.sh <customer-name>
 ```
 
-This updates all config symlinks to point to the specified customer folder. If the customer submodule hasn't been initialized yet, `setup.sh` handles that automatically.
+This updates all config symlinks to point to the specified customer folder. If the customer config hasn't been cloned yet, `setup.sh` handles that automatically.
 
 ## Onboarding a New Team Member
 
 ### Scenario: New contributor joining an existing customer project
 
-Example: A new developer needs access to the **lotto-bw** project.
+Example: A new developer needs access to a customer project.
 
 **Step 1 — Grant GitHub access**
 
@@ -96,44 +92,34 @@ The repo owner grants the new user access to all required repos. Use the `/onboa
 ```
 
 This adds the user as collaborator to:
-- `Lintlinger/<customer-repo-name>` (main project repo)
+- `Lintlinger/<main-project-repo>` (main project repo)
 - `Lintlinger/pipeline` (shared skills — all team members need this)
 - `Lintlinger/pipeline-<customer>` (customer-specific config)
 
 It also generates setup instructions for the new collaborator.
-
-**Manual alternative** — grant access via GitHub to:
-- `Lintlinger/pipeline` (shared skills — all team members need this)
-- `Lintlinger/pipeline-lotto-bw` (customer-specific config)
-- The main project repo (e.g., the Lotto BW Salesforce CICD repo)
 
 **Step 2 — Clone and set up**
 
 The new contributor runs:
 
 ```bash
-# Clone the main project repo (with submodules)
-git clone --recurse-submodules https://github.com/Lintlinger/<main-project-repo>.git
+# Clone the main project repo
+git clone https://github.com/Lintlinger/<main-project-repo>.git
 cd <main-project-repo>
 
-# Run setup for the customer
-cd pipeline
-./setup.sh lotto-bw
-```
+# Initialize pipeline submodule
+git submodule update --init pipeline
 
-If `--recurse-submodules` was not used during clone:
-
-```bash
-git submodule update --init           # initializes pipeline/
+# Run setup (clones customer config repo automatically)
 cd pipeline
-./setup.sh lotto-bw                   # initializes customers/lotto-bw/ submodule + symlinks
+./setup.sh <customer-name>
 ```
 
 **Step 3 — Verify**
 
 ```bash
 # Check that customer config is accessible
-cat pipeline/customer.config.md       # should show Lotto BW config
+cat pipeline/customer.config.md       # should show customer config
 
 # Start Claude Code
 cd ..   # back to main project root
@@ -142,67 +128,69 @@ claude
 
 **What about other customers?**
 
-The new user will NOT be able to initialize customer submodules they don't have access to. Running `./setup.sh cloudrise` would fail with:
+The new user will NOT be able to clone customer config repos they don't have access to. Running `./setup.sh other-customer` would fail with:
 
 ```
-Error: Failed to initialize submodule for customers/cloudrise
+Error: Failed to clone https://github.com/Lintlinger/pipeline-other-customer.git
 You may not have access to this customer repository.
 ```
 
-This is by design — each customer's data is isolated by GitHub repository permissions.
+This is by design — each customer's data is isolated by GitHub repository permissions. The pipeline repo itself contains no customer names, so users cannot even discover which other customers exist.
 
 ## Creating a New Customer
 
-1. Create a new repo from the template:
-   - Go to [pipeline-customer-template](https://github.com/Lintlinger/pipeline-customer-template) on GitHub
-   - Click **"Use this template"** → **"Create a new repository"**
-   - Name it `pipeline-<customer-name>` (e.g., `pipeline-acme`)
-   - Set visibility to **Private**
+Use the `/create-customer` skill for automated setup, or manually:
 
-2. Fill in the config files in the new repo:
+1. Create a new private repo named `pipeline-<customer-name>` on GitHub
+2. Fill in the config files (use `customers/_template/` as reference):
    - `config.md` — Atlassian credentials, CI/CD settings, folder paths, locale
-   - `domain-knowledge.md` — Business glossary, processes, field name pitfalls (add a `docs/` subfolder for detailed topic files)
+   - `domain-knowledge.md` — Business glossary, processes, field name pitfalls
    - `stack.config.md` — Tech stack, commands, libraries, conventions
-   - `testdata.config.md` — Test data presets and record definitions
-   - `README.md` — Auto-generated from template; do not customize per customer
-
-3. Add as submodule in the pipeline repo:
+   - `testdata.config.md` — Test data presets (Salesforce only)
+3. Clone into the pipeline:
    ```bash
    cd pipeline
-   git submodule add https://github.com/Lintlinger/pipeline-<customer>.git customers/<customer>
-   git add .gitmodules customers/<customer>
-   git commit -m "add customer submodule: <customer>"
-   git push
-   ```
-
-4. Run setup:
-   ```bash
+   git clone https://github.com/Lintlinger/pipeline-<customer>.git customers/<customer>
    ./setup.sh <customer>
    ```
+   No pipeline commit needed — `customers/` is gitignored.
 
 ## Updating
 
 ### Pull latest pipeline (shared skills)
 
+From the main project repo:
 ```bash
 git submodule update --remote pipeline
+git add pipeline
+git commit -m "Update pipeline"
 ```
 
 ### Pull latest customer config
 
 ```bash
-cd pipeline
-git submodule update --remote customers/<customer>
+cd pipeline/customers/<customer>
+git pull origin main
 ```
 
-### After any submodule update
+No pipeline commit needed — customer configs are gitignored.
 
-Commit the updated pointer in the parent repo:
+### Pipeline pointer management
+
+Git submodules pin to a specific commit. After any change inside `pipeline/`, two commits are needed:
 
 ```bash
+# 1. Commit inside the pipeline
+cd pipeline
+git add . && git commit -m "description" && git push
+
+# 2. Update the pointer in the main repo
+cd ..
 git add pipeline
-git commit -m "update pipeline submodule [skip ci]"
+git commit -m "Update pipeline"
 ```
+
+The `/commit` skill handles this automatically.
 
 ## Setting Up Claude Code
 
@@ -271,11 +259,12 @@ After setup, the following slash commands are available:
 | `/release-notes <version>` | Creates release notes from the latest merge commit |
 | `/code-review` | Performs a code review and publishes to Confluence or local Markdown |
 | `/build-knowledge <topic>` | Builds domain documentation from Jira, Confluence, and codebase |
-| `/commit <message>` | Commits and pushes changes to both repos safely |
+| `/commit <message>` | Commits and pushes changes to all repos safely |
 | `/create-testdata [org] [preset]` | Creates test data records in a Salesforce org |
 | `/cleanup-testdata [org] [scope]` | Deletes test data records from a Salesforce org |
 | `/write-crm-doc` | Creates or updates a Salesforce Knowledge article |
-| `/onboard-user <user> <project-repo>` | Adds a GitHub user to a main project repo and all required pipeline repos |
+| `/onboard-user <user> <project-repo>` | Adds a GitHub user to required pipeline repos |
+| `/create-customer [name]` | Scaffolds a new customer config repo |
 
 ## Directory Structure
 
@@ -283,26 +272,19 @@ After setup, the following slash commands are available:
 pipeline/
 ├── CLAUDE.md                          # Project documentation for Claude Code
 ├── README.md                          # This file
-├── setup.sh                           # Symlink + submodule setup script
-├── .gitmodules                        # Customer submodule definitions
+├── setup.sh                           # Clone + symlink setup script
+├── .gitignore                         # Ignores customers/*/ (except _template/)
 ├── customer.config.md                 # Symlink → customers/<active>/config.md
 ├── customer.domain.md                 # Symlink → customers/<active>/domain-knowledge.md
 ├── stack.config.md                    # Symlink → customers/<active>/stack.config.md
 ├── testdata.config.md                 # Symlink → customers/<active>/testdata.config.md
 ├── customers/
-│   ├── cloudrise/                     # Submodule → pipeline-cloudrise
+│   ├── _template/                     # Tracked template for new customers
 │   │   ├── config.md
 │   │   ├── domain-knowledge.md
 │   │   ├── stack.config.md
 │   │   └── testdata.config.md
-│   ├── lotto-bw/                      # Submodule → pipeline-lotto-bw
-│   │   ├── config.md
-│   │   ├── domain-knowledge.md
-│   │   ├── stack.config.md
-│   │   ├── testdata.config.md
-│   │   └── docs/                      # Optional domain topic files
-│   ├── drKade/                        # Submodule → pipeline-drkade
-│   └── _template/                     # Local template (not a submodule)
+│   └── <customer>/                    # Cloned by setup.sh (gitignored)
 │       ├── config.md
 │       ├── domain-knowledge.md
 │       ├── stack.config.md
@@ -315,24 +297,15 @@ pipeline/
         │   └── logs/                  # Execution logs
         ├── 02-implement-us/
         ├── 03-promote-us/
-        ├── 04-document-us/
-        ├── 05-architecture-overview/
-        ├── 06-release-notes/
-        ├── 07-commit/
-        ├── 08-code-review/
-        ├── 09-create-testdata/
-        ├── 10-build-knowledge/
-        ├── 11-design-us/
-        ├── 12-cleanup-testdata/
-        ├── 13-write-crm-doc/
-        └── 14-onboard-user/
+        ├── ...
+        └── 15-create-customer/
 ```
 
 ## How It Works
 
 ### Architecture
 
-The pipeline submodule acts as a private layer on top of the customer-visible main project repository. Customer configs are further isolated into per-customer repos for access control.
+The pipeline acts as a private layer on top of the customer-visible main project repository. Customer configs are further isolated into per-customer private repos, cloned locally (not tracked).
 
 ```
 Main Project Repo (customer has READ access)
@@ -345,8 +318,7 @@ Main Project Repo (customer has READ access)
 pipeline/ (private, team-only)
 ├── CLAUDE.md, setup.sh (shared)
 ├── .claude/skills/ (shared, generic)
-├── .gitmodules (→ customer repos)
-└── customers/<name>/ (per-customer submodule)
+└── customers/<name>/ (cloned, gitignored)
     ├── config.md
     ├── domain-knowledge.md
     ├── stack.config.md
@@ -355,27 +327,10 @@ pipeline/ (private, team-only)
 
 Skills are **generic** — they contain no customer-specific values. All customer-specific configuration lives in per-customer repos under `customers/<name>/`. Switching customers only requires running `setup.sh <name>`.
 
-### Submodule Pointer Management
-
-Git submodules always pin to a specific commit. After any change inside `pipeline/`, two commits are needed:
-
-```bash
-# 1. Commit inside the submodule
-cd pipeline
-git add . && git commit -m "description" && git push
-
-# 2. Update the submodule pointer in the main repo
-cd ..
-git add pipeline
-git commit -m "update pipeline submodule [skip ci]"
-```
-
-The `/commit` skill handles this automatically.
-
 ## Important Notes
 
-- **Confidentiality:** The customer has no access to the pipeline submodule or other customers' repos. Sensitive information (skill prompts, internal processes) must only be committed here, never to the main repo.
-- **Access control:** Customer data isolation is enforced by GitHub repo permissions. Each `customers/<name>/` folder is a submodule pointing to a separate private repo.
+- **Confidentiality:** The customer has no access to the pipeline repo or other customers' config repos. Sensitive information (skill prompts, internal processes) must only be committed here, never to the main repo.
+- **Customer isolation:** Customer data isolation is enforced by GitHub repo permissions. Customer config repos are cloned locally into gitignored directories — the pipeline repo contains no customer names or references.
 - **Logs:** Each skill execution creates a structured JSON log file under `.claude/skills/<skill>/logs/`.
 - **No AI attribution:** Never include `Co-Authored-By: Claude` or similar AI attribution in commits to the main repo.
 - **`.gitignore` in main repo:** The entries for `CLAUDE.md`, `.claude/`, and `pipeline/.env` ensure that symlinks and sensitive files are never committed to the main repo.
