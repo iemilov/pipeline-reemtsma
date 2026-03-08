@@ -8,11 +8,22 @@ argument-hint: [confluence-space-key (optional)]
 
 Before executing, read `pipeline/customer.config.md` for customer-specific values (Cloud ID, customer identity, Confluence parent page, documentation language, **Platform**), `pipeline/stack.config.md` for stack-specific values (naming prefixes, API version, org aliases, functional domains, source path, code quality rules), and `pipeline/customer.domain.md` for domain-specific business logic.
 
-## Platform Adaptation
+## Platform Adaptation & Templates
 
-This skill contains Salesforce-specific references (`force-app/`, `sfdx-project.json`, Apex, LWC, Flows, Trigger Actions). Read `Platform` from `customer.config.md`:
-- **If `salesforce`:** Follow all steps as written.
-- **If not `salesforce`:** Adapt all steps to the project's tech stack as described in `stack.config.md`. Analyze the project structure, components, and architecture as defined in the stack configuration instead of Salesforce-specific metadata types. Replace references to `force-app/`, Apex, LWC, Flows, etc. with the equivalent source directories, frameworks, and component types from the stack.
+Read `Platform` from `customer.config.md` and load the matching architecture template from `pipeline/customers/_template/templates/architecture-overview/`:
+- **`salesforce`** → use `pipeline/customers/_template/templates/architecture-overview/salesforce.md`
+- **`node-cloudflare`** → use `pipeline/customers/_template/templates/architecture-overview/node-cloudflare.md`
+- **Any other platform** → use `pipeline/customers/_template/templates/architecture-overview/default.md`
+
+The template defines the **section structure** of the generated architecture document. Templates are written in **English**. When generating the output:
+- **Translate all section headings and table headers** to the **documentation language** from `customer.config.md` (e.g., German → "Introduction" becomes "Einleitung", "Data Model" becomes "Datenmodell")
+- Fill in all `{{PLACEHOLDER}}` values with real data discovered during analysis
+- Sections wrapped in `{{#EACH ...}}` / `{{/EACH}}` are repeated per item
+- If a section has no data (e.g., no integrations found), include the heading with a note in the documentation language (e.g., "No external integrations configured." / "Keine externen Integrationen konfiguriert.") rather than omitting the section
+
+**Platform-specific analysis steps:**
+- **If `salesforce`:** Follow Steps 1–5 as written below (Salesforce-specific analysis).
+- **If not `salesforce`:** Skip Salesforce-specific steps (sfdx-project.json, force-app/, Apex, LWC, Flows, Trigger Actions). Instead, analyze the project using `stack.config.md` — scan source directories, API routes, database schemas, workers, and CI/CD workflows as described in the stack configuration.
 
 ## Workflow: Repository → Architecture & Functionality Overview
 
@@ -73,55 +84,16 @@ Also analyze:
 3. Note delta deployment approach and tools used
 4. List deployment versions from `deployment/` directory
 
-### Step 6: Build Confluence Page
-Structure the Confluence page in **Markdown** format using the **architecture page title** from config.
+### Step 6: Build Architecture Document
+Read the platform-specific template from `pipeline/customers/_template/templates/architecture-overview/` (see Platform Adaptation above). Use it as the **structural blueprint** for the output document:
 
-1. **Einleitung (Introduction)**
-   - Purpose of the Salesforce implementation for the customer
-   - High-level description of the functional domains from config
-
-2. **Architekturübersicht (Architecture Overview)**
-   - Component statistics table (number of Apex classes, LWC, Flows, etc.)
-   - Naming conventions and prefixes (from config)
-   - API version and platform details
-   - Trigger Action Framework explanation
-
-3. **Funktionale Domänen (Functional Domains)**
-   - One subsection per domain from config
-   - Business purpose and key processes
-   - Component listing grouped by functionality
-   - Key automations and their triggers
-
-4. **Datenmodell (Data Model)**
-   - Custom objects and their purpose
-   - Key fields and record types
-   - Relationships diagram (text-based)
-
-5. **Integrationen (Integrations)**
-   - External system connections
-   - Named credentials and endpoints
-   - Batch and scheduled jobs overview table (class name, schedule, purpose)
-
-6. **Automatisierungen (Automations)**
-   - Flows overview table (name, type, object, purpose)
-   - Trigger Actions overview table (object, event, class, order)
-   - Validation Rules summary
-
-7. **Sicherheit & Berechtigungen (Security & Permissions)**
-   - Permission sets and their purpose
-   - Sharing model notes
-   - Profile customizations
-
-8. **CI/CD & Deployment**
-   - Branch strategy diagram (text-based, from config)
-   - Pipeline stages and environments
-   - Delta deployment approach
-   - Release versioning
-
-9. **Codequalität (Code Quality)**
-   - PMD rules and thresholds
-   - ESLint configuration
-   - Testing approach and conventions
+1. **Read the template** for the active platform
+2. **Fill in all `{{PLACEHOLDER}}` values** with data collected in Steps 1–5
+3. **Expand `{{#EACH}}` blocks** — repeat the enclosed section for each item (domain, project, API group, database, etc.)
+4. **Respect the section order** from the template — do not add, remove, or reorder top-level sections
+5. **Use the documentation language** from config for all prose text (section headings are already in the template)
+6. **Replace the title** `{{ARCHITECTURE_PAGE_TITLE}}` with the value from `customer.config.md`
+7. If a section has no applicable data, keep the heading and add a brief note (e.g., "Nicht konfiguriert.")
 
 ### Step 7: Publish to Confluence
 1. **Always save locally:** Save the generated Markdown to `<project-dir>/architecture/<YYYY-MM-DD>-architecture-overview.md`. Create the `architecture/` directory if it does not exist.
