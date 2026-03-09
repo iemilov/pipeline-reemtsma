@@ -49,7 +49,7 @@ fi
 
 CUSTOMER_DIR="$SCRIPT_DIR/customers/$CUSTOMER"
 
-# Clone customer config repo if directory doesn't exist or is empty
+# Clone customer config repo if directory doesn't exist or is empty, otherwise pull latest
 if [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
   REPO_URL="https://github.com/Lintlinger/pipeline-${CUSTOMER}.git"
   echo "Cloning customer config: $REPO_URL"
@@ -57,6 +57,12 @@ if [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
     echo "Error: Failed to clone $REPO_URL"
     echo "You may not have access to this customer repository."
     exit 1
+  }
+elif [ -d "$CUSTOMER_DIR/.git" ]; then
+  echo "Updating customer config: $CUSTOMER"
+  git -C "$CUSTOMER_DIR" pull --ff-only || {
+    echo "Warning: Could not fast-forward customer config. You may have local changes."
+    echo "  Resolve manually: cd customers/$CUSTOMER && git pull"
   }
 fi
 
