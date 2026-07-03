@@ -1,0 +1,115 @@
+============================================================
+Skill: 10-build-knowledge
+Topic: Field Service
+Slug: field-service
+Input: Field Service / VDE Prüfung + Thermodruckerwartung (detected as: Topic)
+Date: 2026-02-20
+============================================================
+
+Step 1: Input & Existing Documentation
+----------------------------------------
+- Input type: Topic (user request: "field service - vde prüfung und thermodrucker wartung")
+- Topic name: Field Service
+- Slug: field-service
+- Existing topic file: not found (new creation)
+- Existing domain-knowledge section: found (VDE Prüfung, lines 415-435)
+- Scope: VDE Prüfung (CRM-2453) + Thermodruckerwartung (CRM-2611) + Terminaltausch Feedback (CRM-2450, nur Erwähnung)
+
+Step 2: Sources Gathered
+-------------------------
+- Jira: 25 stories from 3 epics
+  CRM-2453 (VDE Prüfung, 18 children):
+  - CRM-2895: VDE Cases anlegen (Fertig)
+  - CRM-2905: VDE: Neue Felder am Case (Fertig)
+  - CRM-2906: VDE: Custom Metadata für Asseterstellung (Fertig)
+  - CRM-2907: VDE: Neue Asset Felder anlegen (Fertig)
+  - CRM-2908: VDE: Neuer Button am Store (Fertig)
+  - CRM-2909: VDE: LWC für Assetbearbeitung (Fertig)
+  - CRM-2910: VDE: Trigger Assetgenerierung (Fertig)
+  - CRM-2911: VDE: Flow Error Found → Child Case (Fertig)
+  - CRM-2912: VDE: Button Zurück an Fieldservice (Fertig)
+  - CRM-2936: Portal AST Detailseite (Fertig)
+  - CRM-2955: VDE Felder am Child Case (Fertig)
+  - CRM-2957: VDE Gerät fest verbaut (Fertig)
+  - CRM-2958: VDE Related Cases anzeigen (Fertig)
+  - CRM-2959: VDE Geräte Reihenfolge (Backlog)
+  - CRM-2961: VDE zusätzliches Asset (Fertig)
+  - CRM-2984: VDE Portal keine Prio (Next)
+  - CRM-2886: SD Case VDE Prüfung (Abgebrochen)
+  - CRM-2946: Nicht direkt auf Assets (Abgebrochen)
+
+  CRM-2611 (Thermodruckerwartung, 7 children):
+  - CRM-2632: Thermodrucker Community (Fertig)
+  - CRM-2633: Vorgänge Wartung anlegen (Fertig)
+  - CRM-2635: Listview + ASt-Suche (Fertig)
+  - CRM-2636: Status Wartung erledigt (Spezifizieren)
+  - CRM-2641: Thermodrucker Core (Fertig)
+  - CRM-2670: Zusätzliche Queue ProServices Wartung (Spezifizieren)
+  - CRM-2671: Keine Email bei Wartungs-Cases (Fertig)
+
+  CRM-2450 (Terminaltausch Feedback, 0 children): Backlog
+
+- Codebase: 4 Flows, 7 Asset fields, 11 Case fields, 3 Asset VRs, 1 Case VR, 1 Quick Action, 17 CMT records, 2 List Views
+  Key components:
+  - Flow: STLGS_CreateAssetsVDECases (Asset auto-generation)
+  - Flow: STLGS_CheckOpenVDECases (Close prevention)
+  - Flow: STLGS_UpdateVDECaseOnErrorFound (Error → Child Case)
+  - Flow: STLGS_SendEmailToProServices (Email notification)
+  - CMT: STLGS_VDEAssetCreation__mdt (17 records: 11 Voll + 6 Kompakt)
+  - Quick Action: Account.STLGS_NewVDECheckCase
+  - Picklists: STLGS_Type__c (3 values), STLGS_PrinterStatus__c (4 values), STLGS_TestingDevice__c (1 value)
+
+- Confluence: 1 page read
+  - "VDE Prüfung" (1714257921) — Prozessübersicht und Ticket-Referenzen
+
+- Local docs: 2 files read
+  - business/docs/thermodruckerwartung-plan.md (99 lines) — Implementierungsplan 2026
+  - business/docs/thermodruckerwartung-report.md (referenced, 1,865 lines) — Store-Analyse
+
+Step 3: Topic File Written
+---------------------------
+- Path: pipeline/customers/lotto-bw/docs/field-service.md
+- Mode: created (new)
+- Sections: All 9 mandatory sections present
+  - Überblick (with Siehe auch → service-desk.md, testkauf.md)
+  - Geschäftsprozess (VDE Prüfung, Thermodruckerwartung, Feedbackprozess Terminaltausch)
+  - Business Rules (10 rules)
+  - Technische Umsetzung (Asset fields, Case fields, Picklists, CMT, Automation, UI, Integrationen)
+  - Konfiguration (RecordType, Queues, Emails, KB-Artikel, CMT, Bypass Switch)
+  - Bekannte Probleme & Workarounds (7 items)
+  - Referenzen (Jira, Confluence, Codebase, Lokale Docs)
+  - Änderungshistorie
+
+Step 4: Structural Validation
+------------------------------
+- Checklist passed: yes
+  1. All 9 mandatory sections present: YES
+  2. Business Rules only rules: YES (10 constraint items)
+  3. All tables 3-column format: YES
+  4. Cross-references present: YES (Überblick → service-desk.md, testkauf.md)
+  5. No content duplicates: YES (Portal/Queues/Permissions → kurz + Verweis auf service-desk.md)
+  6. Picklist values complete: YES (Type 3/3, PrinterStatus 4/4, TestingDevice 1/1, TopicArea 3, Resolution 6)
+
+Step 5: Cross-References Updated
+----------------------------------
+- field-service.md → service-desk.md, testkauf.md (in Überblick)
+- service-desk.md → field-service.md added (Siehe auch + 3x TopicArea-Verweis + 3x Resolution-Verweis aktualisiert)
+- service-desk.md: "→ Details im zukünftigen Field Service Doc" → "→ Details in field-service.md" (replace_all)
+- service-desk.md: "Aktiv (→ Field Service)" → "Aktiv (→ field-service.md)" (replace_all)
+
+Step 6: Index Updated
+----------------------
+- domain-knowledge.md:
+  - Index table: Field Service row added to "Themen-Dokumentation (Detail)"
+  - VDE-Sektion (line 435): Blockquote reference → field-service.md
+
+Step 7: Summary
+----------------
+- Topic file: pipeline/customers/lotto-bw/docs/field-service.md
+- Sources processed: 25 Jira stories (3 epics), 4 Flows, 17 CMT records, 1 Confluence page, 2 local docs
+- Key findings:
+  1. VDE Prüfung hat deutlich mehr Komplexität als Wartung (Asset-Lifecycle, Error-Handling, Child-Cases)
+  2. Thermodruckerwartung ist rein Case-basiert (keine Assets), aber hat eigene Felder (SN geliefert/entnommen, Druckerzustand)
+  3. CMT hat 11+6=17 Records, aber historisch wurden "12 bzw. 7 Assets" dokumentiert — leichte Diskrepanz
+  4. 2 Stories noch in "Spezifizieren" (CRM-2636 Wartungs-Status, CRM-2670 extra Queue)
+  5. 469 offene Wartungs-Cases 2025 brauchen Mass Close

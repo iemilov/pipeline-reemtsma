@@ -1,0 +1,61 @@
+Code Review — Zahnarztpraxis Website 16.02.2026
+================================================
+
+Execution Log
+-------------
+
+Project: projects/zahnarztpraxis/website/
+Type: Static HTML/CSS website
+Files: 24 HTML files, 1 CSS file (style.css), 28 images
+Date: 2026-02-16
+
+Step 1: Establish Review Criteria
+- Stack: Static HTML/CSS, no JavaScript framework, no build tools
+- No ESLint, no package.json, no automated checks available
+- Review adapted for static site: HTML quality, accessibility, SEO, legal compliance, CSS quality, code duplication
+
+Step 2: Analyze Frontend Code
+- Read: style.css (1009 lines), index.html, schienen.html, sportschiene.html, knirscherschiene.html, schnarchschiene.html, impressum.html, datenschutz.html
+- Launched Explore agent: analyzed 13 HTML files for accessibility, SEO, dead links, orphaned pages, footer/legal compliance
+- Grep searches: footer elements, impressum/datenschutz links, favicon/robots/sitemap, h1 tags, Open Graph tags, orphaned page references
+
+Step 3: No backend — skipped
+
+Step 4: Security Review
+- No JavaScript framework, no user input forms, no API
+- Only concern: Google Analytics mentioned in datenschutz.html but no consent banner visible
+- HTTP links in impressum.html should be HTTPS
+
+Step 5: Architecture & Patterns Review
+- Massive code duplication: header + mobile nav (~85 lines) duplicated in all 24 files
+- CSS well-structured with custom properties
+- No templating, no build process
+- Footer CSS exists but is unused
+
+Step 6: No automated checks possible (no package.json, no ESLint)
+
+Step 7: Report compiled
+
+Findings Summary:
+- Critical (HIGH): 2
+  K1: Missing footer with Impressum/Datenschutz links (legal requirement)
+  K2: Orphaned pages (schnarchschiene.html, knirscherschiene.html, sportschiene.html)
+- Important (MEDIUM): 5
+  W1: Missing H1 on all subpages (only index.html has H1)
+  W2: No Open Graph / Social Media meta tags
+  W3: No favicon, robots.txt, sitemap.xml
+  W4: Massive code duplication (header/nav in 24 files)
+  W5: Missing ARIA attributes in navigation dropdowns
+- Improvements (LOW): 5
+  V1: Inconsistent heading hierarchy in datenschutz.html
+  V2: HTTP links instead of HTTPS in impressum.html
+  V3: Outdated copyright year (2016)
+  V4: Inline JavaScript in hamburger button
+  V5: Google Analytics mentioned in privacy policy but no consent banner
+
+Step 8: Saved locally
+- Report: projects/zahnarztpraxis/code-review/2026-02-16-code-review.md
+- No Confluence configured (Cloud ID: —)
+
+Overall Assessment: YELLOW (improvement needed)
+Top priority: Add footer with legal links to all pages (German law requirement)

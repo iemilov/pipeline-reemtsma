@@ -1,0 +1,167 @@
+================================================================================
+  SKILL EXECUTION LOG: /implement-us CRM-2964
+  Date: 2026-02-10
+================================================================================
+
+## Story Details
+- Key: CRM-2964
+- Summary: Kündigungen v2 - Bemerkung pro Event für VO
+- Status: In Progress
+- Assignee: Joachim Lintl
+- Related Epic: CRM-2610 (Kündigung über Events flach auf dem Case abbilden)
+
+## Requirements
+The VO (Vertriebsorganisation) needs to add a remark per termination event to
+document performed actions (e.g., "Kündigungsbestätigung verschickt und in ELO
+abgelegt"). Each event should have its individual remark, while the Case
+maintains a full history of all remarks in descending chronological order.
+
+## Acceptance Criteria
+- [x] New rich text field STLGS_NewRemarks__c on Case for VO to enter remarks
+- [x] Field visible on EditCase FlexiPage when Type = Kündigung
+- [x] On save, remark is stored in the created Event's GeneralDescription
+- [x] On save, remark is prepended (with timestamp + username) to Case.STLGS_GeneralDescription__c
+- [x] Case.STLGS_GeneralDescription__c shows all remarks in descending order
+- [x] Event.STLGS_GeneralDescription__c shows only the single remark for that event
+- [x] VO user has overview on case level and detailed view per event
+
+## Implementation Approach
+**Mixed: Declarative + Apex**
+
+- **Declarative**: New custom field, flow modification, FlexiPage update, permission sets
+- **Programmatic**: Apex Trigger Action for rich text concatenation with timestamps
+  (Flow cannot reliably handle rich text HTML concatenation with dynamic timestamps)
+
+### Rationale
+- The timestamp + username header formatting and HTML concatenation logic is best
+  handled in Apex (BeforeUpdate trigger action) for reliability and testability
+- The existing flow STLGS_CreateUpdateTerminationEvent handles event creation and
+  only needs a field mapping change (declarative)
+- The Trigger Action Framework is already in use for Case, making this the natural pattern
+
+## Files Created
+
+### Custom Field
+- force-app/main/default/objects/Case/fields/STLGS_NewRemarks__c.field-meta.xml
+  Type: Html (Rich Text), 32768 chars, Label: "Neue Bemerkung VO"
+
+### Apex Trigger Action
+- force-app/main/default/classes/STLGS_TA_AppendCaseRemarks.cls
+  BeforeUpdate on Case: prepends STLGS_NewRemarks__c with timestamp header to
+  STLGS_GeneralDescription__c when the remark field changes and is not blank
+
+### Test Class
+- force-app/main/default/classes/STLGS_TA_AppendCaseRemarksTest.cls
+  5 test methods:
+  1. testFirstRemarkAppendsToEmptyDescription - first remark on empty case
+  2. testSecondRemarkPrependedInDescendingOrder - verifies descending order
+  3. testNoChangeWhenRemarkIsBlank - blank remark does not modify history
+  4. testNoChangeWhenRemarkUnchanged - same remark on re-save is ignored
+  5. testTimestampContainsUserName - verifies user name in header
+
+### Apex Metadata
+- force-app/main/default/classes/STLGS_TA_AppendCaseRemarks.cls-meta.xml (apiVersion 64.0)
+- force-app/main/default/classes/STLGS_TA_AppendCaseRemarksTest.cls-meta.xml (apiVersion 64.0)
+
+### Custom Metadata (Trigger Action Registration)
+- force-app/main/default/customMetadata/Trigger_Action.STLGS_TA_AppendCaseRemarks.md-meta.xml
+  Before_Update__c = Case, Order__c = 10
+
+## Files Modified
+
+### Flow
+- force-app/main/default/flows/STLGS_CreateUpdateTerminationEvent.flow-meta.xml
+  Changes:
+  1. Event creation: STLGS_GeneralDescription__c now maps from $Record.STLGS_NewRemarks__c
+     (was: $Record.STLGS_GeneralDescription__c)
+  2. Field change detection: monitors STLGS_NewRemarks__c instead of STLGS_GeneralDescription__c
+
+### FlexiPage
+- force-app/main/default/flexipages/STLGS_EditCaseRecordPage.flexipage-meta.xml
+  Changes:
+  1. Added STLGS_NewRemarks__c field (editable, visible when Type = Kündigung)
+  2. Changed STLGS_GeneralDescription__c to readonly (managed by trigger action)
+
+### Permission Sets
+- force-app/main/default/permissionsets/STLGS_AccessSalesCases.permissionset-meta.xml
+  Added: Case.STLGS_NewRemarks__c (editable + readable)
+- force-app/main/default/permissionsets/STLGS_AccessCases.permissionset-meta.xml
+  Added: Case.STLGS_NewRemarks__c (editable + readable)
+- force-app/main/default/permissionsets/STLG_SystemAdministrator.permissionset-meta.xml
+  Added: Case.STLGS_NewRemarks__c (editable + readable)
+
+## Key Design Decisions
+
+1. **BeforeUpdate Trigger Action** (not AfterUpdate or Flow):
+   - Runs before the record is saved, so when the AfterSave flow fires,
+     both STLGS_NewRemarks__c (for the event) and STLGS_GeneralDescription__c
+     (accumulated history) are already set correctly
+   - No additional DML needed, no recursion risk
+
+2. **Descending order with HTML headers**:
+   Format: <p><strong>DD.MM.YYYY HH:mm - Username</strong></p>{remark}<hr/>{existing}
+   - Newest remarks appear first for easy scanning
+   - Timestamp + username provides audit trail
+   - <hr/> separates entries visually
+
+3. **Field NOT auto-cleared after save**:
+   - The trigger action only fires when STLGS_NewRemarks__c CHANGES
+   - If the user re-saves without editing the remark, no duplicate entry is created
+   - User naturally overwrites with the next remark
+
+4. **GeneralDescription made readonly on FlexiPage**:
+   - Prevents manual edits to the accumulated history
+   - Users enter remarks only via STLGS_NewRemarks__c
+
+5. **Flow change is minimal**:
+   - Only 2 lines changed in the flow XML (field references)
+   - Avoids restructuring the complex flow logic
+
+## Git Operations
+- Branch: feature/CRM-2964 (from release/1.10.3)
+- Commit: bab6ab1b - CRM-2964 Add per-event VO remarks for termination cases [skip ci]
+- Pushed to: origin/feature/CRM-2964
+
+## PMD Check
+- PMD not available locally - to be run during /deploy-us
+
+## Deployment Instructions
+1. Deploy field first (dependency):
+   sf project deploy start --source-dir force-app/main/default/objects/Case/fields/STLGS_NewRemarks__c.field-meta.xml -o <org>
+
+2. Deploy Apex + CMT + Flow + FlexiPage + PermSets:
+   sf project deploy start \
+     --source-dir force-app/main/default/classes/STLGS_TA_AppendCaseRemarks.cls \
+     --source-dir force-app/main/default/classes/STLGS_TA_AppendCaseRemarks.cls-meta.xml \
+     --source-dir force-app/main/default/classes/STLGS_TA_AppendCaseRemarksTest.cls \
+     --source-dir force-app/main/default/classes/STLGS_TA_AppendCaseRemarksTest.cls-meta.xml \
+     --source-dir force-app/main/default/customMetadata/Trigger_Action.STLGS_TA_AppendCaseRemarks.md-meta.xml \
+     --source-dir force-app/main/default/flows/STLGS_CreateUpdateTerminationEvent.flow-meta.xml \
+     --source-dir force-app/main/default/flexipages/STLGS_EditCaseRecordPage.flexipage-meta.xml \
+     --source-dir force-app/main/default/permissionsets/STLGS_AccessSalesCases.permissionset-meta.xml \
+     --source-dir force-app/main/default/permissionsets/STLGS_AccessCases.permissionset-meta.xml \
+     --source-dir force-app/main/default/permissionsets/STLG_SystemAdministrator.permissionset-meta.xml \
+     -o <org>
+
+3. Run Apex tests:
+   sf apex run test --class-names STLGS_TA_AppendCaseRemarksTest --result-format human --code-coverage --synchronous --wait 10 -o <org>
+
+## Manual Configuration Steps
+- None required. All components are deployed as metadata.
+
+## Open Questions / Assumptions
+- Assumed STLGS_NewRemarks__c should NOT be auto-cleared after save. If VO
+  prefers a clean input field after each save, an AfterUpdate flow step or
+  @future method would be needed to clear the field (with recursion handling).
+- Assumed GeneralDescription should become readonly on the EditCase page to
+  prevent manual edits. If VO still needs to edit the history directly, change
+  uiBehavior back to "none".
+- Assumed field access is needed for Sales Cases, general Cases, and SystemAdmin
+  permission sets. ServiceDesk and TMF permission sets were not modified.
+
+## Suggested Next Step
+Run `/deploy-us CRM-2964 LottoUAT2` to deploy and test.
+
+================================================================================
+  END OF LOG
+================================================================================

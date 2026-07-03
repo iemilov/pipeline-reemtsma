@@ -1,0 +1,154 @@
+# Skill Execution Log: /implement-us CRM-2900
+# Date: 2026-02-13
+# Story: CRM-2900 — Nutzerfreundlichkeit für Abarbeitung der Bestellformulare (KuKa)
+
+## Step 1: Read User Story
+- Fetched CRM-2900 from Jira (Cloud ID: 2a9f60f6-99f9-4ab6-aedd-ea0fc09fe2d4)
+- Story was already in "In Progress" status
+- No blockers found (issuelinks empty)
+- Read implementation-design/CRM-2900/implementation-notes.md for additional context
+- Three requirements: checkable list, name enrichment, CSV support
+- User chose LWC approach (Option C)
+
+## Step 2: Explore Codebase Patterns
+- Explored existing trigger action class: STLG_CreateKuKaCasesFromInkFiles.cls
+  - Implements TriggerAction.AfterInsert on ContentVersion
+  - Uses Queueable (FileProcessorQueueable) for async processing
+  - Existing INK binary parsing with hex conversion
+  - PMD CyclomaticComplexity suppression annotation present
+- Explored LWC patterns in codebase (stlgs_closeCase, stlgs_editCase)
+  - Common pattern: @wire(getRecord) + updateRecord for Case field read/write
+  - SLDS table styling used across components
+- Explored Case object fields and flexipage structure
+  - STLG_SecondLevelCaseRecordPage has visibility rules based on STLG_TopicDetail__c
+  - Permission sets: STLG_CustomerService, STLG_SystemAdministrator
+
+## Step 3: Implementation Approach
+- **Programmatic**: Apex utility class + LWC (interactive check-off UI cannot be done declaratively)
+- Extracted parser logic from trigger action to stay within PMD complexity limits
+- JSON field on Case for checklist state (read/written by LWC)
+
+## Step 4: Create Feature Branch
+- Created feature/CRM-2900 from release/1.10.3
+- Checked out feature branch
+
+## Step 5: Generate Implementation
+
+### 5.1 Custom Field
+- Created: force-app/main/default/objects/Case/fields/STLG_ChecklistData__c.field-meta.xml
+  - LongTextArea, 131072 chars
+  - JSON schema: {"entries":[{"id":0,"cardNumber":"...","name":"...","birthDate":"...","checked":false}]}
+
+### 5.2 STLG_KuKaFileParser.cls (NEW)
+- CardEntry inner class (cardNumber, name, birthDate)
+- extractCardEntriesFromInk(Blob) — hex conversion, digit detection
+- extractCardEntriesFromCsv(Blob) — semicolon-delimited, columns 13/14/15
+- buildChecklistJson(List<CardEntry>) — JSON for LWC
+- buildDescriptionText(List<CardEntry>) — plain text for Description field
+- isValidCardNumber(String) — 10/16 digits starting with 445
+- with sharing, WITH SECURITY_ENFORCED where applicable
+
+### 5.3 STLG_KuKaFileParserTest.cls (NEW)
+- 15 test methods covering:
+  - INK parsing (valid, no valid numbers, empty blob)
+  - CSV parsing (valid entries, invalid/missing card numbers, empty file, short lines)
+  - JSON building (with/without names, empty list)
+  - Description building (with/without names, empty list)
+  - Card number validation (valid 10/16 digit, invalid prefix, invalid length, non-numeric, null/empty)
+- Note: Renamed variable `desc` to `descText` (reserved word in Apex)
+
+### 5.4 STLG_CreateKuKaCasesFromInkFiles.cls (MODIFIED)
+- Removed extractCardNumbers() and convertHexToDigitString() (moved to parser)
+- Removed @SuppressWarnings('PMD.CyclomaticComplexity')
+- Changed ContentVersion filter: FileExtension IN ('ink', 'csv')
+- processVersions() routes CSV → extractCardEntriesFromCsv(), INK → extractCardEntriesFromInk()
+- createCasesForBlocks() takes List<CardEntry>, populates Description + STLG_ChecklistData__c
+
+### 5.5 STLG_CreateKuKaCasesFromInkFilesTest.cls (MODIFIED)
+- Added testCsvFileProcessingPositive() — CSV upload, JSON with names/birthDates
+- Added testCsvFileInvalidParentCase() — CSV on invalid case, no children
+- Updated testInkFileProcessingPositive() — asserts STLG_ChecklistData__c populated
+- 4 test methods total
+
+### 5.6 stlg_kukaChecklist LWC (NEW)
+- stlg_kukaChecklist.html: SLDS table (Kundenkartennummer, Name, Geburtsdatum, Erledigt), progress bar, save button
+- stlg_kukaChecklist.js: @wire(getRecord), updateRecord, dirty tracking, German toasts, debug console.log/error
+- stlg_kukaChecklist.css: checked row strikethrough, scrollable container
+- stlg_kukaChecklist.js-meta.xml: apiVersion 64.0, lightning__RecordPage
+
+### 5.7 FlexiPage (MODIFIED)
+- Added stlg_kukaChecklist in rightcol before Chatter feed
+- Visibility rule: {!Record.STLG_TopicDetail__c} EQUAL Bestellformulare
+
+### 5.8 Permission Sets (MODIFIED)
+- STLG_CustomerService: Added Case.STLG_ChecklistData__c (editable/readable)
+- STLG_SystemAdministrator: Added Case.STLG_ChecklistData__c (editable/readable)
+
+## Step 6: Deploy to DEV Org
+
+### 6.1 PMD Check
+- PMD not installed on system — skipped
+
+### 6.2 Deployment
+- First attempt: FAILED
+  - Error 1: `desc` reserved word in test class → fixed to `descText`
+  - Error 2: FlexiPage `Offener Betrag` picklist validation error (PRE-EXISTING)
+- Second attempt: Deployed WITHOUT flexipage → SUCCEEDED
+  - 14 components deployed successfully
+
+### 6.3 Apex Tests
+- Ran: STLG_KuKaFileParserTest + STLG_CreateKuKaCasesFromInkFilesTest
+- Result: 20/20 PASSED
+- Coverage:
+  - STLG_KuKaFileParser: 96%
+  - STLG_CreateKuKaCasesFromInkFiles: 95%
+
+## Step 7: Create Test Data
+- Created anonymous Apex script with:
+  - Parent case (Subject: 'KuKa - Hochladen der INK Datei', TopicDetail: 'Bestellformulare')
+  - Test ContentVersion with CSV data (3 customer entries)
+- Executed against LottoDEV
+- Parent case created: 500bh00000FQuHFAA1
+- Note: Description field filter issue (not filterable in SOQL) — used alternative fields
+
+## Step 8: Create Pull Request
+- Committed: fad9c46c "CRM-2900: KuKa checklist LWC, CSV parsing, name enrichment"
+  - 15 files changed, 1553 insertions, 346 deletions
+  - ESLint fix: no-confusing-arrow error on handleCheck arrow function
+- Pushed: feature/CRM-2900 to origin
+- PR #1482 created: feature/CRM-2900 → release/1.10.3
+  - URL: https://dev.azure.com/LottoBW/Salesforce%20CICD/_git/Salesforce%20CICD/pullrequest/1482
+  - Reviewers: Joachim Lintl, Ivan Emilov
+
+## Step 9: Summary
+
+### Implementation Approach
+LWC + Apex utility class. Interactive checkbox table with JSON persistence on Case.
+Declarative not feasible for the per-row checkbox UX requirement.
+
+### Files Created (9)
+1. Case.STLG_ChecklistData__c (LongTextArea 131072)
+2. STLG_KuKaFileParser.cls
+3. STLG_KuKaFileParser.cls-meta.xml
+4. STLG_KuKaFileParserTest.cls
+5. STLG_KuKaFileParserTest.cls-meta.xml
+6. stlg_kukaChecklist.html
+7. stlg_kukaChecklist.js
+8. stlg_kukaChecklist.css
+9. stlg_kukaChecklist.js-meta.xml
+
+### Files Modified (6)
+1. STLG_CreateKuKaCasesFromInkFiles.cls — CSV routing, parser delegation, JSON field population
+2. STLG_CreateKuKaCasesFromInkFilesTest.cls — CSV tests, JSON assertions
+3. STLG_SecondLevelCaseRecordPage.flexipage-meta.xml — LWC with visibility rule
+4. STLG_CustomerService.permissionset-meta.xml — FLS
+5. STLG_SystemAdministrator.permissionset-meta.xml — FLS
+6. implementation-design/CRM-2900/implementation-notes.md — Updated decisions
+
+### Known Issue
+FlexiPage not deployed due to pre-existing `Offener Betrag` picklist error.
+The LWC component is committed to the branch but needs the picklist issue resolved first.
+
+### Manual Steps
+- Fix pre-existing flexipage picklist error, then deploy flexipage change separately
+- User chose: display only (not saved to deployment file)

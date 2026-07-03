@@ -1,0 +1,30 @@
+/commit updated skills + testdata config
+================================================================================
+Date: 2026-03-03
+Customer: LottoBW
+
+## Changes Summary
+
+### Submodule (pipeline/) — 8 files (incl. this log)
+- Modified: .claude/skills/02-implement-us/SKILL.md (Azure DevOps primary, git fallback)
+- Modified: .claude/skills/03-promote-us/SKILL.md (Azure DevOps primary, fallback link)
+- Modified: customers/_template/config.md (added optional Azure DevOps section)
+- Modified: customers/lotto-bw/config.md (added Azure DevOps config values)
+- Modified: customers/lotto-bw/testdata.config.md (PotentialStore vs Store RecordType guidance)
+- New: .claude/skills/02-implement-us/logs/2026-03-03-LottoBW-CRM-3053-implement-us.txt
+- New: .claude/skills/11-design-us/logs/2026-03-03-LottoBW-CRM-3053-design-us.txt
+- New: .claude/skills/07-commit/logs/2026-03-03-LottoBW-skills-testdata-commit.txt (this file)
+
+### Main Repo — 2 items
+- New: deployment/1.10.5/Release-1.10.5-Manual-Deployment-Steps.md
+- Updated: pipeline submodule pointer
+
+## Security Check
+- No sensitive content detected
+- All changes are internal skills, configs, and logs
+
+## Commit Details
+- Submodule commit message: "updated skills + testdata config"
+- Main repo commit message: "updated skills + testdata config [skip ci]"
+- Co-author policy: Never
+- Branch: feature/CRM-3053

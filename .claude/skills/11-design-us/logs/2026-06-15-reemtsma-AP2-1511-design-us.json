@@ -1,0 +1,12 @@
+{
+  "skill": "design-us",
+  "customer": "reemtsma",
+  "identifier": "AP2-1511",
+  "timestamp": "2026-06-15T18:30:00Z",
+  "status": "success",
+  "summary": "Created implementation notes for AP2-1511 Duplicate Account Merge with updated LoyaltyMemberTier merge logic: take the tier with more points (highest BalanceStatusPoints__c), do not sum.",
+  "artifacts": [
+    "implementation-design/AP2-1511/implementation-notes.md"
+  ],
+  "output": "Implementation notes created. Key design decisions: (1) LMT merge takes winner by BalanceStatusPoints__c, not sum. (2) Contact__c is non-reparentable Master-Detail — must copy values + delete, cannot reparent. (3) Follows DataUpdateBatch pattern for batch processing and anonymization. Components: DuplicateMergeBatch, DuplicateMergeService, DuplicateMergeBatchTest. 8 test scenarios defined."
+}

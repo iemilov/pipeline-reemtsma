@@ -1,0 +1,25 @@
+Commit Log: csv export and bugfix
+Date: 2026-03-03
+Customer: LottoBW
+
+## Changes Summary
+
+### Main Repo (3 files)
+- projects/crm/src/pages/InvoicesPage.jsx — Bugfix: CSV numeric values wrapped with escCsv()
+- projects/crm/src/pages/client/ClientDashboardPage.jsx — Same CSV escaping bugfix
+- projects/crm/src/pages/portal/PortalTimesheetPage.jsx — New CSV export feature for portal timesheet
+
+### Submodule
+- Log file only (no code changes)
+
+### Submodule Pointer
+- Updated pipeline pointer in main repo
+
+## Security Check
+- No sensitive content detected
+- No API keys, tokens, or passwords found
+- No internal workflow references in main repo files
+
+## Commit Details
+- Submodule commit message: csv export and bugfix
+- Main repo commit message: csv export and bugfix [skip ci]

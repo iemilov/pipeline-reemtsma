@@ -1,0 +1,71 @@
+============================================================
+CRM-2961 - VDE zusätzliches Asset am Case anlegen - Deployment Log
+Epic: CRM-2453 (SD: VDE Prüfung durch Pro Service)
+Target Org: LottoUAT2, LottoPROD (validation)
+Date: 2026-02-03
+============================================================
+
+STORY SUMMARY
+-------------
+Allow users (Admin, Service Desk, Field Service) to manually add
+additional Assets to a VDE Case when a store has more than one terminal.
+
+IMPLEMENTATION
+--------------
+Added "New" action button to the Asset related list on the Service Desk
+Case record page, enabling users to create additional Assets directly.
+
+FILES DEPLOYED
+--------------
+1. force-app/main/default/flexipages/STLGS_ServiceDeskCaseRecordPage.flexipage-meta.xml
+   Type: FlexiPage (Lightning Record Page)
+
+DEPLOYMENT SUMMARY
+------------------
+| Step                   | Status    | Details                              |
+|------------------------|-----------|--------------------------------------|
+| PMD Check              | Skipped   | No Apex classes in deployment        |
+| Deploy to LottoUAT2    | Succeeded | 1 component deployed                 |
+| Validate to LottoPROD  | FAILED    | Missing picklist value               |
+| Apex Tests             | Skipped   | No Apex classes in deployment        |
+| Code Coverage          | N/A       | No Apex classes                      |
+
+LOTTO UAT2 DEPLOYMENT
+---------------------
+Deploy ID: 0Af9Q00000qwUXdSAM
+Target Org: system.user@lotto-bw.de.uat2
+Elapsed Time: 6.55s
+Status: Succeeded
+Components: 1/1 (100%)
+
+LOTTO PROD VALIDATION (FAILED)
+------------------------------
+Deploy ID: 0AfVl000002RrYXKA0
+Target Org: system.user@lotto-bw.de
+Elapsed Time: 27.29s
+Status: Failed
+
+Error:
+┌───────────┬─────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Type      │ Name                            │ Problem                                                                                     │
+├───────────┼─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+│ FlexiPage │ STLGS_ServiceDeskCaseRecordPage │ '{!Record.STLGS_TopicArea__c}' is a picklist field.'VDE Prüfung' is an invalid field value. │
+└───────────┴─────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ROOT CAUSE
+----------
+The FlexiPage uses a visibility rule based on the picklist value "VDE Prüfung"
+in the Case.STLGS_TopicArea__c field. This value exists in UAT2 but does NOT
+exist in PROD yet.
+
+RESOLUTION REQUIRED
+-------------------
+Before deploying CRM-2961 to PROD, ensure the following picklist value is added:
+- Object: Case
+- Field: STLGS_TopicArea__c
+- Value: "VDE Prüfung"
+
+This is likely part of the parent Epic CRM-2453 deployment that needs to be
+deployed to PROD first.
+
+============================================================

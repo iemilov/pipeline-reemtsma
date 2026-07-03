@@ -1,0 +1,62 @@
+============================================================
+Skill: 10-build-knowledge
+Topic: Filialverantwortung wechseln
+Slug: filialverantwortung-wechseln
+Input: Filialverantwortung wechseln (detected as: Topic)
+Date: 2026-02-20
+============================================================
+
+Step 1: Input & Existing Documentation
+----------------------------------------
+- Input type: Topic
+- Topic name: Filialverantwortung wechseln
+- Slug: filialverantwortung-wechseln
+- Existing topic file: not found
+- Existing domain-knowledge section: found (Vertragsarten, TK Sperrung references)
+
+Step 2: Sources Gathered
+-------------------------
+- Jira: 0 stories (user declined Jira/Confluence access)
+  - CRM-336 referenced in Validation Rule description
+- Codebase: 2 flows, 2 Apex classes, 7+ fields, 1 VR, 1 Quick Action, 2 Flexipages
+  - STLGS_CreateNewBranchManager (Screen Flow) — Case-Erstellung
+  - STLGS_UpdateACRMainContact (Record-Triggered Flow) — ACR-Update
+  - STLGS_BranchMangagerMandatoryFields (VR) — Pflichtfelder bei VO
+  - STLGS_BranchManager__c (Lookup on Request)
+  - STLGS_MainContact__c (Checkbox on ACR)
+  - STLGS_Role__c (Text on ACR)
+  - STLGS_ValidFrom__c (Date on Case)
+  - STLGS_ELOProof__c (Checkbox on Case)
+  - Account.STLGS_NewBranchManager (Quick Action)
+  - STLGS_TextMergeService.cls — Merge-Token [!STLGS_BranchManager__r.*]
+  - STLGS_TextMergeLookupService.cls — getStoreManager()
+  - Account.STLGS_LicenseOwnerNationality__c (Formula)
+  - Account.STLGS_LicenseOwnerNationality2__c (Formula)
+  - STLGS_ConfirmRequest (Flow) — BM-Validierung
+  - STLGS_UpdateAccStatusOnCreateUpdateRequest (Flow) — Pflichtschulung ContactId
+- Confluence: 0 pages (user declined access)
+- Local docs: 0 files found
+
+Step 3: Topic File Written
+---------------------------
+- Path: pipeline/customers/lotto-bw/docs/filialverantwortung-wechseln.md
+- Mode: created
+- Sections: Alle Template-Sections ausgefuellt
+- New content: Vollstaendiger Prozess dokumentiert inkl. Flow-Details, Business Rules, ACR-Logik
+
+Step 4: Index Updated
+----------------------
+- domain-knowledge.md: Index-Tabelle um Filialverantwortung-Zeile erweitert
+- domain-knowledge.md: Blockquote-Verweis bei "Vertragsarten" (Account & Annahmestelle) hinzugefuegt
+
+Step 5: Summary
+----------------
+- Topic file: pipeline/customers/lotto-bw/docs/filialverantwortung-wechseln.md
+- Sources processed: 0 Jira stories, 2 Flows, 0 Confluence pages, 0 local docs
+- Key findings:
+  - Prozess nur fuer juristische Personen (Business Accounts)
+  - Screen Flow erstellt Case, manueller BM-Update am Antrag durch VO
+  - ACR-Update automatisch via Record-Triggered Flow
+  - VR prueft Pflichtfelder nur bei VO-Queue (STLGS_SalesOrganization)
+  - Typo im VR-Namen: "Mangager" statt "Manager"
+  - STLGS_Role__c ist Textfeld (kein Picklist) — "Ehemalige Filialverantwortung" als Freitext

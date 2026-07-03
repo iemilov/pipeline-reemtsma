@@ -1,0 +1,35 @@
+Commit Log - 2026-03-01 - kanban code review fixes
+
+== Submodule (pipeline/) ==
+New files:
+  - .claude/skills/07-commit/logs/2026-03-01-LottoBW-kanban-commit.txt
+  - .claude/skills/08-code-review/logs/2026-03-01-LottoBW-code-review.txt
+  - .claude/skills/07-commit/logs/2026-03-01-LottoBW-kanban-review-fixes-commit.txt (this file)
+
+== Main Repo ==
+Modified files:
+  - projects/kanban/functions/api/_middleware.js
+  - projects/kanban/functions/api/ai/suggest.js
+  - projects/kanban/functions/api/cards/[id]/prompt.js
+  - projects/kanban/functions/api/cards/reorder.js
+  - projects/kanban/functions/api/cards/sync.js
+  - projects/kanban/functions/api/skills/run.js
+  - projects/kanban/functions/api/skills/runs.js
+  - projects/kanban/functions/api/users.js
+  - projects/kanban/functions/api/users/[id].js
+  - projects/kanban/functions/lib/github-md.js
+  - projects/kanban/functions/lib/sync.js
+  - projects/kanban/src/components/CardModal.css
+  - projects/kanban/src/components/CardModal.jsx
+  - projects/kanban/src/components/CommandPalette.jsx
+  - projects/kanban/src/hooks/useBoard.js
+  - projects/kanban/src/main.jsx
+
+New files:
+  - projects/kanban/architecture/2026-03-01-architecture-overview.md
+  - projects/kanban/code-review/2026-03-01-code-review.md
+  - projects/kanban/src/components/ErrorBoundary.jsx
+
+Security check: PASSED (no sensitive content detected)
+CI skip pattern: [skip ci] (appended to main repo commit)
+Co-author policy: Never

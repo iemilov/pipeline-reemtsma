@@ -1,0 +1,154 @@
+===========================================
+SKILL EXECUTION LOG: Meeting-Update CRM-87
+===========================================
+
+EXECUTION DATE: 2026-02-12 (Fortsetzung nach Session-Abbruch)
+EPIC: CRM-87 - Integration LMS
+USER: Benjamin Wiedenmann
+
+===========================================
+KONTEXT
+===========================================
+
+Vorherige Session hat das Fachkonzept basierend auf dem Meeting mit
+Claudia Richter (time4you) aktualisiert (v1.0 → v1.1). Die Session
+wurde unterbrochen, bevor die Jira Stories aktualisiert werden konnten.
+
+Diese Session setzt dort fort: Jira Stories pruefen und mit den
+Meeting-Erkenntnissen aktualisieren.
+
+===========================================
+JIRA API AUTH FIX
+===========================================
+
+PROBLEM: `curl -u` gibt 404 fuer alle /rest/api/3/issue/ Endpoints
+URSACHE: Atlassian hat API-Verhalten geaendert
+LOESUNG: Expliziter Basic-Auth-Header statt -u Flag
+
+  AUTH_HEADER="Authorization: Basic $(echo -n $EMAIL:$TOKEN | base64)"
+  curl -H "$AUTH_HEADER" ...
+
+Zusaetzlich: /rest/api/3/search deprecated → /rest/api/3/search/jql (POST)
+
+===========================================
+STORY-ANALYSE: ABWEICHUNGEN FACHKONZEPT vs. JIRA
+===========================================
+
+CRM-2992 (Datenmodell) — HOCH
+  - Jira: Lookup auf Training + Contact
+  - Fachkonzept: Master-Detail auf Training + Contact
+  - Jira: Status fehlt "Nicht bestanden"
+  - Jira: Feld STLGS_SFContactId__c fehlt
+  - Jira: STLGS_LMSCourseId__c ohne SCORM-Hinweis
+
+CRM-2996 (Callback) — HOCH (komplett veraltet)
+  - Jira: eventType (TRAINING_STARTED/TRAINING_COMPLETED)
+  - Fachkonzept: SCORM-Status (keiner/begonnen/abgeschlossen/bestanden/nicht bestanden)
+  - Jira: Matching nur ueber Email
+  - Fachkonzept: Primaer salesforceContactId, Fallback Email
+  - Jira: Kein Training Upsert
+  - Fachkonzept: Upsert auf External ID mit Auto-Create
+  - Jira: Kein courseName-Update
+  - Fachkonzept: courseName bei jedem Callback aktualisieren
+
+CRM-2994 (Zuweisungsflow) — MITTEL
+  - Jira: Kein Audience im ImportUser-Payload
+  - Fachkonzept: Audience = "Pflichtschulung" (NEU)
+  - Jira: Kein SalesforceContactId im Payload
+  - Fachkonzept: SalesforceContactId = Contact.Id (NEU)
+  - Jira: Kein Migrations-Hinweis
+  - Fachkonzept: Migration ohne Audience
+
+CRM-2995 (Vertragsstart-Update) — GERING
+  - Jira: Kein SalesforceContactId im Payload
+  - Jira: Kein ContractStartDate Lifecycle (zweistufig)
+
+CRM-2933 (Willkommens-Email) — MITTEL
+  - Jira: Nur 3 Zeilen Beschreibung
+  - Fehlten: Dependencies, Stakeholder, Akzeptanzkriterien
+
+CRM-2993 (Berechtigungen) — OK, keine Aenderung noetig
+CRM-2997 (Reporting) — OK, keine Aenderung noetig
+
+===========================================
+JIRA-UPDATES DURCHGEFUEHRT
+===========================================
+
+Alle Updates via PUT /rest/api/3/issue/{key} mit ADF (Atlassian Document Format)
+
+CRM-2992 — HTTP 204 (15:24 Uhr)
+  + Master-Detail statt Lookup (Training + Contact)
+  + Picklist-Wert "Nicht bestanden" auf STLGS_Status__c
+  + Neues Feld STLGS_SFContactId__c (Text(18))
+  + STLGS_LMSCourseId__c: WBT-interner Code, SCORM-Standard
+  + IsOverdue-Formel: Schliesst "Nicht bestanden" aus
+  + TrafficLight-Formel: "Nicht bestanden" = Red
+  + Update-Blockquote mit Meeting-Referenz
+
+CRM-2996 — HTTP 204 (15:26 Uhr)
+  + Komplett neu geschrieben
+  + 5 SCORM-Status-Werte mit Mapping-Tabelle
+  + Primaeres Matching ueber salesforceContactId
+  + Fallback-Matching ueber userEmail
+  + Training Upsert auf External ID (Auto-Create)
+  + courseName-Update bei jedem Callback
+  + Bestaetigtes JSON-Payload mit allen Feldern
+  + Error Handling Sektion
+  + Erweiterte Test-Szenarien (7 Tests)
+
+CRM-2994 — HTTP 204 (15:28 Uhr)
+  + Audience = "Pflichtschulung" im ImportUser-Payload
+  + SalesforceContactId = Contact.Id im Payload
+  + Audience vs. Group vs. Profile Tabelle
+  + Migrations-Hinweis (bestehende User ohne Audience)
+  + Flow-Name: STLGS_LMS_AutoAssignTraining
+  + Entry Condition ergaenzt
+
+CRM-2995 — HTTP 204 (15:29 Uhr)
+  + SalesforceContactId im ImportUser-Payload
+  + ContractStartDate Lifecycle (zweistufiger Prozess)
+  + SOQL ueber Request → Store statt Contact → AccountId
+  + Edge Case: Mehrfache ContractStart-Aenderung
+
+CRM-2933 — HTTP 204 (15:29 Uhr)
+  + Vollstaendige User Story mit Hintergrund
+  + LMS-seitige Anforderungen (time4you)
+  + Dependencies (CRM-2845, CRM-2994)
+  + Stakeholder (Schiffmann, Baust)
+  + Akzeptanzkriterien
+  + Offene Fragen
+
+===========================================
+IMPLEMENTATION NOTES STATUS
+===========================================
+
+Alle 7 Implementation-Notes-Dateien in implementation-design/ sind aktuell:
+  - CRM-2933/implementation-notes.md — Aktuell
+  - CRM-2992/implementation-notes.md — Aktuell (Meeting-Update enthalten)
+  - CRM-2993/implementation-notes.md — Aktuell
+  - CRM-2994/implementation-notes.md — Aktuell (Meeting-Update enthalten)
+  - CRM-2995/implementation-notes.md — Aktuell (Meeting-Update enthalten)
+  - CRM-2996/implementation-notes.md — Aktuell (Meeting-Update enthalten)
+  - CRM-2997/implementation-notes.md — Aktuell
+
+===========================================
+ZUSAMMENFASSUNG
+===========================================
+
+STORIES GEPRUEFT: 7
+STORIES AKTUALISIERT: 5 (CRM-2992, CRM-2994, CRM-2995, CRM-2996, CRM-2933)
+STORIES UNVERAENDERT: 2 (CRM-2993, CRM-2997 — bereits aktuell)
+
+FACHKONZEPT: v1.1 (aktualisiert in vorheriger Session)
+IMPLEMENTATION NOTES: Alle 7 aktuell
+
+JIRA API: Auth-Fix dokumentiert (Basic Header statt -u)
+MEMORY: Aktualisiert mit neuem Auth-Pattern
+
+NAECHSTE SCHRITTE:
+1. Stories koennen implementiert werden (Start mit CRM-2992: Datenmodell)
+2. Empfohlene Reihenfolge: CRM-2992 → CRM-2993 → CRM-2994 → CRM-2995 → CRM-2996 → CRM-2997
+
+===========================================
+END OF LOG
+===========================================

@@ -1,0 +1,84 @@
+============================================================
+Skill: 10-build-knowledge
+Topic: Testkauf
+Slug: testkauf
+Input: Testkauf (detected as: Topic)
+Date: 2026-02-20
+============================================================
+
+Step 1: Input & Existing Documentation
+----------------------------------------
+- Input type: Topic
+- Topic name: Testkauf
+- Slug: testkauf
+- Existing topic file: not found (new file)
+- Existing domain-knowledge section: found (lines 188-273, "Testkauf (TK) — Test Purchase / Mystery Shopping")
+
+Step 2: Sources Gathered
+-------------------------
+- Jira: SKIPPED (MCP call rejected by user)
+- Confluence: SKIPPED (MCP call rejected by user)
+- Codebase: 10 Flows, 11 Apex classes, 45 CMT records, 7 Validation Rules, 4 VF Pages
+  Flows:
+  - STLGS_CalculateTestPurchaseStatus (Autolaunched — Ampelstatus berechnen)
+  - STLGS_CalculateTestPurchaseStatusSub (Subflow — Ampelstatus-Unterflow)
+  - STLGS_CancelTestPurchases (Autolaunched — Testkäufe stornieren)
+  - STLGS_CreateTestPurchase (Autolaunched — TK-Cases erstellen)
+  - STLGS_CreateTestPurchaseScheduled (Scheduled — jährliche TK-Erstellung)
+  - STLGS_ForwardTestPurchaseProtocol (Autolaunched — Protokoll weiterleiten)
+  - STLGS_PresetTestPurchases (Before Save — Owner/Subject/Status preset)
+  - STLGS_SetEndLockoutTestPurchase (Autolaunched — Sperrung beenden)
+  - STLGS_TestPurchaseDeleteFilesScheduled (Scheduled — Dateien aufräumen)
+  - STLGS_TriggerTestPurchasePDFGeneration (Autolaunched — PDF-Generierung)
+  Apex Classes (non-test):
+  - STLGS_CalculateTestPurchaseStatus (Invocable)
+  - STLGS_CreateTestPurchaseBatch (Batch)
+  - STLGS_CreateTestPurchaseScheduled (Schedulable)
+  - STLGS_UpdateTestPurchaseBatch (Batch)
+  - STLGS_UpdateTestPurchaseScheduled (Schedulable)
+  - STLGS_SkyvvaCreateTestPurchaseReTests (Skyvva Hook)
+  - STLGS_TestPurchaseComparator (Comparator)
+  - STLGS_TestPurchaseDocumentPDFController (VF Controller)
+  - STLGS_TestPurchaseLockoutPDFController (VF Controller)
+  - STLGS_TestPurchasePenaltyPDFController (VF Controller)
+  CMT: 7x STLGS_TestPurchaseRelevantStore, 38x STLGS_TestPurchaseStatusChanges
+  Validation Rules:
+  - STLGS_TestPurchaseMandatoryFields (CRM-1571)
+  - STLGS_TestPurchaseAmpelStatusGeschlossen
+  - STLGS_TestPurchaseKindSperre
+  - STLGS_TestPurchasePassedWarning
+  - STLGS_TestPurchasePenaltyDebitedOn
+  - STLGS_TestPurchaseStartLockout
+  - STLGS_TestPurchaseWarning
+  VF Pages:
+  - STLGS_PDFGenerateTestPurchase (Abmahnung)
+  - STLGS_PDFGeneratePenaltyTestPurchase (Vertragsstrafe)
+  - STLGS_TestPurchaseProtocolPDF (Protokoll Desktop)
+  - STLGS_TestPurchaseProtocolPDFMobile (Protokoll Mobil)
+- Local docs: 3 files read
+  - business/docs/TK/Notiz-TK-Nachtest-Klaerung.md (Nachtest-Architektur)
+  - business/docs/TK/Fix-TK-Nachtest-Skyvva-Query.md (Bug fehlende Nachtests)
+  - business/docs/TK/TK-Batch-Simulation-2026-02-18.md (Batch-Simulation 157 Cases)
+
+Step 3: Topic File Written
+---------------------------
+- Path: pipeline/customers/lotto-bw/docs/testkauf.md
+- Mode: created (new file)
+- Sections: Überblick, Geschäftsprozess (inkl. Status-Flow, Ampelstatus, Batch, Nachtest, Sonderfälle), Business Rules, Technische Umsetzung (Datenmodell, Automation, Integrationen), Konfiguration, Bekannte Probleme & Workarounds, Referenzen, Änderungshistorie
+- Key content: Vollständige Ampelstatus-Übergangsmatrix dokumentiert, Nachtest-Bug mit Fix-Vorschlag, Batch-Filterlogik, CMT-Struktur
+
+Step 4: Index Updated
+----------------------
+- domain-knowledge.md: Index table updated (Testkauf row added)
+- domain-knowledge.md: Blockquote reference added after Testkauf section (line 274)
+
+Step 5: Summary
+----------------
+- Topic file: pipeline/customers/lotto-bw/docs/testkauf.md
+- Sources processed: 0 Jira stories, 10 Flows, 11 Apex classes, 45 CMT records, 7 VR, 4 VF Pages, 0 Confluence pages, 3 local docs
+- Key findings:
+  1. 38 CMT-Records für Ampelstatus-Übergangsmatrix mit Differenzierung juristische/natürliche Person
+  2. Bug: STLG_CaseStatusChangedAt__c wird bei jedem Statuswechsel überschrieben → 55 fehlende Nachtests 2025
+  3. Kein LWC/Aura-Komponent für TK-Verwaltung — alles über Standard-Layout + VF Pages
+  4. 4 separate VF Pages für PDF-Generierung (Desktop + Mobil, Abmahnung + Vertragsstrafe + Protokoll)
+  5. Toter Code in STLGS_SkyvvaCreateTestPurchaseReTests (accMap unused, falscher Logger-Name)

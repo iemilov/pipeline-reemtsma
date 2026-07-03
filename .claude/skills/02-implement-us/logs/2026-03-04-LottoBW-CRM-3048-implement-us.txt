@@ -1,0 +1,70 @@
+# CRM-3048 Implementation Log
+# Date: 2026-03-04
+# Customer: LottoBW
+# Story: CRM-3048 — Anzeige der ursprünglichen Absender-E-Mail am Case
+
+## Step 1: Jira Story
+- Fetched CRM-3048 via Atlassian MCP
+- Summary: Display original sender email address prominently on Case
+- Status: Already "In Progress"
+- No implementation notes existed at implementation-design/CRM-3048/
+
+## Requirements
+- As a customer service agent, I want to see the original sender email on the Case
+- The email must be visible independent of the mapped Account's email
+- Must not be overwritten by Account data
+- Must be permanently traceable
+
+## Acceptance Criteria
+1. Original sender email saved on every incoming Case
+2. Visible as clearly labeled field on the Case
+3. Unchanged when Case mapped to Account with different email
+4. Permanently traceable after edits/status changes
+5. Distinguishable from Account email
+
+## Step 2: Codebase Analysis
+- SuppliedEmail standard field already exists and is auto-populated by Email-to-Case
+- Field is already on all 10 Case page layouts as Readonly
+- 13 permission sets already grant read access to SuppliedEmail
+- STLG_CustomerService has editable=false, readable=true (correct)
+- No custom field needed — SuppliedEmail meets all acceptance criteria
+
+## Step 3: Implementation Approach — Declarative (Layout Only)
+- Problem: SuppliedEmail was buried in "System Information" sidebar section
+- Solution: Move SuppliedEmail to Case Information section, directly after ContactEmail
+- This makes both emails visible side by side for easy comparison
+- No new fields, no flows, no Apex — pure FlexiPage layout change
+
+## Step 4: Feature Branch
+- Release branch: release/1.10.5 (from Azure DevOps default branch)
+- Created: feature/CRM-3048 from origin/release/1.10.5
+
+## Step 5: Implementation
+- File modified: force-app/main/default/flexipages/STLG_CustomCaseRecordPage.flexipage-meta.xml
+- Change: Moved SuppliedEmail field instance from sidebar system section (after CreatedById)
+  to main content region (after ContactEmail, before ContactPhone)
+- Field remains readonly
+- Page layouts not updated (not used — FlexiPage is the active record page)
+
+## Step 6: Deployment
+- Deployed to LottoDEV (system.user@lotto-bw.de.dev)
+- Deploy ID: 0Af9M00000jdbPESAY
+- Status: Succeeded
+- 1 component deployed (FlexiPage)
+- No Apex tests needed (no code changes)
+
+## Step 7: Test Data
+- Not applicable — no new fields or automation to test
+- SuppliedEmail is automatically populated by Email-to-Case on existing Cases
+
+## Step 8: Commit & PR
+- Commit: CRM-3048 SuppliedEmail im Case-Record-Page prominenter platziert
+- Branch pushed: feature/CRM-3048
+- PR #44 created: feature/CRM-3048 → release/1.10.5
+- URL: https://dev.azure.com/DEV-LottoBW/CRM/_git/CRM/pullrequest/44
+
+## Summary
+- Approach: Pure declarative (FlexiPage layout change only)
+- 1 file changed, 10 insertions, 10 deletions
+- No manual deployment steps needed (FlexiPage deploys automatically)
+- No new metadata, no code, no permission changes

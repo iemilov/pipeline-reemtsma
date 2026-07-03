@@ -1,0 +1,12 @@
+{
+  "skill": "design-us",
+  "customer": "reemtsma",
+  "identifier": "BoardingPass",
+  "timestamp": "2026-06-10T10:00:00Z",
+  "status": "success",
+  "summary": "Implementation notes created for JPS Boarding Pass feature. Queueable-based async callout after registration, Account field storage, WebDB sync to Umbraco. 6 resolved questions, 7 open items.",
+  "artifacts": [
+    "implementation-design/BoardingPass/implementation-notes.md"
+  ],
+  "output": "Design completed. Key decisions: (1) Queueable instead of @future for async JPS callout, (2) Fire at registration (step 1) for guaranteed availability before profile access, (3) New Campaign Mechanic M29 for campaign identification, (4) Account.BoardingPassURL__pc for storage, (5) WebDB sync to Umbraco for profile page retrieval. Components: 1 new Apex class + test, 1 new Account field, 1 new picklist value, 1 Named Credential, 1 HTTPCalloutConfiguration__mdt, 2 modified registration classes."
+}

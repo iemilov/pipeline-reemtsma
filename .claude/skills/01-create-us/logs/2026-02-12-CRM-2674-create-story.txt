@@ -1,0 +1,81 @@
+================================================================
+Create Story Log: CRM-2674
+Date: 2026-02-12
+Epic: CRM-87 (Integration LMS)
+================================================================
+
+STEP 1: GATHER CONTEXT
+======================
+- Epic CRM-2674 fetched from Jira (Story under Epic CRM-87)
+- No transcripts found in business/input/CRM-2674/ (folder does not exist)
+- Context gathered from: Jira ticket description + extensive codebase analysis + approved implementation plan
+
+Jira Ticket Description (CRM-2674):
+- Kontakt-Duplikate am Account "Staatliche Toto-Lotto GmbH Baden-Württemberg" bereinigen
+- Matching-Kriterien: Nachname, Vorname + weiterer Vorname, Geburtsdatum
+- Admins und VO (+VS?) sollen Liste neu angelegter Duplikate sehen
+- Nach Merge: Anzahl aktiver ASten und ASten (FV) muss korrekt sein
+
+Codebase Analysis Findings:
+- Existing Matching Rule: STLGS_CustomContactMatchingRule (Active, only LastName Exact)
+- Existing Duplicate Rule: STLG_CustomContactDuplicateRule (INACTIVE, CRM-419)
+- Existing Merge Handler: STLG_TA_ContactMergeHandler (AfterDelete, but NOT REGISTERED in metadata)
+- MiddleName enabled in org settings
+- Integration Data Factory users have BypassDuplicateRules = false (both users)
+- ACR recount flows: STLGS_CountActiveStoresCU, STLGS_CountActiveLinkedStoresContact
+
+User Decisions:
+- FirstName matching: Fuzzy (FirstName method)
+- Duplicate list: Salesforce Report (not List View)
+- Post-merge ASten count: Automate (not manual)
+- Integration User bypass: No (duplicates from integrations should appear in report)
+- Story split: All in 1 story (update CRM-2674)
+
+STEP 2: STORY SPLIT
+====================
+Initially proposed 3 stories:
+1. Duplikats-Erkennung konfigurieren (Matching Rule + Duplicate Rule)
+2. ASten-Neuberechnung nach Contact-Merge automatisieren
+3. Duplikat-Report für Admins/VO/VS erstellen
+
+User decision: All in 1 story → update existing CRM-2674
+
+STEP 3: JIRA STORY
+===================
+Updated existing story CRM-2674 with detailed description:
+- Title: "Duplikats-Check Kontakte Vertrieb konfigurieren"
+- User Story statement (Als/möchte/damit)
+- Background context
+- 4 requirement sections with tables
+- 8 acceptance criteria (task list)
+- Technical hints with file paths
+- Deployment order (6 steps)
+
+API: PUT /rest/api/3/issue/CRM-2674 → Success (no output = 204)
+
+STEP 4: IMPLEMENTATION NOTES
+=============================
+Created: implementation-design/CRM-2674/implementation-notes.md
+Contents:
+- Summary, Requirements
+- Implementation approach (Declarative + Apex)
+- Affected Objects & Fields table
+- Acceptance Criteria Mapping
+- Open Questions / Assumptions
+- Notes for /implement-us
+
+STEP 5: SUMMARY
+===============
+Stories created: 0 new (1 existing updated: CRM-2674)
+Story link: https://kommit.atlassian.net/browse/CRM-2674
+Implementation notes: implementation-design/CRM-2674/implementation-notes.md
+Dependencies: None (single story)
+Suggested next step: /implement-us CRM-2674
+
+Key files to modify:
+1. force-app/main/default/matchingRules/Contact.matchingRule-meta.xml
+2. force-app/main/default/duplicateRules/Contact.STLG_CustomContactDuplicateRule.duplicateRule-meta.xml
+3. force-app/main/default/customMetadata/Trigger_Action.STLG_TA_ContactMergeHandler.md-meta.xml
+4. force-app/main/default/classes/STLG_TA_ContactMergeHandler.cls
+5. force-app/main/default/classes/STLG_TA_ContactMergeHandlerTest.cls
+6. force-app/main/default/reports/ (new report)

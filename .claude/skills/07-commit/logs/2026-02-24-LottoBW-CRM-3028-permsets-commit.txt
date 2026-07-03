@@ -1,0 +1,27 @@
+Commit Log — 2026-02-24
+Customer: LottoBW
+Skill: 07-commit
+
+## Changes Summary
+
+### Submodule (pipeline/)
+- Status: Clean — log file only
+
+### Main Repo (Salesforce CICD)
+- Branch: feature/CRM-3027
+- Modified: sfdx-project.json (added sourceBehaviorOptions: decomposePermissionSetBeta)
+- Deleted: 39 monolithic PermissionSet files (*.permissionset-meta.xml)
+- Added: 45 decomposed PermissionSet folders (~6,931 individual permission files)
+- Purpose: Enable granular delta deployment for PermissionSets — only changed field/object permissions are deployed instead of the entire file
+
+## Security Check
+- Result: PASS — no sensitive content detected
+
+## Commits
+### Submodule
+- Files: .claude/skills/07-commit/logs/2026-02-24-LottoBW-CRM-3028-permsets-commit.txt
+- Message: CRM-3028 decompose PermissionSets for delta deployment
+
+### Main Repo
+- Files: sfdx-project.json, force-app/main/default/permissionsets/ (39 deleted, 45 new folders)
+- Message: CRM-3028 decompose PermissionSets for delta deployment [skip ci]

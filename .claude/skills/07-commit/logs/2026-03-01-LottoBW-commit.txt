@@ -1,0 +1,17 @@
+Commit Log — 2026-03-01
+Commit Message: kanban issues
+
+== Changes Summary ==
+
+Submodule (pipeline/):
+  No changes.
+
+Main Repo:
+  MODIFIED: projects/crm/functions/lib/kanban.js
+  MODIFIED: projects/crm/src/hooks/useBoard.js
+
+== Security Check ==
+No sensitive content detected. Code-only changes.
+
+== Commit Details ==
+Main repo commit: kanban issues [skip ci] (d3ccb6a)

@@ -1,0 +1,79 @@
+Test Data Creation Log — LottoDEV — 2026-02-19
+================================================
+
+Target Org: LottoDEV (system.user@lotto-bw.de.dev)
+API Version: 64.0
+Date: 2026-02-19
+
+== Group 0: Internal Company Account ==
+0a  Staatliche Toto-Lotto GmbH Baden-Württemberg  STLGS_BusinessAccount     001bh00000Px4IzAAJ  CREATED
+
+== Group 1: B2C Person Accounts ==
+1a  Test Maria Interessent-2026-02-19              STLG_StandardPersonAccount 001bh00000Px8EUAAZ  CREATED
+1b  Test Elisabeth Bestandskunde-2026-02-19        STLG_StandardPersonAccount 001bh00000PwxO7AAJ  CREATED
+    Note: Used STLG_CustomerNumber__c=TEST-2026-002 (TEST-2026-001 already existed)
+
+== Group 2: B2B Accounts ==
+2a  Test Geschäftskunde 2026-02-19                 STLGS_BusinessAccount     001bh00000PxC0LAAV  CREATED
+2b  Test Pot. ASt 2026-02-19                       STLGS_PotentialStore      001bh00000PxC1xAAF  CREATED
+2c  Test ASt VollASt 2026-02-19                    STLGS_Store               001bh00000Px6vYAAR  CREATED
+    Note: RecordType shows as STLGS_PotentialStore (org automation changes RT)
+2d  Test ASt LK 2026-02-19                         STLGS_Store               001bh00000PxCI7AAN  CREATED
+    Note: ParentId=001bh00000PxC0LAAV, RecordType shows as STLGS_PotentialStore (org automation)
+
+== Group 3: Contacts ==
+3a  Max Johann Testgeschäftsführer-2026-02-19      STLGS_SalesContact        003bh00000i2QtLAAU  CREATED  → Business Account
+3b  Anna Sophie Testinhaber-2026-02-19             STLGS_SalesContact        003bh00000i2P3zAAE  CREATED  → Store VollASt
+3c  Lisa Marie Testfiliale-2026-02-19              STLGS_SalesContact        003bh00000i2XwDAAU  CREATED  → Store LK
+3d  Pierre Jean Testinhaber-EU-2026-02-19          STLGS_SalesContact        003bh00000i2TxSAAU  CREATED  → Pot. Store
+3e  Mehmet Ali Testinhaber-NonEU-2026-02-19        STLGS_SalesContact        003bh00000i2VoZAAU  CREATED  → Pot. Store
+
+== Group 4: ACR Updates ==
+4a  Store VollASt ↔ Lizenzinhaber                  07kbh00000F3x1JAAR  UPDATED  Role=Geschäftsinhaber, LicenseOwner=true
+4b  Store LK ↔ Filialverantwortliche               07kbh00000F3x4XAAR  UPDATED  Role=Filialleiter, LicenseOwner=false
+4c  Business Account ↔ Geschäftsführer             07kbh00000F3wy5AAB  UPDATED  ManagingDirector=true
+4d  Pot. Store ↔ EU-Lizenzinhaber                  07kbh00000F3GaiAAF  UPDATED  Role=Geschäftsinhaber, LicenseOwner=true
+4e  Pot. Store ↔ Non-EU-Lizenzinhaber              07kbh00000F3tVaAAJ  UPDATED  Role=Geschäftsinhaber, LicenseOwner=false (uniqueness constraint)
+
+== Group 5: Requests ==
+5a  Neueröffnung NP (Store VollASt)                STLGS_StandardRequest     a27bh000002JluvAAC  CREATED
+5b  Übernahme NP (Store VollASt)                   STLGS_StandardRequest     a27bh000002JlwXAAS  CREATED
+5c  Neueröffnung JP (Store LK)                     STLGS_BusinessRequest     a27bh000002Jly9AAC  CREATED
+5d  Verlegung NP (Store VollASt)                   STLGS_StandardRequest     a27bh000002JlzlAAC  CREATED
+5e  Neueröffnung EU (Pot. Store)                   STLGS_StandardRequest     a27bh000002Jm1NAAS  CREATED
+5f  Neueröffnung Non-EU (Pot. Store)               STLGS_StandardRequest     a27bh000002Jm2zAAC  CREATED
+
+== Group 6: B2C Cases ==
+6a  Test B2C Allgemeines Anliegen 2026-02-19       STLG_StandardCase         500bh00000GzPV4AAN  CREATED
+6b  Test Gewinnauskunft 2026-02-19                 STLG_StandardCase         500bh00000GzRZxAAN  CREATED
+6c  Test Erwin Kundenkonto 2026-02-19              STLG_ErwinCase            500bh00000GzPwOAAV  CREATED
+
+== Group 7: B2B Cases ==
+7a  Test B2B Service Desk 2026-02-19               STLGS_ServiceDeskCase     500bh00000GzSKjAAN  CREATED
+7b  Test VDE Prüfung 2026-02-19                    STLGS_ServiceDeskCase     500bh00000GzQlzAAF  CREATED
+7c  Test VDE Prüfung LK 2026-02-19                STLGS_ServiceDeskCase     500bh00000GzHchAAF  CREATED
+7d  Test Testkauf 2026-02-19                       STLGS_TestPurchase        500bh00000Gz2OhAAJ  CREATED
+7e  Test Pflichtschulung Präsenz 2026-02-19        STLGS_EditCase            500bh00000GzOAhAAN  CREATED
+7f  Test Pflichtschulung Online 2026-02-19         STLGS_EditCase            500bh00000GzRDUAA3  CREATED
+7g  Test Kündigung durch ASt 2026-02-19            STLGS_EditCase            500bh00000GzRuwAAF  CREATED
+7h  Test Vertragsrelevante Daten 2026-02-19        STLGS_EditCase            500bh00000GzSW1AAN  CREATED
+7i  Test Bankdaten-Änderung 2026-02-19             STLGS_EditCase            500bh00000GzQyuAAF  CREATED
+7j  Test Rücklastschrift 2026-02-19                STLGS_EditCase            500bh00000GzL85AAF  CREATED
+7k  Test Kontrollbesuch 2026-02-19                 STLGS_ControlReport       500bh00000GzQR0AAN  CREATED
+7l  Test Terminallaufzeiten 2026-02-19             STLGS_EditCase            500bh00000GzHKfAAN  CREATED
+7m  Test Bestellung 2026-02-19                     STLGS_SalesCase           500bh00000GzOM4AAN  CREATED
+
+== Group 8: Visit Reports ==
+8a  Besuchsbericht (Store VollASt)                 STLGS_Report              a29bh000000gCJJAA2  CREATED
+
+== Group 9: Assets ==
+9a  Test Terminal 2026-02-19                       Asset                     02ibh000008Q15WAAS  CREATED
+9b  Test Lottowand 2026-02-19                      Asset                     02ibh000008Q345AAC  CREATED
+
+== Summary ==
+Total records created: 37 (7 accounts + 5 contacts + 6 requests + 16 cases + 1 visit report + 2 assets)
+ACR updates: 5
+Errors: 0
+Warnings:
+  - STLG_CustomerNumber__c=TEST-2026-001 was taken → used TEST-2026-002 for 1b
+  - Store RecordTypes (2c, 2d) show as STLGS_PotentialStore due to org automation (expected)

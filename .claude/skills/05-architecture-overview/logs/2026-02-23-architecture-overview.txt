@@ -1,0 +1,67 @@
+Architecture Overview Log: 2026-02-23
+======================================
+
+## Execution Summary
+
+- Customer: drKade (Dr. Kade Pharmazeutische Fabrik)
+- Documentation Language: German
+- Architecture Page Title: Technische Architektur – Salesforce drKade
+- Confluence: SKIPPED (no Atlassian connection configured — Cloud ID is placeholder)
+- Output: architecture/2026-02-23-architecture-overview.md (local file)
+
+## Component Counts
+
+| Type | Count |
+|---|---|
+| Apex Classes (Production) | 83 |
+| Apex Classes (Test) | 64 |
+| LWC Components | 43 |
+| Aura Components | 2 |
+| Flows (AutoLaunched) | 30 |
+| Flows (Screen) | 10 |
+| Triggers | 16 |
+| Custom Objects (__c) | 28 |
+| Custom Metadata Types (__mdt) | 6 |
+| Permission Sets | 51 |
+| Profiles | 36 |
+| Queues | 9 |
+| Custom Labels | 161 |
+| Layouts | 248 |
+| Quick Actions | 30 |
+| Approval Processes | 6 |
+| Sharing Rules (with content) | 57 |
+| Static Resources | 31 |
+| Communities/Experiences | 1 |
+| Connected Apps | 2 |
+| Auth Providers | 8 |
+| Message Channels | 2 |
+| Remote Site Settings | 4 |
+| CSP Trusted Sites | 21 |
+
+## Key Findings
+
+1. Two clearly separated functional domains: DRKA (Sales/Order Management) and PTA Portal
+2. CTPharma Orders managed package integration for order processing
+3. Azure Blob Storage integration for PTA certificate OCR processing
+4. Pardot/MCAE integration for marketing activity tracking
+5. 4 sales regions with comprehensive sharing model
+6. 6 approval processes (4 order types + 2 account operating license)
+7. Traditional trigger handler pattern (no Trigger Action Framework)
+8. Pre-commit quality gates via Husky + lint-staged (prettier, eslint, jest)
+9. PMD static analysis scaffolded but not active (no apex-rules.xml)
+10. API version inconsistency: v65.0 (project), v63.0 (delta-deploy), v62.0 (manifest)
+
+## Naming Prefixes Discovered
+
+- DRKA_ — Sales & Order Management domain
+- PTA_ / pTA_ — PTA Portal domain
+- orders__ — CTPharma Orders managed package
+- CTPHARMA__ — CTPharma managed package
+
+## External Integrations
+
+- Azure Blob Storage (certificate upload via HTTP)
+- Azure CDN (video/PDF streaming via URL construction)
+- Pardot / Marketing Cloud Account Engagement (OAuth2 + REST API)
+- CTPharma Orders (managed package SDK)
+- 8 Auth Providers for advertising segment intelligence

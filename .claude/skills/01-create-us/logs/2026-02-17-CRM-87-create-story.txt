@@ -1,0 +1,44 @@
+Skill: /create-us CRM-87
+Date: 2026-02-17
+Epic: CRM-87 (Integration LMS)
+
+== Context ==
+Requirements derived from analysis session (no transcripts):
+- Flow STLGS_CreateTrainingOnGeprueft creates Online training cases WITHOUT ContactId
+- Root cause: Flow sets STLGS_LeadingRequest__c, which prevents BeforeSave trigger from running
+- 194 existing cases fixed via script on 2026-02-17
+- Temporary fix until CRM-2992 (Training/TrainingMember migration)
+
+== Story Split ==
+Single story — simple declarative Flow change (one formula + one inputAssignment).
+No interactive split needed.
+
+== Story Created ==
+Key: CRM-3019
+Title: Flow: ContactId bei Online-Pflichtschulungs-Case setzen
+Type: Story
+Component: B2C
+Parent: CRM-87
+
+Description includes:
+- User Story (Als/möchte/damit)
+- Hintergrund mit Root Cause Analyse
+- Root Cause Tabelle (Online vs Präsenz Flow Vergleich)
+- Anforderungen (3 Punkte)
+- Technischer Hinweis (Formel + inputAssignment)
+- Datenbereinigung (bereits erledigt, 194 Cases)
+- Akzeptanzkriterien (5 Checkboxen)
+- Abhängigkeiten (CRM-2568, CRM-2992)
+
+== Implementation Notes ==
+File: implementation-design/CRM-3019/implementation-notes.md
+- Full implementation approach documented
+- XML snippets for Flow modification
+- Reference to Präsenz-Flow as template
+- Data cleanup documentation
+
+== Summary ==
+1 Story created: CRM-3019
+Link: https://kommit.atlassian.net/browse/CRM-3019
+Implementation notes: implementation-design/CRM-3019/implementation-notes.md
+Next step: /implement-us CRM-3019

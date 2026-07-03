@@ -1,0 +1,100 @@
+============================================================
+Skill: 10-build-knowledge
+Topic: Pflichtschulung Jugend- und Spielerschutz
+Slug: pflichtschulung
+Input: Pflichtschulung (detected as: Topic)
+Date: 2026-02-20
+============================================================
+
+Step 1: Input & Existing Documentation
+----------------------------------------
+- Input type: Topic
+- Topic name: Pflichtschulung
+- Slug: pflichtschulung
+- Existing topic file: not found (new creation)
+- Existing domain-knowledge section: found ("Pflichtschulung Jugend- und Spielerschutz (Mandatory Training)" at line 353)
+
+Step 2: Sources Gathered
+-------------------------
+- Jira: 29 stories from 3 epics
+  - CRM-2418 (Epic): Online Pflichtschulung 2025 und Erweiterung Vorgang Pflichtschulung (Fertig)
+    - CRM-2219: Vorgang Pflichtschulung bei Neueröffnung/Übernahme - Präsenz (Fertig)
+    - CRM-2419: Vorgang Pflichtschulung - neue Felder (Fertig)
+    - CRM-2458: neues Feld am Account / Pflichtschulung absolviert und Datum (Spezifizieren)
+    - CRM-2480: Migration - Typ ändert sich zu Pflichtschulung Jugend- und Spielerschutz (Fertig)
+    - CRM-2481: UAT: Pflichtschulungsvorgänge Online 2025 für alle aktiven ASTen anlegen (Fertig)
+    - CRM-2484: Prod Skript Pflichtschulungen 2025 anlegen (Fertig)
+    - CRM-2508: Schulung Präsenz - Validierung Online / Felder sind nicht read-only (Fertig)
+    - CRM-2510: Pflichtschulung Präsenz - Validierung bei Übergabe an VO (Fertig)
+    - CRM-2511: Pflichtschulung Präsenz - read only / Schulungsort darf nicht edit für RD (Fertig)
+    - CRM-2514: Pflichtschulung Online neues Feld "Zuletzt aus LMS aktualisiert" (Fertig)
+    - CRM-2568: Vorgang Pflichtschulung bei Neueröffnung/Übernahme - Online (Fertig)
+  - CRM-87 (Epic): LMS Integration
+    - CRM-2933: LMS: Willkommens-Email bei User-Anlage (Spezifizieren)
+    - CRM-2934: LMS automatische Anlage (Abgebrochen)
+    - CRM-2979: LMS: Cockpit für Regionaldirektionen (Backlog)
+    - CRM-2992: LMS Datenmodell: Training & TrainingMember Custom Objects (Spezifizieren)
+    - CRM-2994: LMS Flow: Automatische Schulungszuweisung bei Antragsprüfung (Backlog)
+    - CRM-3019: Flow: ContactId bei Online-Pflichtschulungs-Case setzen (Spezifizieren)
+  - Weitere: CRM-1388, CRM-2034, CRM-2240, CRM-2980 (Fertig/Backlog)
+
+- Codebase: 4 flows, 1 Apex batch, 1 Apex helper, 2 validation rules, 2 quick actions, 12 case fields, 2 contact fields
+  - STLGS_CreateTrainingOnGeprueft.flow-meta.xml (Request AfterSave → Online Case)
+  - STLG_CaseSetLastUpdatedLMS.flow-meta.xml (Case BeforeSave → LMS timestamp)
+  - STLGS_SyncToLMS.flow-meta.xml (Screen Flow → Skyvva LMS sync)
+  - STLGS_UpdateLeadingRequestOnCase.flow-meta.xml (Case BeforeSave → set LeadingRequest/ContactId)
+  - STLGS_CreateTrainingCasesBatch.cls (Batch → mass create Online cases)
+  - STLGS_LMSConcatAllRelatedAccounts.cls (Skyvva formula helper)
+  - STLGS_ValidateCompletedTrainingModules (VR: Online → 6 modules + form)
+  - STLGS_ValidatePraesenzHandoverVO (VR: Präsenz → 4 fields required)
+  - Account.STLGS_CreateTraining (Quick Action: manual case creation)
+  - Account.STLGS_NewReTraining (Quick Action: Nachschulung → belongs to Testkauf!)
+  - Case fields: TrainingType, TrainingYear, TrainingDate, TrainingDateApproved, TrainingStart, TrainingParticipant, TrainingParticipated, TrainingModulesCompleted, TrainingModulesStarted, TrainingModulesNotStarted, TrainingModulesProgress, LastUpdatedLMS, FormSentToSTLG
+  - Contact fields: LMSRequestDate, LMSRequestComment
+
+- Confluence: 10 pages searched, 0 relevant (all about system training, not Pflichtschulung JS/SP)
+
+- Local docs: 2 files read
+  - business/docs/LMS/LMS-Abgleich-2026-02-17.md (ContactId fix protocol)
+  - business/docs/LMS/sync-lernstand.py (CSV sync script)
+
+Step 3: Topic File Written
+---------------------------
+- Path: pipeline/customers/lotto-bw/docs/pflichtschulung.md
+- Mode: created (new)
+- Sections: Überblick, Geschäftsprozess (3 Erstellungswege, Präsenz-Workflow, Online-Workflow, LMS-Sync, Nachschulung-Abgrenzung), Business Rules (7 Regeln), Technische Umsetzung (Datenmodell 3 Tabellen + Picklist, Automation 9 Einträge, Integrationen), Konfiguration (8 Einträge), Bekannte Probleme (5 Issues), Referenzen (3 Jira-Gruppen, Codebase-Liste), Änderungshistorie
+
+Step 4: Structural Validation
+------------------------------
+- Checklist passed: yes
+  - All mandatory sections: ✓
+  - Business Rules only contains rules: ✓
+  - All tables max 3 columns: ✓
+  - Cross-references present: ✓ (antrag.md, testkauf.md)
+  - No content duplication: ✓ (Nachschulung TK only briefly mentioned + link)
+  - Picklist values complete: ✓ (TrainingType 2 values, TrainingStart 7 values)
+
+Step 5: Index Updated
+----------------------
+- domain-knowledge.md: index table updated (new row for Pflichtschulung)
+- domain-knowledge.md: blockquote reference added after LMS Integration section
+
+Step 6: Cross-References
+--------------------------
+- antrag.md: "Siehe auch:" extended with pflichtschulung.md link + Änderungshistorie entry
+- testkauf.md: "Siehe auch:" extended with pflichtschulung.md link + Änderungshistorie entry
+- pflichtschulung.md → antrag.md: ✓ (linked)
+- pflichtschulung.md → testkauf.md: ✓ (linked)
+- antrag.md → pflichtschulung.md: ✓ (added)
+- testkauf.md → pflichtschulung.md: ✓ (added)
+
+Step 7: Summary
+----------------
+- Topic file: pipeline/customers/lotto-bw/docs/pflichtschulung.md
+- Sources processed: 29 Jira stories, 4 flows, 1 Apex batch, 2 VRs, 2 QAs, 12 fields, 0 Confluence pages, 2 local docs
+- Key findings:
+  1. Drei Erstellungswege dokumentiert: Antrags-Flow (auto), Quick Action (admin), Batch (jährlich)
+  2. Bug in STLGS_CreateTrainingCasesBatch: setzt STLGS_KindTestPurchase__c (TK-Feld) auf Pflichtschulungs-Cases
+  3. CSV-basierter LMS-Sync als Workaround — CRM-2992 (Training/TrainingMember Datenmodell) als Ziel-Architektur
+  4. Schulungs-Status am Account fehlt noch (CRM-2218, CRM-2458 im Backlog)
+  5. LMS-User-Anlage nicht automatisiert (CRM-2934 abgebrochen), manueller Prozess + Sync-Flow
