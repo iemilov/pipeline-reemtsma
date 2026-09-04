@@ -1,0 +1,37 @@
+{
+  "skill": "security-orgreview",
+  "customer": "Reemtsma",
+  "identifier": "reemProd",
+  "timestamp": "2026-08-05T00:00:00Z",
+  "status": "partial",
+  "summary": "Read-only security review of the Reemtsma production org (00D7Q000000KHD8UAO). Overall score 18/100 (red) with 5 critical findings, led by an unauthenticated guest-exposed webhook with SSRF and a hard-coded secret still open since the 2026-06-04 assessment. Org/session hardening and guest profile lockdown were found to be strong. 14 checks could not be automated and are listed as manual tasks.",
+  "artifacts": [
+    "org_assessment/2026-08-05-security-orgreview.md",
+    "pipeline/.claude/skills/17-security-orgreview/logs/2026-08-05-Reemtsma-reemProd-security-orgreview.json"
+  ],
+  "scores": {
+    "apex_security": "0/20",
+    "ui_layer": "6/15",
+    "access_permissions": "1/20",
+    "data_protection": "2/15",
+    "integration_credentials": "4/15",
+    "org_session_config": "1/10",
+    "monitoring_audit": "4/5",
+    "total": "18/100"
+  },
+  "findings_by_severity": { "critical": 5, "high": 9, "medium": 8, "low": 3, "unverified": 14 },
+  "critical_findings": [
+    "K-1 Unauthenticated guest-exposed WebhookController with SSRF via unvalidated api_url path + exception message disclosure",
+    "K-2 Hard-coded secret NewsletterHistoryOutbound.cls:9 (open since 2026-06-04, must be rotated)",
+    "K-3 SOQL injection in SelectTemplateCmpController.getTemplatesByFolderName (@AuraEnabled params folder/sortBy/sortDirection)",
+    "K-4 Missing CRUD/FLS enforcement across 14 REST endpoints; only 2 of 209 classes enforce anything",
+    "K-5 21 without-sharing classes, at least 9 directly exposed; 32 classes with no sharing keyword"
+  ],
+  "not_executed": [
+    "PMD security ruleset (pmd not installed on review machine)",
+    "/code-review delegation (skipped to keep review scoped to security)",
+    "Health Check, Setup Audit Trail, Event Monitoring, Transaction Security, Connected App OAuth scopes, certificates, My Domain, OWD, per-profile login IP ranges, per-profile FLS, incident response readiness (Setup-UI only)"
+  ],
+  "org_changes_made": "none - read-only audit; only SELECT queries and a metadata retrieve into a temporary scratchpad directory outside the repository",
+  "output": "Full report written to org_assessment/2026-08-05-security-orgreview.md, containing: executive summary with per-domain scores, 5 critical findings in full detail with exploitation paths and fixes, 7 domain sections with findings/recommendations/improvements, attack surface inventory (guest surfaces, 14 REST endpoints, 8 AuraEnabled classes), PII inventory, security technical debt table, PMD expectations, delta vs the 2026-06-04 AI-readiness assessment, a 38-item remediation plan grouped P0-P3, next steps, and an appendix of 14 non-automatable manual checks."
+}

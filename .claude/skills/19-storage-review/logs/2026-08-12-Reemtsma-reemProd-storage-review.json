@@ -1,0 +1,57 @@
+{
+  "skill": "storage-review",
+  "customer": "Reemtsma",
+  "identifier": "reemProd",
+  "timestamp": "2026-08-12T00:00:00Z",
+  "status": "success",
+  "summary": "Read-only storage analysis of the Reemtsma production org. FILE STORAGE IS ALREADY OVER THE LIMIT at 121.4% (95,850 of 78,976 MB, over by 16,874 MB) and grows ~17 GB/year. Data storage at 88.0% (66,470 of 75,520 MB). Largest single finding: the retention config for AccountHistoryTracking__c (17.1 GB, 26% of data storage, dead table with no writes since 2022-10-04) exists in DataDeletionConfig__mdt but has IsActive__c = false. Identified savings ~23.6 GB data and ~44 GB file, for ~6.4 person-days across Phases 0-2.",
+  "artifacts": [
+    "org_assessment/2026-08-12-storage-review.md",
+    "pipeline/.claude/skills/19-storage-review/logs/2026-08-12-Reemtsma-reemProd-storage-review.json"
+  ],
+  "storage": {
+    "data_storage_used_mb": 66470,
+    "data_storage_max_mb": 75520,
+    "data_storage_pct": 88.0,
+    "file_storage_used_mb": 95850,
+    "file_storage_max_mb": 78976,
+    "file_storage_pct": 121.4,
+    "file_storage_overage_mb": 16874
+  },
+  "reconciliation": {
+    "data_modelled_mb": 73238,
+    "data_actual_mb": 66470,
+    "data_delta_pct": -10.2,
+    "file_modelled_gb": 92.38,
+    "file_actual_gb": 93.6,
+    "within_tolerance": true
+  },
+  "top_objects_gb": {
+    "AccountHistoryTracking__c": 17.10,
+    "Account_person": 14.48,
+    "EngagementTracking__c": 7.66,
+    "AccountContactRelation": 7.18,
+    "Schufa_Log__c": 5.15,
+    "et4ae5__IndividualEmailResult__c": 3.84,
+    "Fraud_Check__c": 2.70
+  },
+  "file_storage_gb": {
+    "JPG": 59.65, "PDF": 17.81, "JPEG": 9.43, "PNG": 2.82,
+    "images_total": 72.11, "images_older_than_2y": 44.34, "cohort_2022": 43.39,
+    "total_files": 138290, "orphans": 0, "superseded_versions": 43
+  },
+  "key_findings": [
+    "File storage already 16.5 GB over the entitlement - uploads may fail, sandbox refreshes affected",
+    "AccountHistoryTracking__c retention config ReebaseAccountHistory exists with IsActive__c = false; 17.1 GB, dead table since 2022-10-04, 8.35M records past the configured 48-month retention",
+    "Images are 78% of file storage; average JPG 1.7 MB (unoptimised phone photos); 2022 cohort alone is 43.4 GB (46%)",
+    "et4ae5__IndividualEmailResult__c (+1.5 GB/yr) and Fraud_Check__c (+0.4 GB/yr) have no retention config at all",
+    "Schufa_Log__c 24-month rule is active but 2.18M records exceed 24 months - not clearing",
+    "EngagementTracking__c proves retention works: 3.55M records/yr turnover, only 76,853 older than 12 months",
+    "June 2026 assessment Phase 1 quick wins (15-18 GB) were not executed - Reebase table unchanged"
+  ],
+  "savings_identified_gb": { "data": 23.6, "file_deletion": 44, "file_compression": 50, "phases_0_2_total": 70 },
+  "effort_pd": { "phase_0": 3.25, "phase_1": 0.85, "phase_2": 2.25, "phase_3": 13, "phases_0_2": 6.4 },
+  "time_to_cap": { "data_storage_months": 39, "file_storage": "already exceeded" },
+  "org_changes_made": "none - read-only audit. Only SELECT queries and the org limits API were used. No records, files, retention configurations or scheduled jobs were changed.",
+  "output": "Full report at org_assessment/2026-08-12-storage-review.md: executive summary, method and reconciliation section, data storage ranked by object, per-object analysis for the top 8, file storage by type and creation year, retention gap classification against DataDeletionConfig__mdt, growth and time-to-cap for both pools, offloading options, a 4-phase action plan ranked by GB per person-day with mandatory safety rules, a parametric cost comparison, governance rules, a delta against the 2026-06-10 assessment, and 6 verification gaps."
+}

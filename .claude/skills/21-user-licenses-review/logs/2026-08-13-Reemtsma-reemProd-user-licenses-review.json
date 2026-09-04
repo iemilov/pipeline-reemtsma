@@ -1,0 +1,64 @@
+{
+  "skill": "user-licenses-review",
+  "customer": "Reemtsma",
+  "identifier": "reemProd",
+  "timestamp": "2026-08-13T00:00:00Z",
+  "status": "success",
+  "summary": "Read-only licence audit of the Reemtsma production org, run with --shared-admin. Salesforce licences are at 90.6% (29 of 32 used, 3 free) while 5 purchased Salesforce Integration licences sit at 0% usage and 14 of the 29 full licences are held by integration or service accounts. Two accounts dormant since 2023 still consume licences. Confirmed 4 shared privileged accounts plus one heavily shared marketing account (digital@reemtsma.de, 70 distinct source IPs, MFA explicitly disabled). Potential free licences after action: ~10 of 32, with no purchase required.",
+  "artifacts": [
+    "org_assessment/2026-08-13-user-licenses-review.md",
+    "pipeline/.claude/skills/21-user-licenses-review/logs/2026-08-13-Reemtsma-reemProd-user-licenses-review.json"
+  ],
+  "licenses": {
+    "salesforce": { "total": 32, "used": 29, "free": 3, "utilisation_pct": 90.6 },
+    "salesforce_integration": { "total": 5, "used": 0, "free": 5, "utilisation_pct": 0 },
+    "guest_user": { "total": 25, "used": 5 },
+    "analytics_cloud_integration": { "total": 2, "used": 1 },
+    "cloud_integration": { "total": 1, "used": 1 },
+    "sales_insights_integration": { "total": 1, "used": 1 },
+    "bundled_unused": ["Chatter Free 5000", "Chatter External 500", "Identity 100"]
+  },
+  "license_fit": {
+    "salesforce_licences_in_use": 29,
+    "held_by_named_humans": 13,
+    "held_by_integration_service_accounts": 14,
+    "ambiguous_shared_human_accounts": 2,
+    "integration_accounts_on_sysadmin_profile": ["integration@reemtsma.de", "mc-connect@reemtsma.com"]
+  },
+  "reclamation": {
+    "dormant_2plus_years": ["integration.seco@reemtsma.com (2023-01-11)", "integration.tobaccoland@reemtsma.com (2023-05-10)"],
+    "immediately_reclaimable": 2,
+    "reassignable_to_integration_licence": 5,
+    "under_review": ["ineco@reemtsma.com", "marc.ritter@reemtsma.de"],
+    "free_now": 3,
+    "free_after_action": 10
+  },
+  "shared_admin": {
+    "requested_via_flag": true,
+    "accounts": [
+      { "username": "digital@reemtsma.de", "profile": "REE Marketing", "distinct_ips_90d": 70, "logins_90d": 551, "mfa_disabled": true, "assessment": "heavily shared human account with MFA off - worst case" },
+      { "username": "admin_deployment@reemtsma.de", "profile": "System Administrator", "distinct_ips_90d": 24, "logins_90d": 268, "assessment": "shared between humans and CI/CD" },
+      { "username": "persistent_admin@reemtsma.de", "profile": "System Administrator", "distinct_ips_90d": 15, "logins_90d": 42, "assessment": "shared between administrators" },
+      { "username": "mc-connect@reemtsma.com", "profile": "System Administrator", "distinct_ips_90d": 11, "logins_90d": 339474, "assessment": "integration on admin profile" },
+      { "username": "integration@reemtsma.de", "profile": "System Administrator", "distinct_ips_90d": 6, "logins_90d": 131, "assessment": "integration plus CLI use" }
+    ],
+    "disable_mfa_active_assignees": ["lettershopservice@reemtsma.de", "digital@reemtsma.de", "integration@partner-brand.com"],
+    "core_argument": "A passkey is bound to a person and a device and cannot be copied or handed over. A shared account therefore either collapses to one person (undocumented single point of failure), shares the authenticator (losing phishing resistance and attribution), or keeps a weaker exemption (the most privileged account gets the weakest authentication). No configuration resolves this - the fix is organisational.",
+    "recommended_patterns": [
+      "1: named accounts + Permission Set Groups for humans",
+      "2: API-only integration user (no interactive login, so no passkey question) for systems",
+      "3: just-in-time elevation for occasional admin needs",
+      "4: at most one break-glass account - vault-sealed, passkey held by a named security owner, alerted on every login, rotated after use"
+    ]
+  },
+  "action_plan_pd": { "quick_wins": 0.5, "full_plan": 8.25, "licences_released": 7 },
+  "not_verified": [
+    "Per-licence pricing and contract terms - no monetary figure quoted",
+    "Current passkey / phishing-resistant MFA requirement and timeline - changes frequently, must be confirmed in Setup and current Salesforce docs",
+    "Whether the Seco, Tobaccoland and e-commerce interfaces are still operating",
+    "Whether digital@ and lettershopservice@ are genuinely shared or single users on rotating mobile IPs",
+    "Whether Einstein Agent / CRM User feature licences are separately contracted"
+  ],
+  "org_changes_made": "none - read-only audit. Only SELECT queries against UserLicense, PermissionSetLicense, User, PermissionSetAssignment and LoginHistory. No user deactivated or frozen, no licence reassigned, no permission set or profile modified.",
+  "output": "Full report at org_assessment/2026-08-13-user-licenses-review.md: licence inventory with utilisation, licence-fit breakdown of all 29 Salesforce-licence holders, dormancy and reclamation analysis, shared admin findings with login-source diversity evidence, the passkey argument, four recommended patterns with a concrete recommendation, a 7-step migration outline, a 9-item action plan, and 5 verification gaps."
+}

@@ -1,0 +1,73 @@
+{
+  "skill": "layouts-lightning-review",
+  "customer": "Reemtsma",
+  "identifier": "reemProd",
+  "timestamp": "2026-08-12T00:00:00Z",
+  "status": "partial",
+  "summary": "Read-only audit of page layouts and Lightning pages in the Reemtsma production org. UI layer health 43/100 (red). Layout sprawl is NOT the problem: 231 of 248 objects have exactly one layout and 95.9% of layouts are assigned. The gap is Lightning adoption (27.6% of custom objects, 5.3% of standard objects have a record page) and Dynamic Forms (3 of 17 source record pages). Case_Record_Page is an extreme outlier at 84 components. About 40% of the UI layer exists only in production and is not in source control.",
+  "artifacts": [
+    "org_assessment/2026-08-12-layouts-lightning-review.md",
+    "pipeline/.claude/skills/20-layouts-lightning-review/logs/2026-08-12-Reemtsma-reemProd-layouts-lightning-review.json"
+  ],
+  "score": {
+    "assignment_hygiene": "24/25",
+    "lightning_adoption": "0/20",
+    "dynamic_forms_adoption": "3/15",
+    "layout_consolidation": "7/15",
+    "page_complexity": "6/15",
+    "source_control_and_naming": "3/10",
+    "total": "43/100",
+    "traffic_light": "red"
+  },
+  "inventory": {
+    "layouts_org": 290, "layouts_source": 181, "layouts_missing_from_source": 109,
+    "flexipages_org": 72, "flexipages_source": 42, "flexipages_missing_from_source": 30,
+    "record_pages_org": 44, "record_pages_source": 17,
+    "utility_bars": 24, "home_pages": 3, "app_pages": 1,
+    "objects_with_layouts": 248, "custom_objects": 116, "standard_objects": 132,
+    "record_types": 5, "profiles": 30, "profile_layout_assignments": 9941
+  },
+  "assignment": {
+    "assigned": 278, "assigned_pct": 95.9, "unassigned": 12,
+    "single_profile_layouts": 0, "universally_assigned": 163
+  },
+  "lightning": {
+    "coverage_custom_pct": 27.6, "coverage_standard_pct": 5.3, "coverage_total_pct": 15.7,
+    "record_pages_managed_package": 29, "record_pages_customer_built": 15,
+    "dynamic_forms_pages": 3, "classic_detail_panel_pages": 16,
+    "duplicate_record_pages": ["Contact", "Lead", "Opportunity", "Mirage Media Files", "Mirage phone line"]
+  },
+  "complexity": {
+    "heaviest_page": "Case_Record_Page",
+    "heaviest_page_components": 84, "heaviest_page_fields": 172,
+    "heaviest_page_facets": 54, "heaviest_page_visibility_rules": 34,
+    "heaviest_layout": "PersonAccount-Person Account Layout",
+    "heaviest_layout_fields": 136, "heaviest_layout_related_lists": 20,
+    "layouts_over_60_fields": 2, "layouts_over_10_related_lists": 2,
+    "custom_components_on_flexipages": 0
+  },
+  "key_findings": [
+    "Lightning adoption is the gap, not layout sprawl - 231 of 248 objects have exactly one layout",
+    "Only 3 of 17 source record pages use Dynamic Forms; 16 embed the classic force:detailPanel",
+    "Case_Record_Page has 84 components (threshold 25) on the org's highest-traffic object (271,369 cases)",
+    "PersonAccount layout has 136 fields and 20 related lists - strongest Dynamic Forms candidate",
+    "109 layouts and 30 FlexiPages exist only in production; 27 of 44 record pages unversioned",
+    "163 of 278 assigned layouts go to all 30 profiles; 0 single-profile layouts - profile differentiation unused at the UI layer",
+    "5 clone artefacts: Contact/Lead/Opportunity record page duplicates plus a 'new' suffixed layout"
+  ],
+  "lwc_verification": {
+    "total_lwc": 12, "on_flexipages": 0,
+    "verified_in_use_via_flows_or_quickactions": 7,
+    "unverified_not_reported_as_dead": ["caseSendAN2", "filesInfo", "navigateToButton", "newsletterHistoryComponent", "newsletterHistoryTab"],
+    "note": "Not reported as dead code - their targets match the 30 FlexiPages missing from source control"
+  },
+  "verification_gaps": [
+    "FlexiPage assignment (which duplicate record page is org/app default) not exposed via ProfileLayout",
+    "27 unversioned record pages could not be assessed for complexity or Dynamic Forms usage",
+    "Actual page load times (EPT) require Lightning Usage App",
+    "Customer Portal (CssDetail/CssEdit) active status unknown",
+    "Record-type-specific layout assignments not queried in this run"
+  ],
+  "org_changes_made": "none - read-only audit. Tooling API SELECT queries and source metadata inspection only. No layout, FlexiPage, assignment, profile or component was modified.",
+  "output": "Full report at org_assessment/2026-08-12-layouts-lightning-review.md: executive summary with scored dimensions, assignment analysis from 9,941 ProfileLayout rows, Lightning and Dynamic Forms adoption split by custom vs standard objects, complexity ranking for pages and layouts, component usage, LWC usage verification against flows and quick actions, source control gap, a 4-phase consolidation and modernisation plan ordered by user impact, governance rules, and 6 verification gaps."
+}

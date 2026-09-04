@@ -1,0 +1,58 @@
+{
+  "skill": "reportsanddashboards-review",
+  "customer": "Reemtsma",
+  "identifier": "reemProd",
+  "timestamp": "2026-08-11T00:00:00Z",
+  "status": "partial",
+  "summary": "Read-only audit of the Reemtsma production report and dashboard estate. Estate health score 29/100 (red). 1,470 reports and 83 dashboards; 885 reports (60.2%) are cleanup candidates and 22 of 83 dashboards run as an inactive user and therefore serve stale data. Source control coverage is 0.3%. Event Monitoring, ReportSubscription and AnalyticSnapshot were unavailable, so confidence is degraded and the quarantine step is mandatory.",
+  "artifacts": [
+    "org_assessment/2026-08-11-reports-dashboards-review.md",
+    "org_assessment/2026-08-11-reports-dashboards-cleanup.csv",
+    "pipeline/.claude/skills/18-reportsanddashboards-review/logs/2026-08-11-Reemtsma-reemProd-reportsanddashboards-review.json"
+  ],
+  "score": {
+    "usage_ratio": "0/30",
+    "never_used_ratio": "18/20",
+    "ownership_health": "6/15",
+    "duplication": "5/15",
+    "folder_model": "0/10",
+    "source_control": "0/10",
+    "total": "29/100",
+    "traffic_light": "red"
+  },
+  "inventory": {
+    "reports": 1470,
+    "dashboards": 83,
+    "report_folders": 73,
+    "dashboard_folders": 15,
+    "dashboard_components": 792,
+    "reports_referenced_by_dashboards": 478
+  },
+  "classification": {
+    "active": 268,
+    "dormant_referenced": 317,
+    "unused": 820,
+    "never_used": 65,
+    "orphaned_dashboards": 22,
+    "empty_dashboards": 2,
+    "reports_in_personal_folders": 253
+  },
+  "key_findings": [
+    "820 reports (55.8%) unused with no inbound reference; 65 never run at all",
+    "22 of 83 dashboards (26.5%) have an inactive running user and do not refresh - serving stale data",
+    "Source control coverage 0.3% (4 of 1,553 assets) - analytics layer exists only in production",
+    "925 reports (62.9%) not run in over a year; 567 not run in over two years; oldest run July 2015",
+    "Public Reports catch-all folder holds 176 unused reports; 22 empty report folders",
+    "21 duplicate-name clusters covering 47 reports; 42 reports carry copy artefacts in the name",
+    "Estate grows ~250-300 reports per year with no retirement process"
+  ],
+  "confidence_caveats": [
+    "Event Monitoring (ReportEvent/DashboardEvent) unavailable - no Shield licence",
+    "ReportSubscription not queryable - subscribed reports cannot be identified",
+    "AnalyticSnapshot not queryable - snapshot source reports cannot be identified",
+    "Dashboard usage is inferred, not measured; no dashboard proposed for deletion",
+    "180-day threshold may misclassify annual reports in FY folders"
+  ],
+  "org_changes_made": "none - read-only audit; only SELECT queries were issued. No report, dashboard, folder or subscription was deleted, moved or modified. The cleanup CSV is a proposal for human execution.",
+  "output": "Full report at org_assessment/2026-08-11-reports-dashboards-review.md with executive summary and estate health score, explicit confidence-level section, age profile, unused report analysis by folder, never-used breakdown by creator, dashboard ownership findings, folder health, duplicates, source control gap, a 6-wave decommission plan gated on a mandatory metadata retrieval, a governance plan with owners per rule, next steps, and an appendix of 7 verification gaps. Cleanup candidates exported to org_assessment/2026-08-11-reports-dashboards-cleanup.csv (907 rows)."
+}
