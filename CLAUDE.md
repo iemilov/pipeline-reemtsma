@@ -45,7 +45,7 @@ Customer config repos are cloned into `pipeline/customers/<name>/` by `setup.sh`
 1. Place meeting transcripts (`.docx`, `.xlsx`) into the transcript input folder (see `customer.config.md`)
 2. `/create-story <epic-id>` — Reads all transcripts, synthesizes requirements, creates Jira user stories linked to the epic, and generates implementation notes
 3. `/design-us <story-key>` — Reads the Jira story, analyzes the codebase, and creates implementation notes under `implementation-design/<story-key>/implementation-notes.md` using all customer-specific config files
-4. `/implement-us <story-key>` — Reads the Jira story, explores codebase patterns, and generates a first draft of implementation code using the customer's tech stack (see `stack.config.md`)
+4. `/implement-us <story-key> [--skip-deploy] [--no-pr]` — Implements a story from its FINAL implementation notes (the Jira fetch is skipped when they exist), explores codebase patterns, generates the code and tests, runs an independent review loop, PMD, deploy and Apex tests against the DEV org, creates test data, writes the acceptance verification record, and opens the pull request
 5. `/promote-us <story-key> <target-env>` — Promotes a story through environments: validates locally, generates deployment packages, pushes to trigger the CI/CD pipeline, monitors the result
 6. `/document-us <epic-id>` — Fetches the epic and all linked stories from Jira, generates a Confluence page with business and technical documentation
 7. `/architecture-overview [space-key]` — Analyzes the full repository and publishes a comprehensive technical architecture overview to Confluence
