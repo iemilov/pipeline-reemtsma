@@ -1,292 +1,192 @@
 ---
 name: review-pr
-description: Fetch a specific pull request from the customer's VCS provider (Bitbucket DC, GitHub, Azure DevOps) and review the changes against the customer's coding conventions and the platform's best practices
-argument-hint: <pr-id-or-url> [--post-comment] [--auto-switch | --no-auto-switch] [--no-second-opinion]
-preferred-runtime: openai-codex
+description: Fetch a single pull request from the customer's VCS provider (Azure DevOps, GitHub, Bitbucket DC) and review the diff against the customer's stack conventions, platform best practices and domain pitfalls; produces a severity-classified findings report with verified evidence and can post the summary as a PR comment
+argument-hint: <pr-id-or-url> [--post-comment] [--base <branch>]
 ---
 
 > **On start, before any other output, print this line verbatim:**
 > `🌐 Skill scope: Generic — pipeline skill, applies to all customers.`
 
-
-> **Runtime hint & auto-switch:** This skill prefers `openai-codex` (diff review against conventions). Before any user-visible work, resolve what to do about a runtime mismatch with the shared helper — do not re-derive the gate:
->
-> ```bash
-> pipeline/bin/runtime-autoswitch --skill review-pr [--auto-switch | --no-auto-switch]
-> ```
->
-> If the user passed `--auto-switch` or `--no-auto-switch` in `$ARGUMENTS`, forward it to the helper — a per-run flag overrides the customer-config `Auto-Switch Runtime` default (precedence: flag → config → off). Branch on the `decision=` line it prints:
-> - **`switch`** — the customer opted into `Auto-Switch Runtime` and the preferred runtime is installed *and* authenticated (subscription reachable). Run the **read-only diff review** (the analysis of the fetched diff against conventions/best-practices) under the preferred runtime using the `dispatch=` command template (the §2a read-only recipe), then keep the PR fetch and any comment-posting on the host runtime. Record the runtime that actually ran the analysis in the log.
-> - **`warn`** — print the standardized warning from `pipeline/agent-runtime-access.md` §1a and proceed under the active runtime. This covers auto-switch off, the preferred CLI missing, or no usable credentials/subscription; the `reason=` line says which.
-> - **`none`** — preferred runtime already active, or no preference resolved; print nothing.
->
-> Always record `active_runtime`, `preferred_runtime`, and `runtime_match` in the execution log. See `pipeline/agent-runtime-access.md` §1a (auto-switch gate) and §2a (read-only dispatch).
-
 ## Purpose
 
-Reviews a single pull request against:
+Reviews one pull request against:
 
-1. **Platform best practices** — `pipeline/platforms/<Platform>/best-practices.md` (Platform read from `customer.config.md`)
-2. **Customer coding conventions** — `pipeline/coding-conventions.md` (symlink to active customer's conventions)
-3. **Customer domain knowledge** — `pipeline/customer.domain.md` (field-name pitfalls, business rules)
+1. **Stack conventions** — `pipeline/stack.config.md` (naming conventions, code quality standards, testing standards)
+2. **Customer coding conventions** — `pipeline/coding-conventions.md`, if it contains rules
+3. **Platform best practices** — `pipeline/platforms/<Platform>/best-practices.md`, if it contains rules
+4. **Domain knowledge** — `pipeline/customer.domain.md` (field-name pitfalls, business rules)
 
-Outputs a structured Markdown findings report (severity-classified) and optionally posts a summary back as a PR comment.
-
-When the customer configures an independent `Review Runtime` (see `pipeline/agent-runtime-access.md` §2a), the skill additionally runs a **read-only second-opinion review** under that runtime (Step 4a), displays its raw output to the user, and lets the user decide whether to merge, append, or discard it — the skill never auto-incorporates it.
+Output: a Markdown findings report, severity-classified, every finding with `file:line`, description and fix, plus a list of candidate findings that were checked and rejected. Optionally the summary is posted as a PR comment after confirmation.
 
 ## Configuration
 
-Read these BEFORE running:
+Read before running:
 
-- `pipeline/customer.config.md` — VCS provider URLs, customer identity, **Platform**, locale (including **UI Language** — the language the end-user-facing UI is built in; flag any new UI strings, labels, button text, or error messages introduced by the diff that are not in this language as a finding), **Code Review** folder path
-- `pipeline/stack.config.md` — tech stack, commands, libraries (informs which automated checks to run if a clone is available)
-- `pipeline/customer.domain.md` — business rules, field naming pitfalls
-- `pipeline/coding-conventions.md` — customer-specific conventions
-- `pipeline/platforms/<Platform>/best-practices.md` — universal platform rules
-- `pipeline/atlassian-access.md` — Bitbucket DC adapter (only relevant when `Bitbucket URL` is set)
+- `pipeline/customer.config.md` — `Platform`, `Short Name`, `Documentation Language`, `UI Language`, `## Folder Paths > Code Review`, `## Repository & CI/CD` (`Azure DevOps URL` / `GitHub Repo` / `Bitbucket URL`, branch patterns, `Project Key`), `## Atlassian` (Cloud ID, for reading the story)
+- `pipeline/stack.config.md` — naming conventions, code quality standards, testing standards, test data factory, source path
+- `pipeline/customer.domain.md` — business rules and field pitfalls
+- `pipeline/coding-conventions.md` and `pipeline/platforms/<Platform>/best-practices.md` — read only if present and not empty skeletons; never cite section numbers that do not exist in these files
 
 ## Argument parsing
 
-`$ARGUMENTS` may be:
-
 | Form | Example | Action |
 |---|---|---|
-| Bare numeric ID | `3455` | Use config defaults for project + repo (Bitbucket) or repo (GitHub/Azure) |
-| Full PR URL | `https://bitbucket.acme.com/projects/ACME/repos/acme-crm/pull-requests/3455` | Parse `project_key`, `repo_slug`, `pr_id` from URL |
-| GitHub URL | `https://github.com/<org>/<repo>/pull/123` | Parse `owner`, `repo`, `pr_id` |
-| Azure DevOps URL | `https://dev.azure.com/<org>/<project>/_git/<repo>/pullrequest/<id>` | Parse `org`, `project`, `repo`, `pr_id` |
+| Bare numeric ID | `124` | Provider and repository from config |
+| Azure DevOps URL | `https://dev.azure.com/<org>/<project>/_git/<repo>/pullrequest/<id>` | Parse org, project, repo, id |
+| GitHub URL | `https://github.com/<owner>/<repo>/pull/<id>` | Parse owner, repo, id |
+| Bitbucket DC URL | `https://<host>/projects/<key>/repos/<slug>/pull-requests/<id>` | Parse key, slug, id |
 
-Optional flag `--post-comment`: when present and a comment-write op is available for the resolved provider, post the executive summary as a PR comment after the user confirms. Default off — the skill saves the review locally only.
-
-Optional flags `--auto-switch` / `--no-auto-switch`: per-run override of the customer-config `Auto-Switch Runtime` setting for this skill. Strip them from `$ARGUMENTS` before PR-id parsing and forward them verbatim to `pipeline/bin/runtime-autoswitch` (see the **Runtime hint & auto-switch** block above). Default: use the customer-config value.
-
-Optional flag `--no-second-opinion`: skip Step 4a (the independent read-only second-opinion review) for this run. Default: the step runs whenever the customer configures an independent `Review Runtime`.
+Flags: `--post-comment` posts the summary after the user confirms the preview (default off). `--base <branch>` overrides the base for the diff when the PR target differs from what the ref reports.
 
 ## VCS provider detection
 
-Inspect `customer.config.md` for the FIRST field present (in this priority order):
+First key present in `customer.config.md > ## Repository & CI/CD` wins:
 
-| Config field present | Provider | Transport |
+| Key | Provider | Transport |
 |---|---|---|
-| `Bitbucket URL` (e.g. `https://bitbucket.acme.com`) | **Bitbucket DC** | `mcp__bitbucket__*` MCP tools — see `pipeline/atlassian-access.md §5` |
-| `GitHub Repo` or `GitHub URL` | **GitHub** | `gh` CLI (`gh pr view`, `gh pr diff`, `gh pr comment`) |
-| `Azure DevOps URL` or `AzureDevOps URL` | **Azure DevOps** | `az repos pr` CLI (or a customer-local MCP if registered) |
+| `Azure DevOps URL` | Azure DevOps | `az repos pr`, `az devops invoke`; **always pass `--org <organisation URL>`** derived from the config URL, never rely on the CLI default (it is global per user and may point at another customer) |
+| `GitHub Repo` / `GitHub URL` | GitHub | `gh pr view`, `gh pr diff`, `gh pr comment` |
+| `Bitbucket URL` | Bitbucket DC | Bitbucket MCP tools if registered, else abort with a note |
 
-If none match: abort with a clear message asking the user to add a `Bitbucket URL`, `GitHub Repo`, or `Azure DevOps URL` field to `customer.config.md`.
+None present: abort and ask for the key to be added.
 
 ## Workflow
 
 ### Step 1: Resolve the PR
 
-Based on detected provider:
-
-**Bitbucket DC**
-- If `$ARGUMENTS` is a URL, parse `project_key` + `repo_slug` + `pr_id` from the path.
-- If `$ARGUMENTS` is bare numeric, look for `Default Bitbucket Project Key` + `Default Bitbucket Repo Slug` in `customer.config.md`. If neither is set, ask the user.
-- Fetch metadata: `mcp__bitbucket__get_pull_request_by_id(pr_id=<id>, project_key=<k>, repo_slug=<r>)`
-- Fetch diff: `mcp__bitbucket__get_pull_request_diff(project_key=<k>, repo_slug=<r>, pr_id=<id>)`
-- Fetch existing comments (for context, to avoid duplicating prior review notes): `mcp__bitbucket__get_pull_request_comments(project_key=<k>, repo_slug=<r>, pr_id=<id>)`
-- Fetch commits (to surface squash-vs-merge intent and authorship): `mcp__bitbucket__get_pull_request_commits(project_key=<k>, repo_slug=<r>, pr_id=<id>, limit=25)`
-
-**GitHub**
-- Use `gh pr view <id> --json title,body,author,baseRefName,headRefName,state,url,files,commits,labels`
-- Use `gh pr diff <id>` to capture the unified diff
-- Use `gh pr view <id> --comments` to capture inline + general comments
-
 **Azure DevOps**
-- Use `az repos pr show --id <id>` for metadata
-- Use `az repos pr show --id <id> --output json` plus `az repos pr list-commits` and the diff endpoint via `az rest`
-- If the customer ships a local MCP server for Azure DevOps, prefer it over `az` (mention this when documenting the customer)
 
-If the provider is **Bitbucket DC** but the MCP tool returns `Authentication failed` or `Unauthorized`, follow `pipeline/atlassian-access.md §6` (refresh once, then ask the user to set `BITBUCKET_USERNAME`/`BITBUCKET_PASSWORD` and restart Claude Code if the refresh doesn't recover).
+```bash
+az repos pr show --id <id> --org <org-url> --query "{title:title,description:description,status:status,src:sourceRefName,tgt:targetRefName,createdBy:createdBy.displayName,repoId:repository.id,projectId:repository.project.id,reviewers:reviewers[].{name:displayName,vote:vote}}" -o json
+az devops invoke --org <org-url> --area git --resource pullRequestThreads --route-parameters project=<projectId> repositoryId=<repoId> pullRequestId=<id> --api-version 7.1 -o json   # existing comments
+git fetch origin refs/pull/<id>/merge:refs/remotes/origin/pr/<id>
+```
+
+The merge ref's second parent is the PR head, its first parent the base. Diff with `git diff --stat <base>...<head>` and `git diff <base>...<head> -- <paths>`.
+
+If `az` is not logged in (`az account show` fails): tell the user to run `! az login`, and continue with the diff from the merge ref alone, marking metadata, description, comments and votes as **not read** in the report and the log as `partial`.
+
+**GitHub**: `gh pr view <id> --json title,body,author,baseRefName,headRefName,state,url,files,commits,labels,reviews`, `gh pr diff <id>`, `gh pr view <id> --comments`.
+
+**Bitbucket DC**: use the registered MCP tools; if none, abort.
+
+Read the story key from the source branch using the feature branch pattern in config and fetch the story with `getJiraIssue` (Cloud ID from config) for scope context. If Jira is unreachable, continue without it and say so.
 
 ### Step 2: Build the review checklist
 
-From the configs read in §Configuration, assemble a **prioritized checklist**:
+From the configuration, in priority order:
 
-1. **Platform best practices** (HIGH-bias) — every numbered rule in `pipeline/platforms/<Platform>/best-practices.md`. For Salesforce specifically: §7.1 (no inline SOQL/DML, TDGW + DI), §7.2 (interface stays SOQL/DML-free), §7.3 (`inherited sharing` default + `WithoutSharing` inner class), `with sharing` placement, security/FLS, governor limits, bulkification, test coverage rules.
-2. **Customer conventions** (HIGH-bias) — every rule in `pipeline/coding-conventions.md`, especially naming conventions, layering rules, exception-handling policies, and any "MUST"/"NEVER" wording.
-3. **Domain pitfalls** (MEDIUM-bias) — field naming traps and business rules from `pipeline/customer.domain.md` (e.g., custom field that looks generic but has a specific meaning).
-4. **Code-quality baseline** (LOW-bias unless severe) — naming, dead code, unhandled errors, missing test coverage for changed Apex / TS.
-5. **Security baseline** (HIGH severity when triggered) — OWASP-style: injection (SOQL string concat), authn/authz gaps, secrets in source, CORS, XSS, FLS bypass without justification.
+1. **Stack conventions** (HIGH-bias): every rule in `stack.config.md > Naming Conventions`, `Code Quality Standards`, `Testing Standards` (coverage floor, test data factory, LWC test expectation, Prettier, ESLint).
+2. **Customer conventions and platform best practices** (HIGH-bias): only rules that actually exist in those files. Skeleton files contribute nothing.
+3. **Domain pitfalls** (MEDIUM-bias): from `customer.domain.md`.
+4. **Platform baseline** (applied always, cited as general practice, no section numbers): bulkification and SOQL/DML in loops, sharing keyword present, CRUD/FLS on user-facing paths, no hard-coded IDs or thresholds that exist in configuration, no secrets, no `System.debug` of sensitive values, exception handling not swallowed, API version consistency, test assertions on outcomes rather than existence.
+5. **Security baseline** (HIGH when triggered): injection via string-concatenated dynamic SOQL, sharing bypass on exposed classes, secrets in source, XSS in VF/LWC, unauthenticated inbound endpoints.
+6. **UI language**: new user-facing labels, messages or validation texts must be in `UI Language`; admin-facing metadata labels follow the existing convention in the repo.
 
-When customer conventions and platform best-practices conflict, customer conventions win (per `pipeline/CLAUDE.md > Coding Standards`).
+Customer conventions win over the general baseline where they conflict.
 
 ### Step 3: Walk the diff
 
-For each file in the diff, classify by what it is from the path/extension:
+Classify each file by path (Apex class/trigger/test, LWC, Aura, flow, permission set/profile, object/field/validation rule, custom metadata type and records, deployment package, documentation) and apply the relevant subset. Cite `file:line` from the branch, not from the diff hunk offset. **Group recurring patterns** into one finding with a count.
 
-- Apex class / trigger / test (Salesforce): file under `classes/`, `triggers/`
-- LWC: bundle under `lwc/<name>/`
-- Aura: under `aura/<name>/`
-- Flow / Process Builder XML: `flows/`, `flowDefinitions/`
-- Permissionset / Profile / Role / SharingRules: `permissionsets/`, `profiles/`, `sharingRules/`
-- Object / Field / Validation Rule metadata: `objects/.../*.field-meta.xml`, `validationRules/`
-- Custom Metadata Type record / CMT definition
-- TS/JS source (Node/Cloudflare): `src/**/*.ts`, `functions/**/*.ts`
-- SQL migration: `migrations/*.sql`
-- Test file (any platform)
+Targeted greps over the changed Apex (non-test):
 
-For each file, evaluate against the relevant subset of the checklist. Cite `file:line` from the diff hunks. **Group recurring patterns** (e.g. "5 controllers still use `new XxxImpl()` — §7.1") rather than 5 separate findings.
-
-For Apex specifically, run these targeted greps over the diff (capture before commenting):
-
-| Pattern | Likely violation |
+| Pattern | Likely issue |
 |---|---|
-| `\\bnew \\w+TdgwImpl\\(\\)` outside `Static\\w*DependencyContainer` / test files | §7.1 — bypassing the container |
-| `\\[SELECT ` inside `classes/.*Controller\\.cls` or `classes/.*Service\\.cls` (non-test) | §7.1 — inline SOQL outside TDGW |
-| `\\b(insert\\|update\\|upsert\\|delete\\|undelete\\|merge) ` in non-test, non-TDGW class | §7.1 — inline DML outside TDGW |
-| `@SuppressWarnings\\('PMD.ApexCRUDViolation'\\)` newly added | Justify or remove |
-| Missing `WITH USER_MODE` on user-context SOQL | FLS bypass risk |
-| `Database.query\\(.*\\+.*\\)` (string-concat dynamic SOQL) | SOQL injection risk |
-| `System.debug` left in production code | Remove or downgrade |
-| `String\\.escapeSingleQuotes` absent on dynamic SOQL with non-whitelisted fragments | Defense-in-depth gap |
-| `try { ... } catch (Exception ex) { }` (empty catch) | Swallowed exceptions |
-| `with sharing` on a TDGW `*Impl` class (should be `inherited sharing`) | §7.3 |
+| `[SELECT` or DML inside a `for` loop, or in a method called per record | SOQL/DML in loop |
+| `Database.query(` with `+` | injection |
+| `getInstance(` with a literal developer name where several records exist per key | non-deterministic configuration lookup |
+| `LIMIT 1` on a query that can match several configuration records | non-deterministic lookup |
+| numeric literals that also exist as configuration values (thresholds, points, months) | duplicated configuration |
+| `catch (Exception` followed by an empty block | swallowed exception |
+| `System.debug(` with token/password/secret | logging hygiene |
+| class without `with`/`without`/`inherited sharing` | sharing not declared |
+| `@TestVisible` statics used as production switches | test-only override leaking into runtime |
 
-For TS/JS:
-
-| Pattern | Likely violation |
-|---|---|
-| `process.env.\\w+` referenced from a Worker handler (Cloudflare bindings live on `env`, not `process.env`) | Platform best practice |
-| `as any` introduced in the diff | Type-safety regression |
-| `console.log` in source (not tests) | Logging hygiene |
-| Missing `await` on a function returning `Promise<...>` | Race / dropped error |
-| Unbounded loops over D1 results without pagination | Worker CPU-time limit risk |
-
-If a customer convention contradicts an item in the table above, defer to the convention.
+For flows: check that record lookups filter on the same activation flags the Apex uses, that new decision elements have a default outcome, and that thresholds match the configuration. For custom metadata: check record values shipped with the PR (e.g. an activation flag defaulting to on or off) against the story's intent. For deployment packages: API version consistency, empty destructive changes, members not in the diff.
 
 ### Step 4: Severity classification
 
-Use this rubric — same for every finding:
-
 | Severity | Trigger |
 |---|---|
-| **HIGH** | Security risk; data loss / corruption risk; violates a "MUST"/"NEVER" rule in conventions or §7.x; missing or wrong sharing on a class touching shared data; hardcoded secret. |
-| **MEDIUM** | Architectural concern (layering, DI, separation of concerns); silently-swallowed errors; missing FLS check with no documented PSG-gated rationale; missing test coverage for the changed code path; bulkification gap. |
-| **LOW** | Naming / convention drift; dead code or noisy logging; minor docstring or comment issues; duplicated logic that doesn't justify a refactor in this PR. |
+| **HIGH** | Security risk; data loss or corruption; violates a MUST/NEVER rule in the stack or customer conventions; missing or wrong sharing on a class touching shared data; hard-coded secret |
+| **MEDIUM** | Architectural concern; behaviour change beyond the story; non-deterministic configuration lookup; swallowed errors; missing FLS without rationale; missing or assertion-free test coverage for the changed path; bulkification gap |
+| **LOW** | Naming or convention drift; dead code; noisy logging; package or version inconsistencies; unrelated files in the PR |
 
-If a finding could go either way, default to the lower severity and explain *why* it might escalate ("MEDIUM — would be HIGH if `<X>` were exposed publicly").
+If a finding could go either way, take the lower severity and say why it might escalate.
 
-### Step 4a: Independent second-opinion review (read-only, user decides)
+### Step 5: Verify before reporting — mandatory
 
-Run this step unless `--no-second-opinion` was passed.
-
-1. **Resolve the reviewer runtime** via `pipeline/bin/review-runtime` (the `agent-runtime-access.md` §2a resolver — reads `customer.config.md > ## Agent Runtime > Review Runtime`; e.g. `openai-codex` → Codex). Skip this step with a one-line note when:
-   - no independent reviewer resolves (reviewer equals the active runtime and no explicit `Review Runtime` row exists), or
-   - the auto-switch gate (see the **Runtime hint & auto-switch** block) already ran the primary analysis under this same reviewer runtime — a second pass by the same model adds nothing.
-   If `pipeline/bin/review-runtime --check` fails (reviewer CLI missing or unauthenticated), **warn** with the graceful-degradation message from §2a — never silently skip — and continue without the second opinion.
-2. **Dispatch read-only in the background** per the §2a table and its **Background dispatch contract** — write the prompt to `review-prompt.txt` first, then e.g. for `openai-codex`:
-   ```bash
-   codex exec --sandbox read-only -c model_reasoning_summary=detailed -- "$(cat review-prompt.txt)" < /dev/null
-   ```
-   (The `-c` flag is the registry's `exec_flags`: `pipeline/bin/runtimes --dispatch-review openai-codex` prints the line with the customer's `Reasoning Summary` level resolved, and its summaries arrive on stderr — the `2>&1` of the §2a recipe is what makes the reviewer's thinking readable from the log while it runs.) Launch detached with output to a log file (under Claude Code: Bash `run_in_background: true`), arm the §2a progress feed (`pipeline/bin/review-progress review-out.log`, under Claude Code as a Monitor — each reasoning headline and command the reviewer runs then lands in the session while it works), and wait for the §2a exit marker — **never foreground with a fixed timeout**: thorough reviews legitimately exceed 10 minutes, and foreground shell calls are killed at the host's 10-minute cap while the reviewer is still working. While waiting, check liveness (log growth), not elapsed time; on a genuine hang apply the §2a recovery (`codex exec resume --last ...`).
-   The prompt must be self-contained (the reviewer has no MCP access): PR metadata (title, branches, story key), the full unified diff from Step 1, and the review criteria — the Step 2 checklist essence from `coding-conventions.md`, `platforms/<Platform>/best-practices.md`, and the domain pitfalls. Instruct it explicitly: *report findings only — severity, `file:line`, description, suggested fix; do not modify any files; do not run write commands.* The read-only sandbox enforces this regardless.
-3. **Display the output verbatim** to the user in a clearly marked block (`## Second Opinion — <reviewer runtime>`) — unedited, no pre-filtering, no merging yet.
-4. **Ask the user how to proceed** — the user decides, never the skill:
-   - **Merge** — fold the second-opinion findings into the Step 5 report, deduplicated against the host findings; tag each merged finding with its source runtime.
-   - **Append** — keep the host report as-is and attach the second-opinion output verbatim as a final report section ("Second Opinion — <runtime>").
-   - **Discard** — continue with the host findings only; note the discard in the log.
-5. Record for Step 8: the reviewer runtime that ran, whether it produced output, and the user's decision (`merged` / `appended` / `discarded` / `skipped: <reason>`).
-
-### Step 5: Build the review report
-
-Use the **Documentation Language** from `customer.config.md` for prose. Title:
-
-```
-PR Review — <Customer Short Name> #<pr-id> — <YYYY-MM-DD>
-```
-
-Sections (Markdown):
-
-1. **Summary** — PR title, author, base/head branches, JIRA story key (parse from branch name pattern in config), overall traffic-light assessment (green/yellow/red), counts by severity, top 3 actions.
-2. **Critical Findings (HIGH)** — each: `file:line`, description, why it matters, **concrete fix snippet** (Apex/TS/etc.).
-3. **Important Findings (MEDIUM)** — same structure as HIGH.
-4. **Improvements (LOW)** — same structure, can be terser.
-5. **Adherence to Conventions** — explicitly call out which numbered rules were checked and which were violated. Reference convention rule by section number where possible.
-6. **Test Coverage Notes** — for each non-test file changed, state whether a corresponding test file is part of the diff. Flag gaps as MEDIUM unless trivial config.
-7. **Existing Comments** — short note if the PR already has prior review comments; do not duplicate findings someone else already raised, but DO escalate severity if a previous reviewer raised something and it wasn't addressed.
-8. **Recommendations** — prioritized action list. Quick wins first.
-
-Every finding MUST include: severity, `file:line`, description, fix suggestion. No bare opinions.
-
-### Verify before reporting — mandatory
-
-A finding is not a finding until it has been checked against the branch. This applies to everything you did not derive yourself, and doubly to output from a reviewer runtime without repository access — such a model reasons from the diff text alone and will produce confident, well-formatted, false claims. Measured on one PR: an agentic reviewer scored 2 of 2 accurate, a diff-only reviewer 8 of 48.
-
-Cheap checks that settle most disputes outright:
+A finding is not a finding until checked against the branch. For every candidate:
 
 | Claim shape | How to settle it |
 |---|---|
-| "X is missing / not declared" | Open the whole file; `git show <branch>:<path>` |
-| "identifier exceeds the length limit" | Count it — do not eyeball it |
-| "formatting violates the standard" | Run the project's formatter in check mode against the branch content |
-| "this convention is violated" | `git grep` the convention across the repo first — if the codebase does it the same way everywhere, it is not this PR's finding |
-| "this rule applies here" (API/version-gated rules) | Read the per-file version marker; PR-wide statements about API versions are usually wrong for pre-existing files the PR merely touches |
-| platform semantics (NULL handling, limits, defaults) | Query a sandbox or cite the platform doc — never answer from memory |
+| "X is missing" | `git show <head>:<path>` and read the whole file |
+| "identifier too long / name wrong" | count or grep, do not eyeball |
+| "convention violated" | `git grep` the convention across the repo; if the codebase does it the same way everywhere, it is not this PR's finding, at most a note |
+| "rule applies here" (version-gated) | read the per-file API version |
+| "configuration lookup ambiguous" | list the actual metadata records on the branch |
+| "behaviour changed" | diff the specific method against the base branch and state old vs. new |
+| platform semantics | cite documentation or query a sandbox, never answer from memory |
 
-Report the *outcome* of these checks, not just the surviving findings: a short "checked and rejected" list with the evidence keeps the same wrong claims from returning in the next round, and lets the author see what was actually examined.
+Keep a **checked and rejected** list with the evidence; it goes into the report.
 
-When you supply context to a reviewer runtime, state per-file facts per file. A blanket "all classes in this PR are on API version X" is false as soon as the PR touches one older file, and the reviewer will faithfully derive wrong findings from it.
+### Step 6: Build the report
 
-### Step 6: Save locally
+Documentation Language from config. Title `PR Review — <Short Name> #<id> — <YYYY-MM-DD>`. Sections:
 
-1. Read the **Code Review** folder path from `customer.config.md > Folder Paths`.
-2. Save to `<Code Review path>/<YYYY-MM-DD>-pr<id>-review.md`. Create the directory if missing.
-3. Surface the local file path to the user.
+1. **Summary** — PR link, branches, story key, merge/base commits reviewed, files changed by type, traffic light (green: no MEDIUM or HIGH; yellow: MEDIUM only; red: any HIGH), counts by severity, top 3 actions, and a note on what could not be read (metadata, comments, tooling).
+2. **Critical Findings (HIGH)** — each with `file:line`, description, why it matters, concrete fix snippet.
+3. **Important Findings (MEDIUM)** — same structure.
+4. **Improvements (LOW)** — same, terser.
+5. **Adherence to Conventions** — table of rules checked with ✅ / ⚠️ / n/a; name the source file of each rule; state which convention files were skeletons.
+6. **Test Coverage Notes** — one row per changed non-test file: test in diff, what it asserts, gaps.
+7. **Existing Comments** — prior reviewer remarks; do not duplicate, escalate if unaddressed; or "not read" with the reason.
+8. **Recommendations** — prioritised, quick wins first.
+9. **Checked and rejected** — table of candidate findings with the evidence that dismissed them.
 
-### Step 7: Optional PR comment
+Every finding: severity, `file:line`, description, fix. No bare opinions.
 
-If `$ARGUMENTS` includes `--post-comment` AND the resolved provider has a comment-write op:
+### Step 7: Save
 
-- **Bitbucket DC**: typically not exposed by a customer-local Bitbucket MCP server (per `pipeline/atlassian-access.md §5` — only `get_*` ops). Inform the user and suggest extending the server with a `add_pull_request_comment` wrapper, then skip the post.
-- **GitHub**: `gh pr comment <id> --body-file <path-to-review.md>` after user confirmation.
-- **Azure DevOps**: `az repos pr update --id <id>` does not post comments; use `az devops invoke` with the threads endpoint, or `gh pr comment` if the customer mirrors to GitHub. Skip if neither is available.
+Path from `customer.config.md > Folder Paths > Code Review` (default `code-review/`): `<folder>/<YYYY-MM-DD>-pr<id>-review.md`. Create the folder if missing.
 
-Always show the user the rendered comment preview and ask for explicit confirmation before posting. Never post a HIGH-severity-laden comment without a confirmation.
+### Step 8: Optional PR comment (`--post-comment`)
 
-### Step 8: Log
+Build a short summary: traffic light, counts, each MEDIUM and HIGH in one or two sentences, LOW as bullets, path of the full report. **No AI attribution, no internal paths other than the report path.** Show the preview and ask for confirmation. Then:
 
-- ALWAYS write the execution log with `pipeline/bin/log-skill` — never hand-author the JSON. Run:
+- **Azure DevOps**: write the thread JSON to the scratchpad and post:
   ```bash
-  pipeline/bin/log-skill --skill review-pr --identifier pr<id> --status <success|partial|failed> \
-    --preferred-runtime openai-codex \
-    --summary "<1–2 sentence result>" \
-    --artifact <path> \
-    --output "<full run text>"
+  az devops invoke --org <org-url> --area git --resource pullRequestThreads \
+    --route-parameters project=<projectId> repositoryId=<repoId> pullRequestId=<id> \
+    --http-method POST --api-version 7.1 --in-file <thread.json> --query "{threadId:id,status:status}"
   ```
-  It guarantees a schema-valid document and writes it to `pipeline/customers/<customer>/logs/<YYYY-MM-DD>-<customer-short-name>-pr<id>-review-pr.json` (customer, active runtime, and timestamp resolve from config automatically; pass `--artifact` once per created/modified file; the directory is created if needed).
-- Include the Step 4a outcome in the `--output` text: the second-opinion reviewer runtime, its finding count, and the user's decision (`merged` / `appended` / `discarded` / `skipped: <reason>`), so the second opinion stays auditable.
+  with body `{"comments":[{"parentCommentId":0,"commentType":1,"content":"<markdown>"}],"status":1}`.
+- **GitHub**: `gh pr comment <id> --body-file <file>`.
+- **Bitbucket DC**: only if a comment-write MCP tool exists; otherwise say so and skip.
 
-### Step 9: Final summary to user
+Report the thread or comment id.
 
-Print:
-- Local review file path
-- Findings by severity (Critical / Important / Improvement)
-- Top 3 actions
-- Overall traffic-light health
-- Second opinion (if Step 4a ran): reviewer runtime, finding count, and the user's decision — or the skip reason
-- If `--post-comment`: posting result or skip reason
+### Step 9: Log and summary
+
+Create `<YYYY-MM-DD>-<customer-short-name>-pr<id>-review-pr.json` in `.claude/skills/22-review-pr/logs/` per the CLAUDE.md JSON schema. Status `success` when metadata, diff and comments were all read; `partial` when any of them was not (say which in `summary`); `failed` when no report was written. Include in `output`: provider, commits reviewed, counts per severity, rejected candidates count, comment posted or not.
+
+Print to the user: report path, counts by severity, top 3 actions, traffic light, what was not read, comment result.
 
 ## Important Rules
 
-- Follow all conventions from `pipeline/CLAUDE.md` — no AI attribution in any output written into customer-visible artifacts (the review .md is local-only and may reference Claude in dev tooling notes; the PR comment must NOT mention AI).
-- Use the Atlassian adapter for Bitbucket; never hardcode URLs or auth.
-- For other providers (GitHub / Azure DevOps), use the official CLI (`gh`, `az`) — do not invent direct REST calls.
-- Do not invent rule numbers — only cite §7.1, §7.2 etc. when they actually appear in `coding-conventions.md` or `platforms/<Platform>/best-practices.md`. If you can't find the source, drop the section reference and just describe the rule.
-- Do not duplicate findings already raised in existing PR comments — escalate them if unaddressed instead.
-- Skip findings in test files unless they are security risks (e.g. hardcoded credentials in a test) or would mask a real bug.
-- Group recurring patterns into one finding with a count; never produce a wall of identical bullets.
-- Output report prose in the **Documentation Language** from `customer.config.md`; code snippets stay in the source language.
-- The second-opinion reviewer (Step 4a) is **always dispatched read-only** and its output is **never auto-merged** — display it verbatim and let the user decide (merge / append / discard). If the configured reviewer CLI is unavailable, warn and continue without it; never let the reviewer write to the working tree.
+- Never post a comment without showing the preview and getting confirmation; the comment carries no AI attribution.
+- Always pass the organisation explicitly to `az`; never depend on `az devops configure` defaults.
+- Only cite convention rules that exist in the configuration files you read; describe general practice in words without invented section numbers.
+- Group recurring patterns; skip findings in test files unless they hide a real bug or a security issue.
+- Read-only towards the repository: the skill never edits code, never pushes, never changes PR state or votes.
+- Report prose in the Documentation Language; code snippets in the source language.
 
 ## Error Handling
 
-- **PR not found / 404**: re-prompt for the correct ID; do not guess.
-- **Auth failure on the VCS provider**: follow the adapter's §6 once; if still failing, abort with the actionable env-var message.
-- **Diff is huge (> ~3000 changed lines)**: warn the user, then sample — review every file in the security-relevant directories (`classes/`, `triggers/`, `permissionsets/`, `profiles/`, `objects/`, `src/api/`, `migrations/`) in full and summarize the rest.
-  - If you split the diff into chunks for a reviewer with a limited context window, **never accept an "X is missing" finding at face value** — a chunked reviewer cannot see the rest of its own file. Absence claims (missing `apiVersion`, missing fault handler, missing declaration) must be re-checked against the complete file before they reach the report. This produced two false findings in one run.
-  - Never split a single file across chunks without saying so in the prompt, and prefer whole files over line-bounded slices wherever the file fits.
-- **No coding-conventions.md or platform/best-practices.md**: surface the missing file path and abort — the skill cannot review meaningfully without them.
-- **`gh` or `az` CLI not installed for the resolved provider**: abort with the install instruction; do not silently fall back to `git` clone parsing.
-- **Customer config missing a VCS provider URL**: see §VCS provider detection — abort with the field-add instruction.
+- **PR not found**: ask for the correct id, do not guess.
+- **`az` not installed**: abort with the install instruction. **`az` not logged in**: continue from the merge ref, mark metadata as not read, log `partial`.
+- **Merge ref cannot be fetched** (conflicts, PR abandoned): diff `origin/<source>` against `origin/<target>` instead and say so.
+- **Diff over ~3,000 changed lines**: review `classes/`, `triggers/`, `flows/`, `permissionsets/`, `profiles/`, `objects/` in full, summarise the rest, and never accept an "X is missing" claim from a partial read.
+- **Prettier or PMD not available locally**: mark formatting/static analysis as not verified rather than guessing.
+- **Convention files empty**: say so in section 5 and review against the stack config and the general baseline only.

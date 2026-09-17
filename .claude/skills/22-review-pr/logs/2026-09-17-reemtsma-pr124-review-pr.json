@@ -1,0 +1,15 @@
+{
+  "skill": "review-pr",
+  "customer": "reemtsma",
+  "identifier": "pr124",
+  "timestamp": "2026-09-17T16:36:38",
+  "status": "partial",
+  "summary": "PR 124 (feature/AP2-1583 -> master) reviewed: 0 HIGH, 4 MEDIUM, 4 LOW, traffic light yellow. Partial because az CLI is not authenticated: PR description, comments and votes not read; diff taken from refs/pull/124/merge.",
+  "artifacts": [
+    "code-review/2026-09-17-pr124-review.md"
+  ],
+  "active_runtime": "claude-code",
+  "preferred_runtime": "openai-codex",
+  "runtime_match": false,
+  "output": "Second opinion: skipped (bin/review-runtime not implemented, no Review Runtime configured). Findings: M1 per-brand reduce rate beyond story scope; M2 Gauloises duplicate tier records make tier bonus non-deterministic; M3 new test class lacks points/tier assertions; M4 two SOQL per validateBrandIsLoyalty call per record; L1 package.xml 63.0 vs classes 64.0; L2 empty destructiveChanges; L3 test override pattern; L4 docs in code PR. Five candidate findings checked and rejected."
+}

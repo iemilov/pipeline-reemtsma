@@ -1,0 +1,12 @@
+{
+  "skill": "document",
+  "customer": "reemtsma",
+  "identifier": "loyalty-programme",
+  "timestamp": "2026-09-17T16:06:34",
+  "status": "success",
+  "summary": "[publish=none] [mirror=none] Business process documentation of the loyalty programme written as HTML to documentation/loyalty-programme.html (15 sections, 7 flow diagrams, audience business process people, English). Deviation from skill: HTML in documentation/ as requested instead of Markdown in the customer config repo; no Confluence publish.",
+  "artifacts": [
+    "documentation/loyalty-programme.html"
+  ],
+  "output": "Sources: Apex REST endpoints and services, flows, custom metadata (LoyaltyProgram, LoyaltyTier, EngagementTrackingRule, ConsumerInteractionMapping), objects LoyaltyMemberTier__c, EngagementTracking__c, Coupon__c. 9 observations listed in section 15."
+}
