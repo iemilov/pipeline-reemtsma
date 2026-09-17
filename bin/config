@@ -1,14 +1,312 @@
 #!/usr/bin/env bash
-# config — read a single configuration value; skills must never re-parse the Markdown tables by hand
+# pipeline/bin/config — single source of truth for reading a field from a
+# customer config Markdown file, and for resolving the active customer's
+# directory.
+#
+# Replaces the per-call config parsers that were re-derived in setup.sh (awk),
+# tests/lib/assertions.sh (python), and .claude/hooks/validate-session.sh
+# (grep+sed+awk). Skills and runtimes resolve config via this one command
+# instead of re-implementing a parser — which is what makes the pipeline
+# robust under weaker, swappable local models that can't reliably re-derive a
+# parse step at runtime.
 #
 # Usage:
-#   "<Key>"            print the value of <Key> from customer.config.md (tables, any section)
-#   --customer-dir     print the active customer folder (symlink target of customer.config.md)
-#   --stack "<Key>"    print the value of <Key> from stack.config.md
+#   pipeline/bin/config "<Field>" [--file <path>] [--section <Heading>]
+#   pipeline/bin/config --file <path> "<Field>"
+#   pipeline/bin/config --customer-dir [--file <path>]
 #
-# Contract: see the skills that call this helper (grep -rn "bin/config" .claude/skills).
-# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
-set -euo pipefail
-PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-echo "bin/config: not implemented yet — see header of this file for the expected interface" >&2
-exit 3
+# Default file is pipeline/customer.config.md (the active customer symlink).
+#
+# --customer-dir prints the ACTIVE CUSTOMER'S directory instead of a field, by
+# the same two-step rule for every caller: the customer.config.md symlink
+# target first (customers/<name>/config.md -> customers/<name>), then the
+# lowercased `Short Name` as customers/<short>. That fallback is not cosmetic —
+# in an npm-installed (customer mode) install customer.config.md is often a
+# real file rather than a symlink, and resolving by symlink alone answered
+# "nothing" for exactly the installation type it exists to serve. With an
+# explicit --file the answer is that file's directory (a customer config.md
+# always sits at the root of its customer directory); that is the seam the chat
+# engine uses to run against a customer without switching the active symlink.
+# The path is printed physically (symlinks resolved) because callers compare it
+# with git-derived paths, which are physical. Unresolvable prints empty and
+# exits 0, like a missing field, so callers keep their own die/fallback.
+#
+# --section restricts the scan to one Markdown section: the lines after a
+# `## <Heading>` (any depth) up to the next heading of equal or lower depth.
+# Without it the whole file is scanned and the FIRST key match wins — wrong
+# whenever a key is only meaningful inside one section. A `| code-review | … |`
+# row under `## Skill Runtime Overrides` is a runtime override; the same key
+# documented in another section is not, and must not be resolved as one.
+#
+# Supported layouts (both are present in this repo):
+#   table:     | <Field> | <Value> |
+#   bold-list: - **<Field>:** <Value>
+#
+# Value resolution: if the value contains a `backtick-quoted` token, the first
+# such token is returned (this is how config.md offers a "`a` / `b` / `c`"
+# menu and marks the chosen default); otherwise the trimmed remainder is
+# returned verbatim. Field names are matched exactly after trimming.
+#
+# Always prints the resolved value (empty string if not found) and exits 0, so
+# callers can apply their own defaults on an empty result.
+
+set -uo pipefail
+
+# `CDPATH= cd -P --`: a bare `cd` with CDPATH set resolves relative paths
+# against the search path (and echoes the result), so the tool would answer for
+# a different tree than the one it was pointed at.
+SCRIPT_DIR="$(CDPATH= cd -P -- "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+DEFAULT_FILE="$SCRIPT_DIR/../customer.config.md"
+
+FILE=""
+FIELD=""
+SECTION=""
+FILE_EXPLICIT=0
+WANT_CUSTOMER_DIR=0
+
+usage() {
+  # Print the whole header comment block rather than a hardcoded line range,
+  # which silently truncates the moment the docs grow.
+  awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --file)
+      shift
+      [ $# -gt 0 ] || { echo "config: --file requires a path" >&2; exit 2; }
+      FILE="$1"
+      # An empty value is no file at all: treating it as explicit made
+      # `--customer-dir --file "$UNSET_VAR"` answer with the pipeline root.
+      [ -n "$FILE" ] && FILE_EXPLICIT=1
+      ;;
+    --file=*)
+      FILE="${1#--file=}"
+      [ -n "$FILE" ] && FILE_EXPLICIT=1
+      ;;
+    --customer-dir)
+      WANT_CUSTOMER_DIR=1
+      ;;
+    --section)
+      shift
+      [ $# -gt 0 ] || { echo "config: --section requires a heading" >&2; exit 2; }
+      SECTION="$1"
+      ;;
+    --section=*)
+      SECTION="${1#--section=}"
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      [ $# -gt 0 ] && FIELD="$1"
+      break
+      ;;
+    -*)
+      echo "config: unknown option '$1'" >&2
+      exit 2
+      ;;
+    *)
+      if [ -z "$FIELD" ]; then
+        FIELD="$1"
+      else
+        echo "config: unexpected argument '$1'" >&2
+        exit 2
+      fi
+      ;;
+  esac
+  shift
+done
+
+if [ "$WANT_CUSTOMER_DIR" -eq 0 ] && [ -z "$FIELD" ]; then
+  echo "config: missing <Field>" >&2
+  usage >&2
+  exit 2
+fi
+if [ "$WANT_CUSTOMER_DIR" -eq 1 ] && { [ -n "$FIELD" ] || [ -n "$SECTION" ]; }; then
+  echo "config: --customer-dir takes no <Field> and no --section" >&2
+  exit 2
+fi
+
+[ -n "$FILE" ] || FILE="$DEFAULT_FILE"
+
+# The parser, once: the field lookup below and the Short Name step of
+# --customer-dir are the same parse and must not drift apart.
+AWK_PROGRAM='
+function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+# First `backtick` token if present, else the trimmed value.
+function resolve(v) {
+  if (match(v, /`[^`]+`/)) return substr(v, RSTART + 1, RLENGTH - 2)
+  return trim(v)
+}
+# No --section given: the whole file is in scope, exactly as before.
+BEGIN { in_scope = (section == "") }
+{
+  line = $0
+
+  # HTML comments are documentation, not configuration — and they are stripped
+  # BEFORE any value is resolved. The template documents optional rows as
+  # `| Auto-Switch Runtime | <!-- optional: `true` to … default off --> |`, and
+  # resolving the backtick token first turned every one of those examples into
+  # an active setting: an untouched template silently had auto-switch enabled.
+  # A cell that holds nothing but a comment is therefore empty, which is what
+  # "optional, not set" means.
+  # index()/substr() over the ASCII markers rather than a regex: the awk this
+  # runs under (BSD awk on macOS) fails with a multibyte conversion error when a
+  # regex match lands next to text that a previous cut left mid-character, and
+  # customer configs contain umlauts. The whole program runs under LC_ALL=C for
+  # the same reason — see the invocation below.
+  if (in_comment) {
+    close_at = index(line, "-->")
+    if (close_at == 0) next
+    line = substr(line, close_at + 3)
+    in_comment = 0
+  }
+  while ((open_at = index(line, "<!--")) > 0) {
+    after = substr(line, open_at + 4)
+    close_at = index(after, "-->")
+    if (close_at > 0) {
+      line = substr(line, 1, open_at - 1) substr(after, close_at + 3)
+    } else {
+      line = substr(line, 1, open_at - 1)
+      in_comment = 1
+      break
+    }
+  }
+
+  # Fenced code blocks are not config. A ``` or ~~~ fence toggles; everything
+  # inside is skipped entirely. Without this a shell example containing a
+  # `# comment` line counted as a Markdown heading and silently CLOSED the
+  # requested --section, so keys after the example resolved to empty — and a
+  # `| a | b |` line inside a fence could be matched as a config row.
+  if (match(line, /^[[:space:]]*(```|~~~)/)) { in_fence = !in_fence; next }
+  if (in_fence) next
+
+  # Section tracking. A heading opens the requested section and any deeper
+  # heading stays inside it; the next heading of equal or lower depth closes it.
+  # Headings never carry values, so they are always consumed here.
+  if (match(line, /^#+/)) {
+    depth = RLENGTH
+    heading = trim(substr(line, depth + 1))
+    if (section != "") {
+      if (heading == section) { in_scope = 1; scope_depth = depth }
+      else if (in_scope && depth <= scope_depth) { in_scope = 0 }
+    }
+    next
+  }
+  if (!in_scope) next
+
+  # bold-list: - **Field:** value
+  if (match(line, /^[[:space:]]*-[[:space:]]*\*\*/)) {
+    rest = line
+    sub(/^[[:space:]]*-[[:space:]]*\*\*/, "", rest)   # strip leading "- **"
+    close_idx = index(rest, "**")                      # closing "**"
+    if (close_idx > 0) {
+      name = substr(rest, 1, close_idx - 1)
+      sub(/:[[:space:]]*$/, "", name)                  # drop trailing colon
+      name = trim(name)
+      val = substr(rest, close_idx + 2)
+      sub(/^[[:space:]]*:/, "", val)                   # tolerate "**Field**: x"
+      if (name == field) { print resolve(val); found = 1; exit }
+    }
+    next
+  }
+
+  # table row: | Field | Value |
+  if (line ~ /^[[:space:]]*\|/) {
+    n = split(line, cols, "|")
+    if (n >= 4) {                                      # cols[1] empty, key=2, value=3
+      name = trim(cols[2])
+      if (name == field) { print resolve(cols[3]); found = 1; exit }
+    }
+  }
+}
+END { if (!found) print "" }
+'
+
+read_field() {
+  local file="$1" field="$2" section="${3:-}"
+  [ -f "$file" ] || { printf '\n'; return 0; }
+  # LC_ALL=C: byte semantics, so a cut at an ASCII marker can never land inside
+  # a multibyte character (BSD awk aborts the record with a conversion error).
+  # Then strip C0 control bytes plus DEL at this leaf, so no consumer ever prints
+  # an attacker-supplied ANSI escape from a cloned config file — the endpoint/
+  # credential lines setup.sh and bin/llm show for review must not be rewritable
+  # by a control sequence. The delete set is 0x01–0x1F and 0x7F EXCEPT TAB (0x09)
+  # and LF (0x0A), which are legitimate whitespace in a value; crucially it now
+  # includes CR (0x0D), itself a line-rewrite spoof (returns the cursor to
+  # column 0 and overprints), which the earlier range skipped. It stays byte-
+  # safe: every deleted byte is < 0x80, so UTF-8 lead/continuation bytes (Umlaut,
+  # €) pass untouched. It deliberately does NOT chase UTF-8-encoded C1 controls
+  # (U+0080–U+009F = 0xC2 0x80–0x9F): stripping those raw bytes would shred UTF-8,
+  # and a UTF-8 terminal renders them as code points, not as 8-bit C1 controls.
+  LC_ALL=C awk -v field="$field" -v section="$section" "$AWK_PROGRAM" "$file" \
+    | LC_ALL=C tr -d '\001-\010\013-\037\177'
+}
+
+# Physical (symlink-free) form of a directory; empty when it is not one.
+# `CDPATH=` and `-P --` so the answer cannot depend on the caller's CDPATH and a
+# name starting with '-' is still a path.
+physical_dir() { (CDPATH= cd -P -- "$1" 2>/dev/null && pwd -P) || true; }
+
+# ASCII-only fold, byte-identical to the Node half (cli/lib/util.js): `tr` is
+# locale-dependent for non-ASCII, so the two implementations of the one rule
+# would name different folders for a Short Name with an uppercase Umlaut.
+ascii_lower() { printf '%s' "$1" | tr 'A-Z' 'a-z'; }
+
+# A customer name is a FOLDER NAME, never a path. Without this a `Short Name`
+# of `../evil` resolved to a directory next to customers/, and `../../x` left
+# the repo altogether — a config value would then decide where logs are written
+# and which documents are read. Same rule as setup.sh applies to the folder it
+# clones into, and as the Node twin in cli/lib/util.js.
+# The bracket expression is evaluated in the shell's COLLATING locale, so
+# `[!A-Za-z0-9_-]` does not match `ü` under en_US.UTF-8 but does under LC_ALL=C
+# — bash would have accepted `müller` on a developer machine and rejected it in
+# CI, while the Node twin (activeCustomerDir, /^[A-Za-z0-9_-]+$/) always
+# rejects it. Two halves of one rule must not disagree by environment, so the
+# comparison is done byte-wise: strip everything outside the allowed set under
+# LC_ALL=C and require the result to be unchanged.
+is_plain_slug() {
+  case "$1" in
+    ''|.|..)     return 1 ;;
+    */*|*'\'*)   return 1 ;;
+  esac
+  [ "$(LC_ALL=C printf '%s' "$1" | LC_ALL=C tr -cd 'A-Za-z0-9_-')" = "$1" ]
+}
+
+if [ "$WANT_CUSTOMER_DIR" -eq 1 ]; then
+  # 0. An explicit --file names the config; its directory IS the customer dir.
+  if [ "$FILE_EXPLICIT" -eq 1 ]; then
+    physical_dir "$(dirname "$FILE")"
+    exit 0
+  fi
+  # 1. The active symlink: customers/<name>/config.md -> customers/<name>
+  if [ -L "$DEFAULT_FILE" ]; then
+    target="$(readlink "$DEFAULT_FILE" 2>/dev/null || true)"
+    if [ -n "$target" ]; then
+      case "$target" in
+        /*) candidate="$(dirname "$target")" ;;
+        *)  candidate="$SCRIPT_DIR/../$(dirname "$target")" ;;
+      esac
+      resolved="$(physical_dir "$candidate")"
+      [ -n "$resolved" ] && { printf '%s\n' "$resolved"; exit 0; }
+    fi
+  fi
+  # 2. Short Name — a customer-mode install carries a real file, not a symlink.
+  short="$(ascii_lower "$(read_field "$DEFAULT_FILE" "Short Name")")"
+  if [ -n "$short" ] && ! is_plain_slug "$short"; then
+    echo "config: 'Short Name' is not a folder name: '$short' — expected letters, digits, '-' or '_'" >&2
+    printf '\n'
+    exit 0
+  fi
+  if [ -n "$short" ]; then
+    resolved="$(physical_dir "$SCRIPT_DIR/../customers/$short")"
+    [ -n "$resolved" ] && { printf '%s\n' "$resolved"; exit 0; }
+  fi
+  printf '\n'
+  exit 0
+fi
+
+read_field "$FILE" "$FIELD" "$SECTION"
