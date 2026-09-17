@@ -1,13 +1,490 @@
 #!/usr/bin/env bash
-# story-gate — mechanical checks on implementation notes: required sections, placeholder residue, DRAFT marker, empty test table, open questions (implement), acceptance verification (close)
+# pipeline/bin/story-gate — decide deterministically whether a story's
+# implementation notes are ready for the next phase, and whether the story
+# may close.
+#
+# The spec/plan refusals used to live as prose inside the skills ("STOP if the
+# notes are DRAFT", "STOP if open questions remain") — which made the active
+# model the thing that decides whether a gate fires, exactly what breaks under
+# weaker, swappable runtimes. This tool makes those refusals mechanical, the
+# way bin/quality-gate owns the review-loop exit: the skill calls it, presents
+# the findings, and only the USER may overrule a block (the skill records that
+# override in its execution log).
 #
 # Usage:
-#   --phase design|implement|close --notes <implementation-notes.md> [--verification <acceptance-verification.md>]
-#   Output: decision=pass|block  finding=<text>...
+#   pipeline/bin/story-gate --notes <implementation-notes.md> --phase design
+#   pipeline/bin/story-gate --notes <implementation-notes.md> --phase implement
+#   pipeline/bin/story-gate --notes <file> --phase design --require <H2>...
+#   pipeline/bin/story-gate --phase close --verification <acceptance-verification.md> \
+#       [--notes <implementation-notes.md>]
 #
-# Contract: see the skills that call this helper (grep -rn "bin/story-gate" .claude/skills).
-# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
-set -euo pipefail
-PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-echo "bin/story-gate: not implemented yet — see header of this file for the expected interface" >&2
-exit 3
+# Phases:
+#   design     the notes are about to be declared FINAL (02-design-us Step 5.5):
+#              no DRAFT marker, every required section present, the Test
+#              Scenarios table carries at least one data row, no placeholders.
+#   implement  implementation is about to start (03-implement-us Step 1):
+#              no DRAFT marker, no open questions, no placeholders.
+#   close      the story is about to be transitioned/promoted (07-promote-us
+#              Step 1, 24-release-pr Step 7): every acceptance criterion in the
+#              verification record is `verified` WITH evidence, and no
+#              placeholder residue. A missing verification file is a block,
+#              not a usage error — it is the normal state of an unverified
+#              story, and refusing then is this gate's whole job.
+#
+# Checks:
+#   draft-marker          (design/implement) `<!-- STATUS: DRAFT` or
+#                         `**Status:** DRAFT` anywhere.
+#   missing-section       (design) a required `## ` heading is absent. The
+#                         default set is the platform-neutral core of the
+#                         02-design-us template: Summary, Requirements,
+#                         Proposed Implementation Approach, Acceptance
+#                         Criteria Mapping, Test Scenarios, Resolved
+#                         Questions, Open Questions / Assumptions,
+#                         Implementation Guidance. ("Affected Objects &
+#                         Fields" and "Dependencies" are platform-flavored
+#                         and deliberately not required.) Pass --require one
+#                         or more times to REPLACE the set.
+#   empty-test-scenarios  (design) `## Test Scenarios` exists but its table
+#                         has no data row (header and separator rows do not
+#                         count). Only checked while "Test Scenarios" is in
+#                         the required-section set.
+#   open-question         (implement) a non-empty line under `## Open
+#                         Questions / Assumptions` that is not a "Keine"/
+#                         "None"/"N/A" marker. Template residue counts too —
+#                         an unresolved placeholder there blocks exactly like
+#                         a real question.
+#   missing-verification  (close) the --verification file does not exist.
+#   empty-verification    (close) no table with Status and Evidence columns,
+#                         or a table with no data rows — an empty record
+#                         proves nothing.
+#   ac-failed             (close) a criterion whose Status is `failed`.
+#   ac-unchecked          (close) a criterion whose Status is `unchecked` —
+#                         could not be verified, which is NOT verified.
+#   ac-no-evidence        (close) a criterion marked `verified` with an empty
+#                         Evidence cell. Green is an artifact, not a claim.
+#   ac-invalid-status     (close) a Status outside verified|failed|unchecked.
+#   ac-count-mismatch     (close, only when --notes is given and readable)
+#                         the verification table has fewer rows than the
+#                         notes' `## Acceptance Criteria Mapping` — verifying
+#                         a subset must not close the story.
+#   placeholder           template residue outside fenced code blocks and
+#                         inline `code` spans, in the phase's subject file
+#                         (the notes for design/implement, the verification
+#                         record for close): <angle-bracket tokens> (autolinks
+#                         and e-mail addresses excused), the words TBD / TODO
+#                         / FIXME, `???`, and HTML comments other than the
+#                         STATUS marker (which draft-marker owns).
+#
+# Verification record format (written by 03-implement-us Step 8b):
+#   a markdown table whose header row contains `Status` and `Evidence`
+#   columns; one data row per acceptance criterion; Status is exactly
+#   verified | failed | unchecked (case-insensitive).
+#
+# Output (key=value lines on stdout):
+#   decision=pass|block
+#   phase=<design|implement|close>
+#   status=<DRAFT|FINAL|none>                    (design/implement)
+#   missing_sections=<n>                         (design)
+#   open_questions=<n>                           (implement)
+#   ac_total=<n> ac_verified=<n> ac_failed=<n> ac_unchecked=<n>   (close)
+#   expected_criteria=<n|unknown>                (close)
+#   placeholders=<n>
+#   finding=<check>: <detail>     (one line per finding, before reason)
+#   reason=<short human-readable summary>
+#
+# A block is a refusal, not a verdict: the calling skill presents the
+# finding= lines and asks. Only the user may say "proceed anyway", and the
+# skill records that override in its execution log (bin/log-skill --check).
+# An unattended run (dispatch worker, CI) has no user and therefore never
+# overrides — it aborts.
+#
+# EXIT CODES: 0 = pass · 1 = block · 2 = usage error.
+
+set -uo pipefail
+
+# Resolve this file through any symlinks first: `ln -s …/bin/<tool> ~/bin/<tool>`
+# is a normal thing to do, and the pipeline (config, siblings, the prelude) has
+# to be found next to the REAL file. `readlink -f` is not portable to the BSD
+# userland this also runs on, hence the loop.
+HARNESS_SELF="${BASH_SOURCE[0]}"
+while [ -L "$HARNESS_SELF" ]; do
+  HARNESS_LINK="$(readlink "$HARNESS_SELF")"
+  case "$HARNESS_LINK" in /*) HARNESS_SELF="$HARNESS_LINK" ;; *) HARNESS_SELF="$(dirname "$HARNESS_SELF")/$HARNESS_LINK" ;; esac
+done
+SCRIPT_DIR="$(CDPATH= cd -P -- "$(dirname "$HARNESS_SELF")" && pwd -P)"
+# usage/die/require_value/config-reading live once, in bin/lib/common.sh. A tool
+# that cannot load its own prelude must not run on half its rules, and these
+# tools run without `set -e`, so a failed `source` would go unnoticed.
+[ -r "$SCRIPT_DIR/lib/common.sh" ] || {
+  echo "${0##*/}: missing $SCRIPT_DIR/lib/common.sh — incomplete installation" >&2; exit 2; }
+# shellcheck source=lib/common.sh
+. "$SCRIPT_DIR/lib/common.sh"
+# ---- arg parse ---------------------------------------------------------------
+NOTES="" PHASE="" VERIFICATION=""
+COVERAGE_CROSS_CHECK=skipped
+REQUIRE=()
+
+KNOWN_FLAGS=" --notes --phase --require --verification -h --help "
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --notes) require_value --notes "${2:-}"; NOTES="$VALUE"; shift ;;
+    --phase) require_value --phase "${2:-}"; PHASE="$VALUE"; shift ;;
+    --require) require_value --require "${2:-}"; REQUIRE+=("$VALUE"); shift ;;
+    --verification) require_value --verification "${2:-}"; VERIFICATION="$VALUE"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument '$1'" ;;
+  esac
+  shift
+done
+
+[ -n "$PHASE" ] || die "--phase is required"
+case "$PHASE" in
+  design|implement)
+    [ -n "$NOTES" ] || die "--notes is required"
+    [ -z "$VERIFICATION" ] || die "--verification is only valid with --phase close"
+    [ -f "$NOTES" ] || die "notes file not found: $NOTES"
+    ;;
+  close)
+    [ -n "$VERIFICATION" ] || die "--verification is required for --phase close"
+    # Omitting --notes at close is deliberate (the mapping is optional there).
+    # Passing a path that does not exist is not — but it must not be a usage
+    # error either: both close-phase callers always pass --notes, so `die` here
+    # turned a supported call into an unhandled exit 2. It is refused below, as
+    # a FINDING, so the `decision=block` contract the callers already handle
+    # stays intact.
+    ;;
+  *) die "--phase must be 'design', 'implement' or 'close', got: '$PHASE'" ;;
+esac
+
+FINDINGS=()
+
+# ---- shared: placeholder scan ------------------------------------------------
+# Template residue outside fenced code and inline `code`. Emits one
+# "lineno<TAB>token" line per hit.
+scan_placeholders() {
+  awk '
+    /^(```|~~~)/ { fence = !fence; next }
+    fence { next }
+    {
+      line = $0
+      gsub(/`[^`]*`/, "", line)                  # inline code is excused
+      if (index(line, "<!--") > 0 && index(line, "<!-- STATUS:") == 0) {
+        excerpt = line
+        sub(/^[ \t]+/, "", excerpt)
+        printf "%d\thtml-comment %s\n", NR, substr(excerpt, 1, 60)
+      }
+      if (line ~ /(^|[^A-Za-z])TBD([^A-Za-z]|$)/)   printf "%d\tTBD\n", NR
+      if (line ~ /(^|[^A-Za-z])TODO([^A-Za-z]|$)/)  printf "%d\tTODO\n", NR
+      if (line ~ /(^|[^A-Za-z])FIXME([^A-Za-z]|$)/) printf "%d\tFIXME\n", NR
+      if (line ~ /\?\?\?/)                          printf "%d\t???\n", NR
+      rest = line
+      while (match(rest, /<[A-Za-z][^<>]*>/)) {
+        tok = substr(rest, RSTART, RLENGTH)
+        rest = substr(rest, RSTART + RLENGTH)
+        if (index(tok, "://") > 0) continue        # autolink
+        if (index(tok, "@") > 0) continue          # e-mail address
+        printf "%d\t%s\n", NR, tok
+      }
+    }
+  ' "$1"
+}
+
+collect_placeholders() { # $1 = file; appends findings, sets PLACEHOLDERS
+  PLACEHOLDERS=0
+  local ph_lines lineno tok
+  ph_lines="$(scan_placeholders "$1")"
+  if [ -n "$ph_lines" ]; then
+    while IFS=$'\t' read -r lineno tok; do
+      FINDINGS+=("placeholder: line $lineno: $tok")
+      PLACEHOLDERS=$((PLACEHOLDERS + 1))
+    done <<< "$ph_lines"
+  fi
+}
+
+emit_findings() {
+  if [ -n "${FINDINGS+x}" ] && [ "${#FINDINGS[@]}" -gt 0 ]; then
+    local f
+    for f in "${FINDINGS[@]}"; do
+      echo "finding=$f"
+    done
+  fi
+}
+
+join_parts() { # PARTS[] -> SUMMARY
+  SUMMARY=""
+  if [ -n "${PARTS+x}" ]; then
+    local part
+    for part in "${PARTS[@]}"; do
+      SUMMARY="${SUMMARY:+$SUMMARY; }$part"
+    done
+  fi
+  [ -n "$SUMMARY" ] || SUMMARY="gate open"
+}
+
+# ==============================================================================
+# close phase
+# ==============================================================================
+if [ "$PHASE" = "close" ]; then
+  AC_TOTAL=0 AC_VERIFIED=0 AC_FAILED=0 AC_UNCHECKED=0
+  EXPECTED="unknown"
+  PLACEHOLDERS=0
+
+  if [ ! -f "$VERIFICATION" ]; then
+    FINDINGS+=("missing-verification: no acceptance verification record at $VERIFICATION — the story has not been verified")
+  else
+    collect_placeholders "$VERIFICATION"
+
+    # Rows of the first table whose header carries Status and Evidence
+    # columns. Empty evidence travels as "-" — tab is IFS whitespace, so an
+    # empty field between two tabs would silently vanish in `read`.
+    ROWS="$(awk -F'|' '
+      found && !/^\|/ { exit }
+      /^\|/ {
+        if (!found) {
+          if ($0 ~ /Status/ && ($0 ~ /Evidence/ || $0 ~ /Evidenz/)) {
+            found = 1
+            for (i = 1; i <= NF; i++) {
+              h = $i; gsub(/^[ \t]+|[ \t]+$/, "", h)
+              if (!sc && h ~ /Status/) sc = i
+              if (!ec && (h ~ /Evidence/ || h ~ /Evidenz/)) ec = i
+              if (!cc && (h ~ /Criterion/ || h ~ /Kriterium/)) cc = i
+            }
+            if (!cc) cc = 3
+          }
+          next
+        }
+        if ($0 ~ /^[| :-]+$/) next
+        status = $sc;             gsub(/^[ \t]+|[ \t]+$/, "", status)
+        evidence = (ec ? $ec : ""); gsub(/^[ \t]+|[ \t]+$/, "", evidence)
+        crit = $cc;               gsub(/^[ \t]+|[ \t]+$/, "", crit)
+        if (evidence == "") evidence = "-"
+        if (crit == "") crit = "(row " ++anon ")"
+        printf "%s\t%s\t%s\n", status, evidence, crit
+      }
+    ' "$VERIFICATION")"
+
+    if [ -z "$ROWS" ]; then
+      FINDINGS+=("empty-verification: no verification table with Status and Evidence columns, or no data rows — an empty record proves nothing")
+    else
+      while IFS=$'\t' read -r st ev crit; do
+        AC_TOTAL=$((AC_TOTAL + 1))
+        st_lc="$(printf '%s' "$st" | tr '[:upper:]' '[:lower:]')"
+        case "$st_lc" in
+          verified)
+            if [ "$ev" = "-" ]; then
+              FINDINGS+=("ac-no-evidence: \"$crit\" is marked verified without evidence — green is an artifact, not a claim")
+            else
+              AC_VERIFIED=$((AC_VERIFIED + 1))
+            fi
+            ;;
+          failed)
+            AC_FAILED=$((AC_FAILED + 1))
+            FINDINGS+=("ac-failed: \"$crit\"${ev:+ ($ev)}")
+            ;;
+          unchecked)
+            AC_UNCHECKED=$((AC_UNCHECKED + 1))
+            FINDINGS+=("ac-unchecked: \"$crit\"${ev:+ ($ev)} — could not be verified, which is not verified")
+            ;;
+          *)
+            FINDINGS+=("ac-invalid-status: \"$crit\" has status '$st' — must be verified, failed or unchecked")
+            ;;
+        esac
+      done <<< "$ROWS"
+    fi
+
+    # Cross-check against the notes' Acceptance Criteria Mapping when the
+    # notes are available: verifying a subset must not close the story.
+    if [ -n "$NOTES" ] && { [ ! -f "$NOTES" ] || [ ! -r "$NOTES" ]; }; then
+      FINDINGS+=("notes-unreadable: --notes verweist auf '$NOTES', was nicht lesbar ist — der Abgleich der Akzeptanzkriterien konnte nicht laufen")
+      DECISION=block
+    elif [ -n "$NOTES" ]; then
+      MAPPED="$(awk '
+        /^## / { insec = ($0 ~ /^## Acceptance Criteria Mapping/) ? 1 : 0; next }
+        insec && /^\|/ {
+          if ($0 ~ /^[| :-]+$/) next
+          if ($0 ~ /[A-Za-z]/) n++
+        }
+        END { print (n > 1 ? n - 1 : 0) }         # minus the header row
+      ' "$NOTES")"
+      case "$MAPPED" in
+        ''|*[!0-9]*)
+          FINDINGS+=("notes-unreadable: die Akzeptanzkriterien-Zuordnung in '$NOTES' konnte nicht gelesen werden")
+          DECISION=block
+          MAPPED=0
+          ;;
+        *) COVERAGE_CROSS_CHECK=ran ;;
+      esac
+      if [ "$MAPPED" -gt 0 ]; then
+        EXPECTED="$MAPPED"
+        if [ "$AC_TOTAL" -lt "$MAPPED" ]; then
+          FINDINGS+=("ac-count-mismatch: the verification record covers $AC_TOTAL of $MAPPED mapped acceptance criteria")
+        fi
+      fi
+    fi
+  fi
+
+  if [ -n "${FINDINGS+x}" ] && [ "${#FINDINGS[@]}" -gt 0 ]; then DECISION="block"; else DECISION="pass"; fi
+
+  echo "decision=$DECISION"
+  echo "phase=close"
+  echo "ac_total=$AC_TOTAL"
+  echo "ac_verified=$AC_VERIFIED"
+  echo "ac_failed=$AC_FAILED"
+  echo "ac_unchecked=$AC_UNCHECKED"
+  echo "expected_criteria=$EXPECTED"
+  # Machine-readable: `ran` only when the notes' Acceptance Criteria Mapping was
+  # actually compared against the verification record. A caller that reads only
+  # `decision=pass` cannot tell a verified story from an unverifiable one.
+  echo "coverage_cross_check=$COVERAGE_CROSS_CHECK"
+  echo "placeholders=$PLACEHOLDERS"
+  emit_findings
+
+  if [ "$DECISION" = "pass" ]; then
+    echo "reason=every acceptance criterion ($AC_VERIFIED/$AC_TOTAL) is verified with evidence — the story may close"
+    exit 0
+  fi
+  PARTS=()
+  [ ! -f "$VERIFICATION" ]            && PARTS+=("no verification record")
+  [ "$AC_FAILED" -gt 0 ]              && PARTS+=("$AC_FAILED failed criteria")
+  [ "$AC_UNCHECKED" -gt 0 ]           && PARTS+=("$AC_UNCHECKED unchecked criteria")
+  UNEVIDENCED=$((AC_TOTAL - AC_VERIFIED - AC_FAILED - AC_UNCHECKED))
+  [ "$UNEVIDENCED" -gt 0 ]            && PARTS+=("$UNEVIDENCED criteria without usable verdict/evidence")
+  [ "$EXPECTED" != "unknown" ] && [ "$AC_TOTAL" -lt "${EXPECTED}" ] \
+                                      && PARTS+=("only $AC_TOTAL of $EXPECTED criteria covered")
+  [ "$PLACEHOLDERS" -gt 0 ]           && PARTS+=("$PLACEHOLDERS placeholder token(s)")
+  join_parts
+  echo "reason=$SUMMARY — the story must not close (or the user explicitly overrides, recorded in the log)"
+  exit 1
+fi
+
+# ==============================================================================
+# design / implement phases
+# ==============================================================================
+
+# The platform-neutral core of the 02-design-us notes template.
+if [ -z "${REQUIRE+x}" ] || [ "${#REQUIRE[@]}" -eq 0 ]; then
+  REQUIRE=(
+    "Summary"
+    "Requirements"
+    "Proposed Implementation Approach"
+    "Acceptance Criteria Mapping"
+    "Test Scenarios"
+    "Resolved Questions"
+    "Open Questions / Assumptions"
+    "Implementation Guidance"
+  )
+fi
+
+# ---- status ------------------------------------------------------------------
+STATUS="none"
+grep -q '\*\*Status:\*\* FINAL' "$NOTES" && STATUS="FINAL"
+# DRAFT wins over FINAL: a file carrying both markers is template residue, and
+# residue must block, not pass.
+if grep -q -e '<!-- STATUS: DRAFT' -e '\*\*Status:\*\* DRAFT' "$NOTES"; then
+  STATUS="DRAFT"
+fi
+
+if [ "$STATUS" = "DRAFT" ]; then
+  FINDINGS+=("draft-marker: the notes carry the DRAFT marker from story creation — a full design has not been written yet")
+fi
+
+# ---- sections (design) -------------------------------------------------------
+MISSING=0
+if [ "$PHASE" = "design" ]; then
+  for heading in "${REQUIRE[@]}"; do
+    if ! grep -q "^## $heading" "$NOTES"; then
+      FINDINGS+=("missing-section: ## $heading")
+      MISSING=$((MISSING + 1))
+    fi
+  done
+
+  # Content floor for the one section whose emptiness is mechanical: the Test
+  # Scenarios table needs at least one data row (header + separator alone is a
+  # template skeleton, not a test plan). The per-acceptance-criterion coverage
+  # stays a semantic check in 02-design-us Step 5.5.
+  case " ${REQUIRE[*]} " in
+    *" Test Scenarios "*)
+      if grep -q "^## Test Scenarios" "$NOTES"; then
+        rows="$(awk '
+          /^## / { insec = ($0 ~ /^## Test Scenarios/) ? 1 : 0; next }
+          insec && /^\|/ {
+            if ($0 ~ /^[| :-]+$/) next          # separator row
+            if ($0 ~ /[A-Za-z]/) n++            # header or data row
+          }
+          END { print n + 0 }
+        ' "$NOTES")"
+        if [ "$rows" -lt 2 ]; then
+          FINDINGS+=("empty-test-scenarios: the Test Scenarios table has no data row")
+        fi
+      fi
+      ;;
+  esac
+fi
+
+# ---- open questions (implement) ----------------------------------------------
+OPEN=0
+if [ "$PHASE" = "implement" ]; then
+  # Everything under `## Open Questions / Assumptions` up to the next H2.
+  # A non-blank line that is not an explicit "none" marker is one open item —
+  # including template residue, which blocks exactly like a real question.
+  OPEN_LINES="$(awk '
+    /^## / { insec = ($0 ~ /^## Open Questions/) ? 1 : 0; next }
+    insec {
+      line = $0
+      sub(/^[ \t]+/, "", line); sub(/[ \t]+$/, "", line)
+      if (line == "") next
+      sub(/^[-*+] /, "", line)
+      sub(/^[0-9]+[.)] /, "", line)
+      l = tolower(line)
+      sub(/[.!]$/, "", l)
+      if (l == "keine" || l == "keine offenen fragen" || l == "none" || l == "n/a" || l == "-" || l == "\xe2\x80\x93") next
+      print line
+    }
+  ' "$NOTES")"
+  if [ -n "$OPEN_LINES" ]; then
+    while IFS= read -r q; do
+      FINDINGS+=("open-question: $q")
+      OPEN=$((OPEN + 1))
+    done <<< "$OPEN_LINES"
+  fi
+fi
+
+# ---- placeholders ------------------------------------------------------------
+collect_placeholders "$NOTES"
+
+# ---- emit --------------------------------------------------------------------
+if [ "${#FINDINGS[@]}" -eq 0 ]; then
+  DECISION="pass"
+else
+  DECISION="block"
+fi
+
+echo "decision=$DECISION"
+echo "phase=$PHASE"
+echo "status=$STATUS"
+[ "$PHASE" = "design" ]    && echo "missing_sections=$MISSING"
+[ "$PHASE" = "implement" ] && echo "open_questions=$OPEN"
+echo "placeholders=$PLACEHOLDERS"
+emit_findings
+
+if [ "$DECISION" = "pass" ]; then
+  if [ "$PHASE" = "design" ]; then
+    echo "reason=notes are structurally complete — no DRAFT marker, all required sections present, no placeholder residue"
+  else
+    echo "reason=no DRAFT marker, no open questions, no placeholder residue — implementation may start"
+  fi
+  exit 0
+fi
+
+PARTS=()
+[ "$STATUS" = "DRAFT" ]      && PARTS+=("DRAFT marker present")
+[ "$MISSING" -gt 0 ]         && PARTS+=("$MISSING missing section(s)")
+[ "$OPEN" -gt 0 ]            && PARTS+=("$OPEN open question(s)")
+[ "$PLACEHOLDERS" -gt 0 ]    && PARTS+=("$PLACEHOLDERS placeholder token(s)")
+case " ${FINDINGS[*]} " in
+  *"empty-test-scenarios:"*) PARTS+=("empty Test Scenarios table") ;;
+esac
+join_parts
+echo "reason=$SUMMARY — resolve the findings (or let the user explicitly override) before the $PHASE phase proceeds"
+exit 1

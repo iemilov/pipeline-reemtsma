@@ -1,13 +1,271 @@
 #!/usr/bin/env bash
-# score-rubric — compute a rubric score from a dispositioned findings file (rubrics/<name>.rubric.json); never summed in prose
+# pipeline/bin/score-rubric — compute a review rubric score from a rubric
+# definition (pipeline/rubrics/<name>.rubric.json) and a per-round findings
+# file (schemas/review-findings.schema.json).
+#
+# This is the scoring counterpart to bin/quality-gate (WHEN the loop is done):
+# it answers WHAT the score is, deterministically, from a published artifact —
+# the model never sums a rubric in its head, so the same findings file yields
+# the same score under Claude, Codex, and a small local model, and every
+# logged final_score is recomputable by anyone holding the findings file.
+# The tool applies NO gates and emits no decision= line: pass/continue/stop
+# stays bin/quality-gate's job; this tool only produces the numbers it and
+# bin/log-skill consume.
 #
 # Usage:
-#   --rubric <design-review|code-review|concept-review> --findings <findings.json> --out <score.txt>
-#   Output lines: score=  band=  axis.<slug>=  blockers=  majors=  verdict=complete|incomplete
+#   pipeline/bin/score-rubric --rubric <name|path> --findings <findings.json> \
+#       [--mode story|whole-repo] [--kloc <n>] [--out <report-file>]
 #
-# Contract: see the skills that call this helper (grep -rn "bin/score-rubric" .claude/skills).
-# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
-set -euo pipefail
-PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-echo "bin/score-rubric: not implemented yet — see header of this file for the expected interface" >&2
-exit 3
+# Rubric resolution: an existing path is used as-is (customer-supplied rubrics
+# need no tool change); otherwise <name> resolves to
+# <pipeline>/rubrics/<name>.rubric.json.
+#
+# Scoring rules (the mechanical half of CLAUDE.md > Quality Gate rule 2a):
+#   - Only OPEN findings deduct and count: disposition `open`, `deferred`
+#     (deferring postpones, it does not close), and `rejected` WITHOUT a
+#     non-empty evidence anchor (a rejection without citable evidence does
+#     not close a finding). `accepted` (= accepted and applied) and
+#     evidence-backed `rejected` findings are closed.
+#   - Each category subscore = weight − Σ deductions, floored at 0.
+#   - A category with no findings and no `reviewed: true` coverage entry is
+#     null — never silently full marks (axis-level "unchecked is not a pass").
+#     Findings in a category imply it was reviewed.
+#   - Any null axis ⇒ score=unknown, verdict=incomplete.
+#   - whole-repo mode divides every deduction by max(1.0, round(kloc, 1)).
+#
+# Output (strictly one key=value per line, quality-gate convention):
+#   score=<0-100|unknown>
+#   band=<green|yellow|red|unknown>
+#   verdict=<complete|incomplete>
+#   axis.<category-slug>=<n|null>      (one line per rubric category)
+#   unscored=<comma-list|none>
+#   blockers=<n>
+#   majors=<n>
+#   mode=<story|whole-repo>
+#   kloc=<divisor actually applied>
+#
+# EXIT CODES: 0 = scored (complete or incomplete) · 2 = usage/validation error
+# (missing file, unknown category, weights not summing to 100, unsupported
+# mode, findings file naming a different rubric). A run that scored nothing
+# must not print a score. Whole-repo subscores round half-to-even (Python's
+# round) — deterministic, and documented here so nobody re-derives it.
+
+set -uo pipefail
+
+# Resolve this file through any symlinks first: `ln -s …/bin/<tool> ~/bin/<tool>`
+# is a normal thing to do, and the pipeline (config, siblings, the prelude) has
+# to be found next to the REAL file. `readlink -f` is not portable to the BSD
+# userland this also runs on, hence the loop.
+HARNESS_SELF="${BASH_SOURCE[0]}"
+while [ -L "$HARNESS_SELF" ]; do
+  HARNESS_LINK="$(readlink "$HARNESS_SELF")"
+  case "$HARNESS_LINK" in /*) HARNESS_SELF="$HARNESS_LINK" ;; *) HARNESS_SELF="$(dirname "$HARNESS_SELF")/$HARNESS_LINK" ;; esac
+done
+SCRIPT_DIR="$(CDPATH= cd -P -- "$(dirname "$HARNESS_SELF")" && pwd -P)"
+# usage/die/require_value/config-reading live once, in bin/lib/common.sh. A tool
+# that cannot load its own prelude must not run on half its rules, and these
+# tools run without `set -e`, so a failed `source` would go unnoticed.
+[ -r "$SCRIPT_DIR/lib/common.sh" ] || {
+  echo "${0##*/}: missing $SCRIPT_DIR/lib/common.sh — incomplete installation" >&2; exit 2; }
+# shellcheck source=lib/common.sh
+. "$SCRIPT_DIR/lib/common.sh"
+
+# ---- arg parse ---------------------------------------------------------------
+RUBRIC="" FINDINGS="" MODE="story" KLOC="" OUT=""
+
+KNOWN_FLAGS=" --rubric --findings --mode --kloc --out -h --help "
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --rubric) require_value --rubric "${2:-}"; RUBRIC="$VALUE"; shift ;;
+    --findings) require_value --findings "${2:-}"; FINDINGS="$VALUE"; shift ;;
+    --mode) require_value --mode "${2:-}"; MODE="$VALUE"; shift ;;
+    --kloc) require_value --kloc "${2:-}"; KLOC="$VALUE"; shift ;;
+    --out) require_value --out "${2:-}"; OUT="$VALUE"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument '$1'" ;;
+  esac
+  shift
+done
+
+[ -n "$RUBRIC" ] || die "--rubric is required"
+[ -n "$FINDINGS" ] || die "--findings is required"
+case "$MODE" in story|whole-repo) ;; *) die "--mode must be story or whole-repo, got '$MODE'" ;; esac
+if [ "$MODE" = "whole-repo" ]; then
+  [ -n "$KLOC" ] || die "--kloc is required with --mode whole-repo"
+else
+  [ -z "$KLOC" ] || die "--kloc only applies to --mode whole-repo (a silently ignored divisor would misreport the mode)"
+fi
+
+# Rubric resolution: existing path wins, else the shipped rubrics directory.
+if [ -f "$RUBRIC" ]; then
+  RUBRIC_FILE="$RUBRIC"
+else
+  RUBRIC_FILE="$HARNESS_PIPELINE_DIR/rubrics/$RUBRIC.rubric.json"
+fi
+[ -f "$RUBRIC_FILE" ] || die "rubric not found: '$RUBRIC' (no such file, and no $RUBRIC_FILE)"
+[ -f "$FINDINGS" ] || die "findings file not found: $FINDINGS"
+
+REPORT="$(python3 - "$RUBRIC_FILE" "$FINDINGS" "$MODE" "${KLOC:-}" <<'PYEOF'
+import json, math, re, sys
+
+rubric_path, findings_path, mode, kloc_raw = sys.argv[1:5]
+
+SLUG_RE = re.compile(r"[a-z0-9-]+\Z")
+
+def fail(msg):
+    print(msg, file=sys.stderr)
+    sys.exit(2)
+
+def load(path, label):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        fail(f"{label} is not valid JSON: {e}")
+
+rubric = load(rubric_path, "rubric")
+data = load(findings_path, "findings file")
+
+SEVERITIES = ("blocker", "major", "minor", "info")
+DISPOSITIONS = ("accepted", "rejected", "deferred", "open")
+
+# ---- rubric validation (the load-time half the JSON Schema cannot express) --
+if rubric.get("schemaVersion") != "1.0.0":
+    fail(f"rubric schemaVersion must be '1.0.0', got {rubric.get('schemaVersion')!r}")
+cats = rubric.get("categories")
+if not isinstance(cats, list) or not cats:
+    fail("rubric has no categories array")
+weights = {}
+deductions = {}
+names_seen = set()
+for c in cats:
+    if not isinstance(c, dict):
+        fail(f"rubric category must be an object, got {c!r}")
+    slug, weight, ded = c.get("slug"), c.get("weight"), c.get("deductions")
+    if not slug or slug in names_seen:
+        fail(f"rubric category slug missing or duplicated: {slug!r}")
+    if not SLUG_RE.match(slug):
+        fail(f"rubric category slug '{slug}' must match [a-z0-9-]+ — an off-pattern slug would be silently dropped from loop.axes downstream")
+    names_seen.add(slug)
+    if not isinstance(weight, int) or weight < 1:
+        fail(f"category '{slug}': weight must be a positive integer, got {weight!r}")
+    if not isinstance(ded, dict) or set(ded) != set(SEVERITIES):
+        fail(f"category '{slug}': deductions must list exactly {SEVERITIES} — an unlisted severity is an error, never an implicit zero")
+    for sev, v in ded.items():
+        if not isinstance(v, (int, float)) or v < 0:
+            fail(f"category '{slug}': deduction for '{sev}' must be a number >= 0, got {v!r}")
+    weights[slug] = weight
+    deductions[slug] = ded
+if sum(weights.values()) != 100:
+    fail(f"rubric weights must sum to 100, got {sum(weights.values())}")
+bands = rubric.get("bands") or {}
+green_min, yellow_min = bands.get("green_min"), bands.get("yellow_min")
+if not isinstance(green_min, int) or not isinstance(yellow_min, int) or yellow_min > green_min:
+    fail(f"rubric bands invalid: green_min={green_min!r}, yellow_min={yellow_min!r}")
+modes = rubric.get("modes") or []
+if mode not in modes:
+    fail(f"mode '{mode}' is not supported by rubric '{rubric.get('name')}' (modes: {modes})")
+
+# ---- findings-file validation ----------------------------------------------
+if data.get("schemaVersion") != "1.0.0":
+    fail(f"findings schemaVersion must be '1.0.0', got {data.get('schemaVersion')!r}")
+if data.get("rubric") != rubric.get("name"):
+    fail(f"findings file names rubric {data.get('rubric')!r} but scoring against '{rubric.get('name')}' — a wrong-rubric score would be silently wrong")
+findings = data.get("findings")
+coverage = data.get("coverage")
+if not isinstance(findings, list):
+    fail("findings file has no findings array")
+if not isinstance(coverage, list):
+    fail("findings file has no coverage array")
+
+reviewed = {}
+for entry in coverage:
+    if not isinstance(entry, dict):
+        fail(f"coverage entry must be an object, got {entry!r}")
+    cat = entry.get("category")
+    if cat not in weights:
+        fail(f"coverage entry names unknown category '{cat}'")
+    if cat in reviewed:
+        fail(f"duplicate coverage entry for '{cat}' — last-wins would hide a contradiction")
+    if not isinstance(entry.get("reviewed"), bool):
+        fail(f"coverage entry for '{cat}': reviewed must be true or false")
+    reviewed[cat] = entry["reviewed"]
+
+# ---- kLOC divisor ------------------------------------------------------------
+divisor = 1.0
+if mode == "whole-repo":
+    try:
+        kloc = float(kloc_raw)
+    except ValueError:
+        fail(f"--kloc must be a number, got '{kloc_raw}'")
+    if not math.isfinite(kloc) or kloc <= 0:
+        fail(f"--kloc must be a finite number > 0, got '{kloc_raw}' — an infinite divisor would zero every deduction")
+    divisor = max(1.0, round(kloc, 1))
+
+# ---- score -------------------------------------------------------------------
+per_cat_deduction = {slug: 0.0 for slug in weights}
+open_blockers = open_majors = 0
+for i, f in enumerate(findings):
+    if not isinstance(f, dict):
+        fail(f"finding #{i + 1} must be an object, got {f!r}")
+    sev, cat, disp = f.get("severity"), f.get("category"), f.get("disposition")
+    if sev not in SEVERITIES:
+        fail(f"finding #{i + 1}: severity must be one of {SEVERITIES}, got {sev!r}")
+    if cat not in weights:
+        fail(f"finding #{i + 1}: unknown category '{cat}' (rubric has: {sorted(weights)})")
+    if disp not in DISPOSITIONS:
+        fail(f"finding #{i + 1}: disposition must be one of {DISPOSITIONS}, got {disp!r}")
+    # A rejection without a citable evidence anchor does not close a finding.
+    if disp == "rejected" and not (f.get("evidence") or "").strip():
+        disp = "open"
+    if disp in ("open", "deferred"):
+        per_cat_deduction[cat] += deductions[cat][sev] / divisor
+        if sev == "blocker":
+            open_blockers += 1
+        elif sev == "major":
+            open_majors += 1
+    # Findings in a category imply the reviewer looked at it.
+    reviewed.setdefault(cat, True)
+    if not reviewed[cat]:
+        reviewed[cat] = True
+
+axes = {}
+unscored = []
+for slug, weight in weights.items():
+    if not reviewed.get(slug, False):
+        axes[slug] = None
+        unscored.append(slug)
+    else:
+        axes[slug] = max(0, round(weight - per_cat_deduction[slug]))
+
+if unscored:
+    score, band, verdict = "unknown", "unknown", "incomplete"
+else:
+    total = sum(axes.values())
+    score = str(total)
+    band = "green" if total >= green_min else "yellow" if total >= yellow_min else "red"
+    verdict = "complete"
+
+lines = [
+    f"score={score}",
+    f"band={band}",
+    f"verdict={verdict}",
+]
+lines += [f"axis.{slug}={'null' if axes[slug] is None else axes[slug]}" for slug in weights]
+lines += [
+    f"unscored={','.join(unscored) if unscored else 'none'}",
+    f"blockers={open_blockers}",
+    f"majors={open_majors}",
+    f"mode={mode}",
+    f"kloc={divisor}",
+]
+print("\n".join(lines))
+PYEOF
+)" || exit 2
+
+printf '%s\n' "$REPORT"
+if [ -n "$OUT" ]; then
+  printf '%s\n' "$REPORT" > "$OUT" || die "cannot write report to $OUT"
+fi
+exit 0

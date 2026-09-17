@@ -18,10 +18,12 @@ The rewritten skills no longer call them, so they are harmless, but they are dea
 
 | Path | Purpose if implemented | Recommendation |
 |---|---|---|
-| `bin/config` | single config reader | implement first if any helper is implemented; 30 lines of shell |
-| `bin/log-skill` | schema-valid log writer | implement second; removes the hand-written JSON in every skill |
-| `bin/story-gate`, `bin/quality-gate` | mechanical notes check and review exit decision | implement if review loops start drifting; otherwise delete |
-| `bin/score-rubric`, `rubrics/*.json`, `schemas/review-findings.schema.json` | numeric review scores | delete unless a score KPI is wanted |
+| `bin/config` | single config reader | **implemented** (reads customer/stack config tables, `--customer-dir`, placeholders count as not set); optional — skills read the files directly |
+| `bin/log-skill` | schema-valid log writer | **implemented** (writes to `customers/<customer>/logs/`); skills still hand-write logs into `.claude/skills/<skill>/logs/` — decide on one location and switch (see section 6.1) |
+| `bin/story-gate` | mechanical notes check | **implemented**; not called by any skill yet — wire it into design-us Step 5.5 and implement-us Step 1 if wanted |
+| `bin/quality-gate` | review exit decision | skeleton; the skills use the inline severity gate with max rounds |
+| `bin/score-rubric`, `rubrics/*.json`, `schemas/review-findings.schema.json` | numeric review scores | script present but expects rubric JSON with `schemaVersion 1.0.0` and a different category shape than the skeleton rubrics; delete unless a score KPI is wanted |
+| `bin/lib/common.sh` | shared prelude (`die`, `usage`, `require_value`, `config_value`, `harness_config`) | **implemented** |
 | `bin/review-runtime`, `bin/runtime-autoswitch`, `bin/runtimes`, `bin/review-progress`, `agent-runtime-access.md` | cross-runtime reviews with Codex | delete; Codex is not installed and the config says `claude-code` only |
 | `bin/knowledge-impact`, `bin/knowledge-debt`, `bin/chat-gaps`, `bin/concept-path` | knowledge-base tooling | delete; the grep fallback in build-knowledge and design-us is enough |
 | `bin/testdata-planner`, `bin/testdata-runner`, `bin/testdata-cleaner`, `bin/validate-testdata-impact`, `schemas/testdata-impact.schema.json` | catalog-driven test data | delete; the manifest approach in create/cleanup-testdata replaces them |
