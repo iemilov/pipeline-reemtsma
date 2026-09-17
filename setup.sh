@@ -51,7 +51,7 @@ CUSTOMER_DIR="$SCRIPT_DIR/customers/$CUSTOMER"
 
 # Clone customer config repo if directory doesn't exist or is empty, otherwise pull latest
 if [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
-  REPO_URL="https://github.com/Lintlinger/pipeline-${CUSTOMER}.git"
+  REPO_URL="${CUSTOMER_CONFIG_REPO_BASE:-https://github.com/iemilov}/pipeline-${CUSTOMER}-config.git"
   echo "Cloning customer config: $REPO_URL"
   git clone "$REPO_URL" "$CUSTOMER_DIR" || {
     echo "Error: Failed to clone $REPO_URL"

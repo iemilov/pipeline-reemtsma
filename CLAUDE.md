@@ -33,7 +33,7 @@ The tech stack and project details vary per customer. See `pipeline/stack.config
 
 ### Customer Switching
 
-Customer config repos are cloned into `pipeline/customers/<name>/` by `setup.sh` (gitignored, not tracked). All three config symlinks in `pipeline/` point to the active customer folder:
+Customer config repos (`pipeline-<name>-config` on GitHub) are cloned into `pipeline/customers/<name>/` by `setup.sh` (gitignored by the pipeline repo, versioned in their own repository). The pipeline itself is a nested repository ignored by the main project, not a submodule. All three config symlinks in `pipeline/` point to the active customer folder:
 - `customer.config.md` → `customers/<name>/config.md`
 - `customer.domain.md` → `customers/<name>/domain-knowledge.md`
 - `stack.config.md` → `customers/<name>/stack.config.md`
