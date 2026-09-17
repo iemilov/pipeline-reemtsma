@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# validate-testdata-impact — validate a testdata-impact file
+#
+# Usage:
+#   <implementation-design/<story-key>/testdata-impact.json>   validate against schemas/testdata-impact.schema.json
+#
+# Contract: see the skills that call this helper (grep -rn "bin/validate-testdata-impact" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/validate-testdata-impact: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

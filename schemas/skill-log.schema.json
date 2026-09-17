@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "skill-log",
+  "description": "TODO: execution log written by bin/log-skill (CLAUDE.md base fields plus runtime, checks, loop, knowledge_impact)",
+  "type": "object",
+  "required": ["skill", "customer", "identifier", "timestamp", "status", "summary", "artifacts", "output"],
+  "properties": {
+    "skill": { "type": "string" }, "customer": { "type": "string" }, "identifier": { "type": "string" },
+    "timestamp": { "type": "string" }, "status": { "enum": ["success", "partial", "failed"] },
+    "summary": { "type": "string" }, "artifacts": { "type": "array", "items": { "type": "string" } }, "output": { "type": "string" },
+    "active_runtime": { "type": "string" }, "preferred_runtime": { "type": "string" }, "runtime_match": { "type": "boolean" },
+    "checks": { "type": "array" }, "loop": { "type": "object" }, "knowledge_impact": { "type": "object" }
+  }
+}

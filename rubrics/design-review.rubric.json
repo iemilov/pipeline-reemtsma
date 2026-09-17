@@ -1,0 +1,7 @@
+{ "name": "design-review", "bands": { "green": 90, "yellow": 70 },
+  "categories": [
+    { "slug": "faktentreue", "label": "Factual correctness", "weight": 30, "blocker": 15, "major": 5 },
+    { "slug": "design-tragfaehigkeit", "label": "Design soundness", "weight": 25, "blocker": 12, "major": 4 },
+    { "slug": "vollstaendigkeit", "label": "Completeness", "weight": 20, "blocker": 10, "major": 4 },
+    { "slug": "innere-konsistenz", "label": "Internal consistency", "weight": 15, "blocker": 5, "major": 5 },
+    { "slug": "konventionstreue", "label": "Convention compliance", "weight": 10, "blocker": 2, "major": 2 } ] }

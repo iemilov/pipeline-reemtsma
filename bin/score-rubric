@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# score-rubric — compute a rubric score from a dispositioned findings file (rubrics/<name>.rubric.json); never summed in prose
+#
+# Usage:
+#   --rubric <design-review|code-review|concept-review> --findings <findings.json> --out <score.txt>
+#   Output lines: score=  band=  axis.<slug>=  blockers=  majors=  verdict=complete|incomplete
+#
+# Contract: see the skills that call this helper (grep -rn "bin/score-rubric" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/score-rubric: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

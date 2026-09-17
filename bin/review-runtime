@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# review-runtime — resolve which runtime performs independent reviews
+#
+# Usage:
+#   [--check]           print the resolved reviewer runtime (Review Runtime override in customer.config.md, else the active Agent Runtime); --check exits 0 if its CLI is available, 1 otherwise
+#
+# Contract: see the skills that call this helper (grep -rn "bin/review-runtime" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/review-runtime: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

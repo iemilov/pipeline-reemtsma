@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# quality-gate — deterministic exit decision for review loops: open Blocker/Major always block; score threshold and round cap from customer.config.md > ## Quality Gate
+#
+# Usage:
+#   --round <n> --blockers <b> --majors <m> [--score <0-100>] [--prev-score <0-100>]
+#   --check            print the configured gate (Quality Gate Score, Review Max Rounds from customer.config.md)
+#   Output: decision=pass|continue|stop  exit_reason=clean|score-threshold|score-unmeasured|budget-exhausted|no-progress
+#
+# Contract: see the skills that call this helper (grep -rn "bin/quality-gate" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/quality-gate: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# knowledge-impact — map components against the customer knowledge base (customers/<customer>/docs/*.md)
+#
+# Usage:
+#   <component names or paths>...
+#   Output: IMPACT <docs/slug.md> <component> lines, then docs=<n> tokens=<n> impact=<n>
+#
+# Contract: see the skills that call this helper (grep -rn "bin/knowledge-impact" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/knowledge-impact: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

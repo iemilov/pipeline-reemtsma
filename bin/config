@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# config — read a single configuration value; skills must never re-parse the Markdown tables by hand
+#
+# Usage:
+#   "<Key>"            print the value of <Key> from customer.config.md (tables, any section)
+#   --customer-dir     print the active customer folder (symlink target of customer.config.md)
+#   --stack "<Key>"    print the value of <Key> from stack.config.md
+#
+# Contract: see the skills that call this helper (grep -rn "bin/config" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/config: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

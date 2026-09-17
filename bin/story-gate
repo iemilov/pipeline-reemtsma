@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# story-gate — mechanical checks on implementation notes: required sections, placeholder residue, DRAFT marker, empty test table, open questions (implement), acceptance verification (close)
+#
+# Usage:
+#   --phase design|implement|close --notes <implementation-notes.md> [--verification <acceptance-verification.md>]
+#   Output: decision=pass|block  finding=<text>...
+#
+# Contract: see the skills that call this helper (grep -rn "bin/story-gate" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/story-gate: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

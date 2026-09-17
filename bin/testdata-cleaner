@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# testdata-cleaner — delete test data by manifest, deterministically
+#
+# Usage:
+#   plan --manifest <manifest> --org <org-alias> --project-root .
+#   execute --plan <plan.json> --manifest <manifest> --org <org-alias> --project-root .
+#   legacy-plan --org <org-alias> --key-field <field> --key-value <value> --project-root .
+#   legacy-execute --legacy-plan <plan.json> --org <org-alias> --project-root .
+#
+# Contract: see the skills that call this helper (grep -rn "bin/testdata-cleaner" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/testdata-cleaner: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

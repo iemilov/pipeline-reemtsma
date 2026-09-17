@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "review-findings",
+  "description": "TODO: findings with severity/category/location/disposition and a per-category coverage array",
+  "type": "object",
+  "required": ["findings", "coverage"],
+  "properties": {
+    "findings": { "type": "array", "items": { "type": "object", "required": ["id", "severity", "category", "location", "finding"], "properties": {
+      "id": { "type": "string" },
+      "severity": { "enum": ["Blocker", "Major", "Minor", "Info"] },
+      "category": { "type": "string" },
+      "location": { "type": "string" },
+      "finding": { "type": "string" },
+      "fix": { "type": "string" },
+      "disposition": { "enum": ["accepted", "rejected", "deferred", "open"] },
+      "evidence": { "type": "string" }
+    } } },
+    "coverage": { "type": "array", "items": { "type": "object", "required": ["category", "reviewed"], "properties": {
+      "category": { "type": "string" }, "reviewed": { "type": "boolean" } } } }
+  }
+}

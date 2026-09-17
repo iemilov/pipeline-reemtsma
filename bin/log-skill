@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# log-skill — write a schema-valid execution log to customers/<customer>/logs/<date>-<short-name>-<id>-<skill>.json
+#
+# Usage:
+#   --skill <name> --identifier <id> --status <success|partial|failed> --summary "<text>" [--preferred-runtime <rt>] [--artifact <path>]... [--check "<name>:<pass|fail|unchecked>:<evidence>"]... [--iterations <n>] [--verifier <name>] [--exit-reason <reason>] [--score-report-file <path>] [--knowledge-impact-file <path>] [--document-kind <kind>] [--audience "<text>"] [--majors <n>] --output "<full run text>"
+#   --validate <file>  validate an existing log file against the schema
+#
+# Contract: see the skills that call this helper (grep -rn "bin/log-skill" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/log-skill: not implemented yet — see header of this file for the expected interface" >&2
+exit 3

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# testdata-planner — build a deterministic test data plan from testdata.config.md presets
+#
+# Usage:
+#   list --presets
+#   --project-root . plan <preset-name> [--param key=value ...]
+#
+# Contract: see the skills that call this helper (grep -rn "bin/testdata-planner" .claude/skills).
+# TODO: implement. Until then the helper exits 3 so callers can detect "not implemented".
+set -euo pipefail
+PIPELINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+echo "bin/testdata-planner: not implemented yet — see header of this file for the expected interface" >&2
+exit 3
