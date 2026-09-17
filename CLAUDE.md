@@ -19,13 +19,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Customer has **READ ACCESS** to this repository
 - Contains all project code and deployment configuration
 
-**Submodule:** `pipeline` (this repository)
+**Pipeline:** `pipeline/` (this repository, a nested git repository ignored by the main project — not a submodule)
 
-- Customer has **NO ACCESS** to this submodule
+- Customer has **NO ACCESS** to this repository
 - Contains CLAUDE.md, custom skills, and internal AI workflow documentation
 - This separation ensures sensitive workflows, prompts, and automation details remain confidential
 
-**Important:** Never commit sensitive information (API keys, internal processes, skill prompts) to the main project repository - only to this submodule.
+**Customer config:** `pipeline/customers/<name>/` (own repository `pipeline-<name>-config`, ignored by the pipeline)
+
+- Holds the customer-specific configuration, domain knowledge, test data config and skill logs
+
+**Important:** Never commit sensitive information (API keys, internal processes, skill prompts) to the main project repository - only to the pipeline or customer config repositories.
 
 ## Project Overview
 
@@ -73,6 +77,28 @@ Customer config repos (`pipeline-<name>-config` on GitHub) are cloned into `pipe
 29. `/verify-deployed-state <org-alias> [--scope flows|apex|cmt|validation|all | -m "<Type:Name>"] [--since <date>]` — Read-only repo-vs-org drift check: retrieves into scratch and diffs flows (by active version), Apex, triggers, custom metadata values and validation rules; classifies identical / org newer / source newer / diverged / inactive in org / org only / source only with attribution from the audit trail and what each difference does
 30. `/document-api [--out <path>] [--format html|md|openapi] [--diff-only] [--publish]` — Generates the partner-facing API reference from inbound endpoints, request/response types, errors and authentication config; consumer-facing (no internal names, obsolete endpoints omitted, example bodies, placeholder credentials); on rerun diffs against the published reference, updates only changes and preserves manual blocks
 31. `/project-update [date] [--from-previous] [--jql "<JQL>"]` — Interactive status one-pager for a customer meeting: asks for the meeting date and each item (story key, title, current status, open questions for the meeting), optionally prefilled from the previous update and Jira, and writes a self-contained HTML page in the fixed layout to the meetings folder
+
+## Helper Scripts and Adapters (fallback rule)
+
+Skills reference helper scripts under `pipeline/bin/` and adapter documents (`atlassian-access.md`, `agent-runtime-access.md`, `git-access.md`, `briefs/`, `schemas/`, `rubrics/`). In this installation these are **skeletons**: the scripts exit with code 3 and the documents contain only section headings. Until they are implemented, every skill applies this fallback instead of stopping:
+
+| Reference | Fallback |
+|---|---|
+| `pipeline/bin/config "<Key>"` | read the value from the table in `customer.config.md` / `stack.config.md` directly |
+| `pipeline/bin/log-skill ...` | write the JSON log by hand per *Additional Skill Remarks* into `.claude/skills/<skill>/logs/`, mapping `--check`, `--iterations`, `--exit-reason` into a `checks` / `loop` object |
+| `pipeline/bin/story-gate` | check the notes manually: DRAFT marker, `<...>` placeholders, non-empty open questions, empty test table; `decision=block` on any hit |
+| `pipeline/bin/quality-gate` | severity gate: open Blocker or Major → `continue`; max rounds from `customer.config.md > Quality Gate > Review Max Rounds` (default 3), then `stop`; no score threshold |
+| `pipeline/bin/review-runtime`, `runtime-autoswitch`, `runtimes`, `review-progress` | active runtime is `claude-code`; reviews run as a fresh read-only `Agent`; no cross-runtime dispatch |
+| `pipeline/bin/score-rubric`, `rubrics/*.json`, `schemas/review-findings.schema.json` | report finding counts by severity; no numeric score |
+| `pipeline/bin/knowledge-impact`, `knowledge-debt`, `chat-gaps`, `concept-path` | grep `customers/<customer>/docs/*.md` for the component names; no queue; concept path = `Concepts` folder from config |
+| `pipeline/bin/testdata-planner`, `testdata-runner`, `testdata-cleaner`, `validate-testdata-impact`, `testdata.catalog.json` | not available: test data skills work from `testdata.config.md` (Markdown presets) with the Composite Tree API and manual cleanup Apex; the testdata-impact gate is skipped |
+| `atlassian-access.md` §n | Atlassian MCP tools with the Cloud ID from config (`Deployment Type` is `cloud`) |
+| `git-access.md` §n | `Git Strategy` from config; feature → release → production branch patterns from config; PR required for release and production branches |
+| `agent-runtime-access.md` §1a / §2a | print no runtime warning; dispatch reviews as `Agent` |
+| `briefs/*.md` | compose the reviewer prompt from the criteria the skill lists inline |
+| `platforms/salesforce/scripts/*.sh` | Prettier / xmllint directly; flow activation checked via a Tooling API query, never activated automatically |
+
+A skill must state in its summary and log which fallbacks it used, and record a check as `unchecked` when a fallback could not produce evidence.
 
 ## Creating New Skills (CRITICAL)
 

@@ -38,7 +38,7 @@ The `$ARGUMENTS` string contains the GitHub username and the main project repo n
 2. **Validate the project uses the pipeline:** the main repository is expected to ignore a nested `pipeline/` folder (`.gitignore` contains `pipeline/`) and to be set up via `pipeline/setup.sh`. If the project is on GitHub, check `gh api repos/<owner>/<project-repo>/contents/.gitignore`; if it is on another VCS, check the local checkout. If no pipeline usage is found, inform the user and abort
 
 3. **Determine customer config repo** by resolving the active customer:
-   - Read the symlink target of `pipeline/customer.config.md` to extract the customer name (e.g., `customers/cloudrise/config.md` → `cloudrise`)
+   - Read the symlink target of `pipeline/customer.config.md` to extract the customer name (e.g., `customers/reemtsma/config.md` → `reemtsma`)
    - OR list `pipeline/customers/*/` directories that contain a `.git` directory and ask the user which one
    - The customer config repo name follows the pattern `pipeline-<name>-config` (e.g., `pipeline-reemtsma-config`)
    - Verify the repo exists:

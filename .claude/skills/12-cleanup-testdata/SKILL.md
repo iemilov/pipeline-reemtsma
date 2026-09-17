@@ -167,7 +167,7 @@ pipeline/bin/testdata-cleaner legacy-plan --org <org-alias> --key-field <field> 
 - A single match is also checked against `cleanup.protectedRecords` — an overlap is `"status": "BLOCKED"`/`PROTECTED_RECORD_OVERLAP`, exactly like the standard path.
 - The result is `legacyMode: true`, carries an explicit `warning` label, and — once `"status": "PASSED"` — a `planDigest`. It is a **DML-free preview only**; save it unmodified for Stufe 2.
 
-**Before any deletion of legacy-fallback records, get Benjamin's explicit, separate approval** and document the action per `pipeline/CLAUDE.md`'s Data Remediation sequence (plan → backup → rollback script → verify counts → execute → verify results → document). Do not treat a legacy preview as itself authorizing DML.
+**Before any deletion of legacy-fallback records, get the customer's Salesforce owner's explicit, separate approval** and document the action per `pipeline/CLAUDE.md`'s Data Remediation sequence (plan → backup → rollback script → verify counts → execute → verify results → document). Do not treat a legacy preview as itself authorizing DML.
 
 ### Stufe 2: Legacy-Execute (approval-gated DML)
 

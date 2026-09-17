@@ -179,7 +179,7 @@ Bugs, Einschränkungen, technische Schulden. Jeweils mit Workaround wenn vorhand
 
 - Language: German for business content, English for technical identifiers (API names, class names)
 - Be specific: field API names in backticks, flow names exactly as in metadata
-- Include concrete examples where helpful (e.g., "Status 'Zugewiesen an 2nd Level' erfordert `STLGS_ChecksToKBDone__c = true`")
+- Include concrete examples where helpful (e.g., "Status 104 requires `ManualStatus__pc = 104` and clears `Sync2MC__pc`" — use the customer's own objects and fields from `customer.domain.md`; illustrative: "Status 'Zugewiesen an 2nd Level' erfordert `STLGS_ChecksToKBDone__c = true`")
 - Cross-reference other topic files where relevant: `Siehe auch: [docs/antrag-lifecycle.md](antrag-lifecycle.md)`
 
 **Table format standard (mandatory):**

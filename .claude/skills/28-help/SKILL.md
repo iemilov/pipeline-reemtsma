@@ -23,9 +23,6 @@ Show a well-formatted skill catalog directly in the conversation. No external to
 - `/help <skill-name>` — Show detailed info for a specific skill
 
 **Codex wrapper usage:** When the active Agent Runtime is `openai-codex`, Claude slash commands are invoked through the root-level wrapper created by `setup.sh`:
-- `./skill /help`
-- `./skill /help <skill-name>`
-- `./skill --list`
 
 ### Step 0: Parse Arguments
 
@@ -62,7 +59,7 @@ Show a well-formatted skill catalog directly in the conversation. No external to
 
 **Active customer:** <Short Name> | **Platform:** <Platform> | **Agent Runtime:** <Agent Runtime>
 
-Codex wrapper: run skills from the project root with `./skill /<command> <args>` (for example, `./skill /design-us CRM-1234`). Use `./skill --list` to list wrapper-resolved commands.
+Skills are slash commands in Claude Code (for example `/design-us AP2-1583`). Wrapper-resolved commands.
 
 ### Story Lifecycle
 | Command | Description |
@@ -137,7 +134,7 @@ Codex wrapper: run skills from the project root with `./skill /<command> <args>`
 | `/<name> <argument-hint>` | <description> *(overridden)* if it shadows a pipeline skill |
 
 ---
-*Tip: Use `/help <skill-name>` for detailed usage and examples. Under Codex, use `./skill /help <skill-name>`.*
+*Tip: Use `/help <skill-name>` for detailed usage and examples.
 ```
 
 6. If the active platform is **not** `salesforce`, append a note below the "Test Data" section:
@@ -167,7 +164,6 @@ When `$ARGUMENTS` matches a skill name:
    - **Workflow steps:** Extract step headings (### Step N: ...) as a numbered list
    - **Code-review runtime** *(only for `/implement-us`, or any skill with a Step 6 review):* resolve via `pipeline/bin/review-runtime` and show the reviewer runtime plus whether it is same-runtime (default) or cross-runtime (when `Review Runtime` is configured). See `pipeline/agent-runtime-access.md` §2a.
    - **Example usage:** Construct a realistic example using the argument-hint
-   - **Codex wrapper usage:** If active runtime is `openai-codex`, also show `./skill /<name> <example-arguments>`
 
 **Output format:**
 
@@ -175,7 +171,6 @@ When `$ARGUMENTS` matches a skill name:
 ## /`<name>` — <description>
 
 **Usage:** `/<name> <argument-hint>`
-**Codex:** `./skill /<name> <example-arguments>`
 **Platform:** <all | salesforce>
 **Runtime:** <all | claude-code> *(if runtime-gated, append: — fallback at `pipeline/agent-runtimes/<active>/dispatch-fallback.md`)*
 **Preferred runtime:** <runtime> (from <frontmatter | customer override>) *(omit line if no preference resolved)*

@@ -176,7 +176,7 @@ For every remark thread that is not `PRAISE`, produce a plan block with this exa
 **Proposed resolution:**
 <concrete change — file:line, what to add/remove/rename, with a small code snippet inline if the change is < ~15 lines. For larger changes, describe the shape and point to the file>
 
-**Rule reference:** <if the remark touches a documented rule, cite it: e.g. "coding-conventions.md §4.2 — TDGW layer", "platforms/Salesforce/best-practices.md §7.1". Omit if no rule applies.>
+**Rule reference:** <if the remark touches a documented rule, cite it: e.g. "stack.config.md > Naming Conventions — Service Class pattern", "platforms/Salesforce/best-practices.md §7.1". Omit if no rule applies.>
 
 **Effort / risk:** <trivial | small | medium | large> · <isolated | cross-cutting>
 

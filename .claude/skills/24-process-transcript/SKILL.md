@@ -78,7 +78,7 @@ If the file is missing, all defaults apply silently. If it has a legacy `folders
 
 This step mirrors the `/03-implement-us` pattern — load all customer/project config files into context BEFORE executing any task. This ensures each task is answered as if the user had typed the prompt directly into a fully-warmed Claude Code session, not in a vacuum.
 
-Read the following files (all are pipeline-relative — assume the skill runs from a project that has `pipeline/` as a submodule). Cache the contents for use during task execution.
+Read the following files (all are pipeline-relative — assume the skill runs from a project that has `pipeline/` as a nested repository). Cache the contents for use during task execution.
 
 **Customer-specific (always read):**
 - `pipeline/customer.config.md` — customer identity, **Platform**, Atlassian deployment type, CI/CD settings, **Meetings Folder** (already used in Step 0)
@@ -131,7 +131,7 @@ Collect tasks across all files into a flat list of `(filepath, task_id, timestam
 For each task, in order:
 
 1. **Treat the prompt as if the user typed it directly into a Claude Code session that already has the Step 2 context loaded.** Use whatever tools fit the prompt:
-   - CRM lookups (customers, projects, invoices, kanban cards, time entries) → CRM MCP tools (`mcp__cloudrise_crm__*`)
+   - Lookups in customer-internal systems → only via MCP servers the active customer registers in its config; if none is registered, answer from the repository and Jira/Confluence and say so
    - Jira / Confluence → the Atlassian adapter (resolve transport from the cached `customer.config.md`; consult the cached `atlassian-access.md` for the operation map)
    - Code / repo questions → `Read`, `Grep`, `Bash` git commands; honor `coding-conventions.md` and `platforms/<Platform>/best-practices.md`
    - Implementation-style prompts ("implement X", "add Y feature") → use commands and library conventions from the cached `stack.config.md`
