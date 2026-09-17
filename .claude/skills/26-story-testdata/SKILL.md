@@ -1,197 +1,119 @@
 ---
 name: story-testdata
-description: Analyze a Jira story to determine required test data, check business rules, recommend presets, and delegate to /create-testdata
+description: Analyze a story to determine the test data it needs — from its FINAL implementation notes when they exist, else from Jira — map the affected objects to the record groups and presets in testdata.config.md, check business rules, write a test data plan next to the notes, and delegate creation to /create-testdata after confirmation
 argument-hint: "<story-key> [org-alias]"
 ---
 
 > **On start, before any other output, print this line verbatim:**
 > `🌐 Skill scope: Generic — pipeline skill, applies to all customers.`
 
-
-## Platform Guard
-
-This skill requires `Platform: salesforce` in `customer.config.md`. If the active customer uses a different platform, abort with a clear message.
+> **Platform Guard:** This skill requires `Platform = salesforce` in `customer.config.md`. On any other platform, inform the user and abort.
 
 ## Configuration
 
-Before executing, read:
+Read before executing:
 
-1. `pipeline/customer.config.md` — customer identity, Atlassian Deployment Type, Platform, Project Key
-2. `pipeline/stack.config.md` — org aliases (default dev org)
-3. The active customer's `testdata.catalog.json` (auto-resolved) — specifically `storyTagMapping`, `presets`, and `recordGroups`
-4. `pipeline/customers/<customer>/testdata.config.md` — business rules documentation, preset descriptions, testablauf
-5. `pipeline/customers/<customer>/docs/b2b-business-rules.md` — validation rules, status preconditions (if it exists)
-6. `pipeline/schemas/testdata-impact.schema.json` — the schema for the impact declaration this skill produces in Step 5
-7. `pipeline/bin/validate-testdata-impact` — the canonical Node.js/Ajv validator (backed by `cli/lib/testdata/impact-validator.js` and the schema in item 6) used to check that declaration before handing it off
+- `pipeline/customer.config.md` — `Platform`, `Short Name`, `Project Key`, Cloud ID, `## Folder Paths > Implementation Design`
+- `pipeline/stack.config.md` — `## Org Configuration > Sandboxes`
+- `pipeline/customers/<customer>/testdata.config.md` — `## Record Groups`, `## Presets`, `## Testing Scenarios Enabled by These Records`
+- `pipeline/customer.domain.md` — business rules and field pitfalls that decide which record values are valid for a scenario
 
-For Jira access, consult `pipeline/atlassian-access.md`.
+Inputs: the story key (mandatory), an optional org alias (default: the preset's org from `testdata.config.md`, else the first alias whose purpose contains "User Acceptance"; never a Production alias).
+
+`<notes-dir>` = the Implementation Design path with `<story-key>` replaced, relative to the main repository root (e.g. `implementation-design/AP2-1583/`).
 
 ## When to Use / When NOT to Use
 
-- **Use** for analyzing a Jira story and recommending test data presets
-- **Use** when the user asks "Welche Testdaten brauche ich für ...?"
-- **Do NOT use** for creating test data → use `/create-testdata` instead (Skill 14)
-- **Do NOT use** for deleting test data → use `/cleanup-testdata` instead (Skill 15)
+- Use before testing a story, to know which preset to load and which extra records the story needs.
+- Do NOT use to create the data directly — this skill delegates to `/create-testdata`.
 
-## Related Skills
+## Workflow
 
-| Need | Use instead | Why |
-|------|------------|-----|
-| Create the recommended test data | `/create-testdata` | This skill only analyzes; all DML goes through Skill 14 |
-| Delete test data | `/cleanup-testdata` | Skill 15 |
+### Step 0: Parse arguments
 
-## Workflow: Story → Testdata Analysis → Recommendation
+Story key and org alias as above. Abort if the alias's purpose contains "Production".
 
-### Step 0 — Parse Arguments
+### Step 1: Load the story context — notes first
 
-- First argument matching the customer's story-key pattern (from `Project Key` in `customer.config.md`) or a full Jira URL → extract **story key**
-- Remaining argument → **org alias** (optional, defaults to dev org from `stack.config.md`)
-- If no story key provided, ask the user.
+1. If `<notes-dir>/implementation-notes.md` exists and is FINAL: read `## Requirements`, `## Affected Objects & Fields`, `## Acceptance Criteria Mapping`, `## Test Scenarios` and `### Test Data Requirements`. **Skip the Jira fetch** and say so.
+2. Otherwise fetch the story with `getJiraIssue` (Cloud ID from config) and extract requirements, acceptance criteria and mentioned objects. If DRAFT notes exist, read their `## Test Scenarios (DRAFT)` as a starting point.
+3. If neither is available, abort with the error.
 
-### Step 1 — Load Story Context
+### Step 2: Derive the test data needs
 
-1. **Fetch Jira story** via the Atlassian adapter: summary, description, acceptance criteria, component, labels, epic link, status
-2. **Check for implementation notes** — resolve the **Implementation Design** path from config (`pipeline/bin/config "Implementation Design"`, with `<story-key>` substituted):
-   - If exists: read in full — especially `## Test Scenarios` and `## Testdaten-Anforderungen` sections
-   - If not: proceed with story-only analysis
+From the scenarios and affected objects, list per scenario: sObjects involved, the record state required (e.g. person account with double opt-in confirmed, loyalty member tier at 700 points, campaign of mechanic M24), and whether the scenario is happy path, negative or edge case.
 
-### Step 2 — Derive Tags from Story
-
-Use the `storyTagMapping` from the catalog to derive relevant tags:
-
-1. Extract keywords from story summary + description
-2. For each mapping rule in `storyTagMapping`, check if any of the rule's `keywords` appear in the story text
-3. Collect the `tags` from all matching rules
-4. Also check the story's Jira component — if it matches a tag name, add it
-
-Present the derived tags:
+Print a short analysis block:
 
 ```
-## Story-Analyse: <story-key>
-
-**<story-summary>**
-
-Abgeleitete Tags: <tag1>, <tag2>, <tag3>
-Quelle: <keyword matches + component>
+## Story analysis: <story-key>
+Affected objects: ...
+Scenarios: T1 ... / T2 ... / T3 ...
+Record states needed: ...
 ```
 
-### Step 3 — Match Presets
+### Step 3: Match record groups and presets
 
-Use the catalog's `presets` to find matches:
+Map every needed record state to `testdata.config.md`:
 
-1. For each preset, check if its `recordGroups` contain groups whose `tags` overlap with the derived tags
-2. Score each preset:
-   - **Exact match:** preset covers all derived tags → `✅ EMPFOHLEN`
-   - **Partial match:** preset covers some tags but not all extras → `⚠️ TEILWEISE` + list what's missing
-   - **No match:** → skip
-3. If implementation notes have a `## Test Scenarios` section, prefer those over tag-derived analysis
+| Scenario | Needed record | Record group / record in config | Preset covering it | Gap |
+|---|---|---|---|---|
 
-Present the recommendation:
+- A state fully covered by an existing record → name group and record number.
+- A state covered with a changed field value → name the record and the override (e.g. `TotalBonusPoints__c = 700`).
+- A state not covered → **gap**: describe the record to add, in the config's table format.
 
-```
-## Preset-Empfehlung
+Recommend the smallest preset that covers the most scenarios, plus the overrides and gaps. Use the preset names exactly as they appear in `## Presets`.
 
-| Preset | Testdatenart | Match | Details |
-|--------|-------------|-------|---------|
-| <name> | <E2E/State/...> | ✅/⚠️ | <reason> |
+### Step 4: Business rule check
 
-**Empfehlung:** `<preset-name>` [mit <parameter>=<value>]
-**Zusätzlich nötig:** <extra sections not in preset>
-```
+Cross-check every needed record against `customer.domain.md`: status codes, consent fields, brand names, mechanic codes, retention rules. Flag records whose values would be rejected by validation rules or would not trigger the automation under test (e.g. a brand without a loyalty programme, an account without double opt-in). Fix the plan accordingly.
 
-If **no preset matches**, explain what's needed and which record groups from the catalog to combine manually.
+### Step 5: Write the test data plan
 
-### Step 4 — Business Rule Check
+`<notes-dir>/testdata-plan.md`:
 
-If the customer has a business rules document (`b2b-business-rules.md`), verify the recommendation:
+```markdown
+# Test Data Plan: <story-key>
 
-1. Read the document and check for rules relevant to the recommended preset
-2. If any rule would be violated by the recommended data constellation, warn the user:
+**Org:** <alias>  **Preset:** <preset>  **Created:** <YYYY-MM-DD>
 
-```
-⚠️ Business-Rule-Check:
-- <rule description>
-  → <impact on recommendation>
-```
+## Scenarios and records
+| Scenario | Record | Source (group/record or NEW) | Overrides |
+|---|---|---|---|
 
-### Step 5 — Determine and Declare Testdata Impact
+## Gaps — records to add to testdata.config.md
+<field tables in the config's format, or "None">
 
-> Skip this step if the active customer has no `testdata.catalog.json`. Customers without a testdata catalog have no impact contract to declare against.
+## Business rule notes
+<from Step 4, or "None">
 
-This step turns the analysis above into the machine-readable **testdata-impact contract** (VP-09) that the implementation (`/implement-us` Step 8a) and the review (`/code-review` Step 5a) gates check against. A keyword-derived tag list (Step 2) or a preset match (Step 3) alone is **never** sufficient evidence of impact — this step requires an explicit check of all ten A-11 impact axes, grounded in the story text, the implementation notes, and (once code exists) the actual metadata diff. Per A-11 ("Story-Impact hat mehrere gleichberechtigte Achsen"), `decision: "change"` is valid once **any single** axis below is active — no axis (e.g. a validator module) is pauschal mandatory.
-
-1. **Assemble impact inputs** — the story (Step 1), implementation notes if present (Step 1), the business rules docs (`testdata.config.md`, `b2b-business-rules.md`), and — if the story has already been implemented — the actual metadata diff (`git diff` / the story's feature branch or PR). If this analysis runs before implementation, note that the declaration is provisional and must be re-verified once code exists.
-2. **Determine affected modules and presets** — resolve the derived tags (Step 2) and matched presets (Step 3) to concrete catalog identifiers: `validator.modules[].id` for `affectedModules`, `presets[].name` for `affectedPresets`. These two fields are optional cross-references only — the binding axes are `requiredChanges.validatorModules` and `requiredChanges.presets` below.
-3. **Check all ten impact axes** explicitly (A-11):
-   - **Katalog** — new/changed `recordGroups` or `presets` needed in `testdata.catalog.json`?
-   - **Presets** — a new preset, or a changed existing preset (`presets[].name`)?
-   - **Record Groups** — new/changed `records` arrays needed in existing or new record groups?
-   - **Validator-Module** — new/changed validator rule modules needed (`validator.modules[].id`)?
-   - **Validator-Profile** — new/changed validator profiles needed (`validator.profiles[].id`)?
-   - **Capabilities** — new required capabilities (objects/fields/Record Types) that must be checked before DML?
-   - **Cleanup** — changes needed to `deletionOrder` / `crossReferenceFields` / manifest relations?
-   - **Story-Tag-Zuordnung** — new keywords/tags needed in `storyTagMapping`?
-   - **Dokumentation** — updates needed to `testdata.config.md`, `b2b-business-rules.md`, or other docs?
-   - **Tests** — new/changed test cases needed for this impact?
-4. **Decide `decision`** — `"change"` if any single axis above is non-empty/true, `"none"` only if **all ten** axes are inactive. For `"none"`, write a concrete `noImpactReason` that holds up against the actual metadata diff — not a placeholder restating "keine Tags gefunden."
-5. **Write the artifact** to `implementation-design/<story-key>/testdata-impact.json` (same **Implementation Design** path resolved in Step 1), conforming to `pipeline/schemas/testdata-impact.schema.json` — `schemaVersion: "1.0.0"`, `storyKey`, `decision`, `requiredChanges` with all ten axis keys present (each explicitly set to its active value or its inactive default — `false`/`[]` — even when the axis does not apply; no single axis needs to be active), plus `affectedModules` / `affectedPresets` / `businessRules` / `tests` / `pilotPreset` where applicable.
-6. **Validate the artifact** against the canonical Node.js/Ajv entry point (there is no separate hand-written check — the schema in `pipeline/schemas/testdata-impact.schema.json` is the single source of truth):
-   ```bash
-   pipeline/bin/validate-testdata-impact implementation-design/<story-key>/testdata-impact.json
-   ```
-   Fix and re-run until it reports `VALID`. Do not hand off an unvalidated artifact — an invalid declaration is treated by the downstream gates exactly like a missing one.
-
-### Step 6 — Confirm and Delegate
-
-Use the planner to get accurate record counts (includes transitive dependency resolution).
-Always pass `--project-root .` so the planner can report executor availability:
-
-```bash
-pipeline/bin/testdata-planner --project-root . plan <preset-name> [--param key=value ...]
+## Execution
+/create-testdata <alias> <preset>   # then apply the overrides listed above
 ```
 
-If the plan shows `executor.fileExists: false`, the preset's executor is not present
-on the current branch. This is not a catalog error -- the preset is fachlich planbar
-but not executable here. Inform the user that the preset is unavailable on this branch
-and suggest an alternative, rather than recommending `/create-testdata`.
+Also append the gaps to the notes' `### Test Data Requirements` table if the notes exist and the rows are not there yet.
 
-Present the final plan (using `totalEstimatedRecords` from the planner output):
+### Step 6: Confirm and delegate
 
-```
-## Testdaten-Plan für <story-key>
+Ask via `AskUserQuestion`: **create now** (run `/create-testdata <alias> <preset>` and then apply the overrides and gap records as additional single-record creates, referencing the run manifest), **plan only**, **adjust** (free text). Never create anything without this confirmation.
 
-**Org:** <org-alias>
-**Preset:** <preset-name> (<testdatenart>)
-**Parameter:** <key>=<value>
-**Geschätzte Records:** ~N (aus Planer)
+### Step 7: Summary and log
 
-Soll ich `/create-testdata <org-alias> <preset-name>` ausführen?
-```
+Present: preset, scenarios covered, overrides, gaps, plan path, and whether creation ran (with the manifest path).
 
-Wait for user confirmation. Do NOT proceed without explicit approval.
-
-After confirmation, the user runs `/create-testdata` themselves (or asks you to run it). This skill does **not** invoke `/create-testdata` directly — it produces the analysis and recommendation.
-
-> **Why separate:** `/create-testdata` has its own execution flow (plan, approval gate, execution, validation, logging). Nesting skills creates complexity and makes error recovery harder.
-
-### Step 7 — Write Execution Log
-
-ALWAYS write the execution log with `pipeline/bin/log-skill`:
-```bash
-pipeline/bin/log-skill --skill story-testdata --identifier <story-key> --status <success|partial|failed> \
-  --summary "<1-2 sentence result>" --artifact implementation-design/<story-key>/testdata-impact.json \
-  --output "<full run text>"
-```
-The execution log is written into `pipeline/customers/<customer>/logs/`, the active customer's config repo — never into the shared pipeline repo.
-
-Pass `--artifact` for the `testdata-impact.json` written in Step 5 whenever that step ran (skip the flag if the customer has no testdata catalog and Step 5 was skipped).
+Create `<YYYY-MM-DD>-<customer-short-name>-<story-key>-story-testdata.json` in `.claude/skills/26-story-testdata/logs/` per the CLAUDE.md JSON schema.
 
 ## Important Rules
 
-- **Never create test data directly.** This skill only analyzes and recommends. All DML goes through `/create-testdata`.
-- **Always read business rules** before recommending. Never assume entity relationships.
-- If the story is ambiguous about which preset family to use, **ask the user** — don't guess.
-- If no preset matches, say so clearly and list which record groups to combine manually.
-- If implementation notes have a `## Test Scenarios` section, prefer those over keyword-derived analysis — the author already thought about what's needed.
-- Use the catalog's `storyTagMapping` for keyword-to-tag derivation — do not hardcode keyword tables.
-- **Never accept a keyword/tag match or a preset match as complete impact evidence.** Step 5's testdata-impact artifact requires an explicit check of all ten A-11 axes (catalog, presets, executors, validator modules, validator profiles, capabilities, cleanup, story-tag mapping, documentation, tests) — write and validate it whenever the customer has a `testdata.catalog.json`. No single axis is pauschal mandatory for `decision: "change"`.
+- FINAL implementation notes are the story source; no Jira fetch when they exist.
+- Preset names and record numbers come from `testdata.config.md`; never invent presets.
+- Every needed record is checked against the domain rules before it is proposed.
+- Creation only through `/create-testdata`, only after confirmation, never on production.
+- Gaps are written into the config's table format so they can be pasted into `testdata.config.md`.
+
+## Error Handling
+
+- Story not readable and no notes: abort with the error.
+- No preset covers any scenario: propose the record groups individually and mark the story as needing new config records.
+- Org alias unknown or production: abort with the allowed aliases.

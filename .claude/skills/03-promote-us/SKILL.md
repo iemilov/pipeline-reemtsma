@@ -1,286 +1,139 @@
 ---
 name: promote-us
-description: Promote a user story through environments (INT/UAT/PROD) — validates locally, generates packages, triggers CI/CD pipeline, monitors result
+description: Promote a user story through environments (INT/UAT/PROD) — validates locally with PMD and Apex tests, generates the deployment package, pushes to trigger the CI/CD pipeline, monitors the run, validates against production for UAT promotions, and comments the result on the story
 argument-hint: [story-key] [target-env]
-preferred-runtime: openai-codex
 ---
 
 > **On start, before any other output, print this line verbatim:**
 > `🌐 Skill scope: Generic — pipeline skill, applies to all customers.`
 
-
-> **Runtime hint:** This skill prefers `openai-codex` (CI/CD shell mechanics). If the active `Agent Runtime` (from `customer.config.md`) differs after applying any `## Skill Runtime Overrides`, print the standardized warning from `pipeline/agent-runtime-access.md` §1a and proceed. Record `active_runtime`, `preferred_runtime`, and `runtime_match` in the execution log.
-
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values (Atlassian Deployment Type, CI skip pattern, branch patterns, **Platform**, **Git Strategy**), `pipeline/stack.config.md` for stack-specific values (org aliases, PMD rules file, naming prefixes, deployment folder paths, API version), and review the CI/CD pipeline configuration for pipeline stage structure. For all Jira calls, consult the **Atlassian adapter** at `pipeline/atlassian-access.md`. For all git workflow mechanics — environment flow per target, PR-required gates, branch role resolution — consult the **Git Strategy adapter** at `pipeline/git-access.md`.
+Read `pipeline/customer.config.md`: `Platform`, `Short Name`, `Cloud ID`, `Project Key`, `CI Skip Pattern`, `Branch Pattern: Feature / Release / Production`, `Git Strategy`, `Azure DevOps URL` (derive organisation, project and repository from it; always pass `--org <organisation URL>` to `az`), `## Folder Paths > Implementation Design`, `Deployment Packages`, `## Pipeline Environments`. Read `pipeline/stack.config.md`: `## Org Configuration > Sandboxes` (DEV = first alias whose Purpose contains "Development", UAT = "User Acceptance", PROD = "Production"), `## Static Analysis` (PMD rules file), source path, API version, Testing Standards.
+
+`<notes-dir>` = Implementation Design path with `<story-key>` substituted, relative to the main repository root.
 
 ## Platform Adaptation
 
-This skill contains Salesforce-specific references (sf CLI, Apex tests, PMD, `sfdx-git-delta`, `package.xml`). Read `Platform` from `customer.config.md` (`pipeline/bin/config "Platform"`):
-- **If `salesforce`:** Follow all steps as written.
-- **If not `salesforce`:** Adapt all steps to the project's tech stack as described in `stack.config.md`. Replace Salesforce-specific validation (PMD, Apex tests, `sf deploy validate`) with the equivalent linting, testing, and deployment commands from the stack configuration. Skip steps that have no equivalent (e.g., `package.xml` generation, `sfdx-git-delta`, org validation).
+Salesforce steps as written (`sf` CLI, PMD, Apex tests, `sfdx-git-delta`, `package.xml`). For another `Platform`, replace validation and packaging with the lint, test and build commands from `stack.config.md`; skip steps without an equivalent.
 
-## Workflow: Promote & Deploy
+## Environment flow (feature-branch strategy)
 
-Promote a user story's implementation through environments. This skill prepares deployment packages, validates code quality, pushes to trigger the CI/CD pipeline, and monitors the result.
+| Target | Source → Target branch | Pipeline stage | Tests |
+|---|---|---|---|
+| `INT` | push `feature/<story-key>` itself | INT | PMD only |
+| `UAT` | `feature/<story-key>` → `release/<version>` (PR required) | UAT + DEV sync | `RunLocalTests` |
+| `PROD` | `release/<version>` → `master` (PR required) | PROD validate/deploy | `RunLocalTests` |
 
-**Usage:** `/promote-us <story-key> <target-env>`
+Branch names come from the patterns in config; the table shows the defaults. If `Git Strategy` is not `feature-branch`, stop and say the skill supports only that preset here.
 
-Parse `$ARGUMENTS` as a space-separated string: the **first word** is the story key (e.g., `CRM-2961`), the **second word** is the target environment (`INT`, `UAT`, or `PROD`). If the target environment is omitted, ask the user which environment to target.
+**Usage:** `/promote-us <story-key> <target-env>`. First word = story key, second = `INT`, `UAT` or `PROD`; ask if the target is missing.
 
-### Environment Flow
+## Workflow
 
-The source branch, target branch, and PR gate per target environment are defined by the active **Git Strategy** preset — see `pipeline/git-access.md` §5 for the per-preset flow tables. The skill must NOT hardcode `feature/<story>`, `release/<version>`, or `master` as branch names; instead, resolve them via `resolve-branch-role(role, story-key, version)` from adapter §7. The default preset (`feature-branch`) yields:
+### Step 1: Pre-flight
 
-| Target | Source role → Target role | Pipeline Stage | Tests |
-|--------|---------------------------|----------------|-------|
-| `INT` | `feature` → (push feature itself) | INT | PMD only |
-| `UAT` | `feature` → `integration` | UAT2 + DEV Sync | `RunLocalTests` |
-| `PROD` | `integration` → `trunk` | PROD | `RunLocalTests` |
-
-Under `trunk-based`, all three targets collapse to a push (or tag) on `trunk`. Under `gitflow`, `UAT` is `integration` → `release` (develop → release) and a hotfix lane exists. See adapter §5 for the full per-preset breakdown.
-
----
-
-### Step 1: Pre-Flight Checks
-
-1. **Fetch story from Jira** via the Atlassian adapter's `getJiraIssue` operation (see `pipeline/atlassian-access.md` §3 — branch on `Deployment Type` from `customer.config.md`) with the story key
-2. **Determine the release version**:
-   - Read `fixVersions` from the Jira story
-   - Fallback: derive from current branch name when on a release branch (the pattern comes from adapter §7 `resolve-branch-role(release, ...)`)
-3. **Verify branch state** — consult `pipeline/git-access.md` §5 for the source-role → target-role pair, then `pipeline/git-access.md` §7 to resolve role names into concrete branch names:
-   - Confirm the source branch exists.
-   - If the target environment requires a PR gate (per adapter §4A), check whether the PR is completed. If not, abort with an actionable message including the open-PR command from adapter §4C.
-   - Trunk-based exception: for `UAT` and `PROD` no branch transition happens — the gate is the CI/CD tag-or-promote mechanism described in the customer's `stack.config.md > ## Key Commands > Deployment`. Verify the local checkout is on the trunk and matches `origin/<trunk>`.
-4. **Run the close gate** — a story with unverified acceptance criteria must not be promoted. Resolve `<notes-dir>` from the **Implementation Design** config path (as in Step 2.1) and run:
+1. **Fetch the story** with `getJiraIssue` (Cloud ID from config): title, status, `fixVersions`. If `fixVersions` is empty, derive the version from the current `release/<version>` branch; if neither, ask.
+2. **Verify the branch state** — the source branch exists (`git fetch origin && git branch -r`). For `UAT` and `PROD`, confirm the PR is completed:
    ```bash
-   pipeline/bin/story-gate --phase close \
-     --verification <notes-dir>/acceptance-verification.md \
-     --notes <notes-dir>/implementation-notes.md
+   az repos pr list --org <org-url> --project <project> --repository <repo> --source-branch <source> --target-branch <target> --status all --query "[].{id:pullRequestId,status:status}" -o table
    ```
-   - **`decision=pass`** → continue; log `--check "story-gate-close:pass"` in the execution log.
-   - **`decision=block`** → **STOP.** Present the `finding=` lines verbatim (missing record, failed/unchecked criteria, missing evidence, coverage gap). Only the user may decide to promote anyway; record that override as `--check "story-gate-close:fail:<the overridden findings, briefly>"` — an overridden gate stays `fail`, never `pass` (`CLAUDE.md > Quality Gate & Loop Engineering` rule 2a). An unattended run has no user who could override: abort.
-5. **Check for the Manual Deployment Steps file** at `deployment/<version>/Release-<version>-Manual-Deployment-Steps.md` — if it exists and contains a section for this story, display the steps as a reminder to the user
+   If no completed PR exists, abort and print the create command: `az repos pr create --org <org-url> --project <project> --repository <repo> --source-branch <source> --target-branch <target> --title "<story-key> <title>"`.
+3. **Close gate — acceptance verification.** Read `<notes-dir>/acceptance-verification.md`. Block when the file is missing, when any row is `failed` or `unchecked` without a manual protocol reference, or when the row count is below the criteria count in the notes' `## Acceptance Criteria Mapping`. Present the findings; only the user may override, and an override is logged as `story-gate-close: fail (overridden: <items>)`. An unattended run aborts.
+4. **Manual deployment steps** — if `deployment/<version>/Release-<version>-Manual-Deployment-Steps.md` has a section for the story, show it as a reminder.
 
-### Step 2: Identify & Validate Deployment Artifacts
+### Step 2: Identify and validate the artefacts
 
-1. **Identify all files** related to this story:
-   - Search for the story key in `@see` tags and comments across Apex classes
-   - Search for related metadata (Custom Metadata, custom fields, flows, validation rules, LWC, triggers, permission sets)
-   - Check `implementation-notes.md` at the **Implementation Design** config path (`pipeline/bin/config "Implementation Design"`, with `<story-key>` substituted — customer **config** repo, not the repo-root `implementation-design/`) for expected scope
-   - If implementation notes exist, cross-reference identified files against expected components — warn if anything appears missing
+1. **Identify files:** grep the source path for `@see <story-key>` in classes and triggers; list metadata (custom metadata, fields, flows, validation rules, LWC, permission sets) changed on the branch: `git diff --name-only origin/<target-or-base>...HEAD -- <source-path>`. Cross-check with the notes' `## Affected Objects & Fields`; warn on anything missing.
 
-2. **Run PMD check** on all identified Apex classes (not test classes) using the **PMD rules file** from config:
+2. **PMD** on all identified non-test Apex classes:
    ```bash
-   pmd check -d <comma-separated-class-files> -R <pmd-rules-file> -f text
+   pmd check -d <comma-separated .cls> -R <PMD rules file> -f text
    ```
-   - **Stop and fix** Priority 1 or Priority 2 violations before proceeding
-   - Warn about Priority 3+ violations but allow continuation
-   - **Keep the report:** write the PMD output to `deployment/<story-key>/pmd-report.txt` — that is the evidence for the `pmd` check in the execution log (see *Important Rules*). Green is an artifact, not a claim
+   Stop on Priority 1 or 2, warn on 3+. Save the output to `deployment/<story-key>/pmd-report.txt`. If `pmd` or the rules file is missing, say so and record the gate `unchecked`.
 
-3. **Run tests locally**:
-
-   **For `salesforce` platform:**
-   Run Apex tests against the DEV org (alias from config):
+3. **Apex tests** against the DEV org:
    ```bash
-   sf apex run test --class-names <TestClass1> <TestClass2> --result-format human --code-coverage --synchronous --wait 10 \
-     --output-dir deployment/<story-key>/test-results -o <DEV-alias-from-config>
+   sf apex run test --class-names <Test1> <Test2> --result-format human --code-coverage --synchronous --wait 10 \
+     --output-dir deployment/<story-key>/test-results -o <DEV alias>
    ```
-   - Present code coverage results in a table
-   - If tests fail, stop and fix before proceeding
-   - **Keep the machine-readable result:** `--output-dir` persists the run's JSON/JUnit artifact; its path is the evidence for the `apex-tests` check in the execution log. If no result file exists on disk, the check is `unchecked`, never `pass`
+   Show coverage per class in a table; stop on failures. No result files on disk → `unchecked`.
 
-   Then check `stack.config.md` for a `## Testing` section with UI tests:
-   - **If no `## Testing` section exists** or `E2E Framework` is `none`, skip UI testing
-   - If `E2E Framework` is set (e.g., Playwright):
-     1. Retrieve the org URL via `sf org open -o <Test Org Alias from config> --url-only`
-     2. Run the E2E tests using the configured command (e.g., `npx playwright test`)
-     3. **All UI tests must pass before promoting** — if any test fails, stop and fix before proceeding
-     4. Present a summary of UI test results (passed/failed/skipped)
-     5. Keep the framework's machine-readable report (JUnit XML, Playwright report directory) and note its path — the evidence for the `e2e-tests` check in the execution log. No report on disk → `unchecked`, never `pass`
+   UI tests only if `stack.config.md` has a `## Testing` section with an E2E framework; run the configured command and keep the report.
 
-   **For non-`salesforce` platforms:**
-   Check `stack.config.md` for a `## Testing` section:
-   - **If no `## Testing` section exists**, skip UI testing
-   - If `E2E Framework` and `Component Test Framework` are both `none`, skip testing
-   - If `Component Test Framework` is set: run the component test command (e.g., `npm run test`)
-   - If `E2E Framework` is set: run the E2E test command (e.g., `npm run test:e2e`)
-   - **All tests must pass before promoting** — if any test fails, stop and fix before proceeding
-   - Present a summary of test results (passed/failed/skipped)
-   - Keep the framework's machine-readable report (JUnit XML, Playwright report directory) and note its path — the evidence for the `e2e-tests` check in the execution log. No report on disk → `unchecked`, never `pass`
+4. **Present the validation summary** (file list, PMD, tests) and ask via `AskUserQuestion`: "Validation passed. Promote to <target>?" — yes / abort.
 
-4. **Present the validation summary** and ask for confirmation:
-   - List all files that will be part of the deployment
-   - Show PMD results and test results
-   - Ask: "Validation passed. Proceed with promotion to <target-env>?"
-   - Option 1: "Yes, promote"
-   - Option 2: "No, abort"
+### Step 3: Prepare the deployment package
 
-### Step 3: Prepare Deployment Package
+```bash
+mkdir -p deployment/<story-key>
+sf sgd:source:delta --from origin/<target-branch> --to HEAD -o deployment/<story-key> --json
+```
 
-1. **Generate the deployment package** at `deployment/<story-key>/`:
+Falls back to a hand-written `package.xml` (API version from config) collecting the identified metadata when `sfdx-git-delta` is not installed. Show `deployment/<story-key>/package/package.xml` and, if non-empty, `destructiveChanges/destructiveChanges.xml`. For `PROD`, merge the story package into `deployment/<version>/package/package.xml` (add members, keep existing ones) so the release package accumulates all stories.
+
+### Step 4: Promote
+
+**INT**
+```bash
+git push origin feature/<story-key>
+```
+The pipeline triggers the INT stage.
+
+**UAT** — PR completed (Step 1.2), then:
+```bash
+git checkout release/<version> && git pull origin release/<version>
+git add deployment/<story-key> && git commit -m "<story-key> deployment package <CI skip pattern>"
+git push origin release/<version>
+```
+The merged source commit already triggered the UAT stage; the package commit carries the skip pattern. Never put the skip pattern on a commit containing deployable source.
+
+**PROD** — confirm via `AskUserQuestion`: "This targets PRODUCTION. Continue?" Then, with the PR completed:
+```bash
+git checkout master && git pull origin master
+git add deployment/<version> && git commit -m "<story-key> release package <version> <CI skip pattern>"
+git push origin master
+```
+The pipeline runs the PROD validate stage from the merged source. Direct pushes of source to `master` are never made by this skill.
+
+### Step 5: Monitor the pipeline
+
+```bash
+az pipelines runs list --org <org-url> --project <project> --branch <branch> --top 1 -o table
+az pipelines runs show --org <org-url> --project <project> --id <run-id> --query "{status:status,result:result,url:_links.web.href}" -o json
+```
+Poll every 30 seconds up to 10 minutes; report succeeded / failed / cancelled with the run link. If `az` is unavailable or not logged in, print the pipeline URL `<org-url>/<project>/_build` and record the check `unchecked`. On failure, fetch the logs (`az pipelines runs show` → log URL), analyse, propose fixes, offer a re-run.
+
+### Step 6: Post-deployment
+
+1. **Jira comment** via `addOrEditJiraIssueComment`: environment, pipeline result and link, commit hash, branch. No AI attribution.
+2. **UAT only — production validation dry run:**
    ```bash
-   mkdir -p deployment/<story-key>
+   sf project deploy validate -x deployment/<story-key>/package/package.xml -o <PROD alias> --verbose -l RunLocalTests
    ```
-   - Use `sfdx-git-delta` to generate `package/package.xml` and `destructiveChanges/destructiveChanges.xml`:
-     ```bash
-     sf sgd:source:delta --from HEAD~1 -o deployment/<story-key> --json
-     ```
-   - If `sfdx-git-delta` is not available, generate `package.xml` manually by collecting all metadata types from the identified files
+   Report separately; save the output to `deployment/<story-key>/prod-validation.txt`.
+3. **Deployment report** table: PMD, local tests, package generated (component count), pipeline triggered (branch, commit), pipeline status (link), PROD validation (UAT only) — each pass / fail / unchecked / n/a.
+4. Remind about manual deployment steps if the release file has a section for the story.
 
-2. **Display the generated package** for user review:
-   - Show `deployment/<story-key>/package/package.xml`
-   - Show `deployment/<story-key>/destructiveChanges/destructiveChanges.xml` (if non-empty)
+### Step 7: Log
 
-3. **For PROD promotions**, also create/update the **versioned release package** at `deployment/<version>/`:
-   - Merge the story's package.xml into `deployment/<version>/package/package.xml` (add new members, preserve existing ones)
-   - Merge destructive changes similarly
-   - This accumulates all stories for the release into one deployment package
-
-### Step 4: Promote (Push to Trigger Pipeline)
-
-The promotion strategy depends on the target environment **and** the active **Git Strategy** preset. For each target, look up the source/target role pair in `pipeline/git-access.md` §5, then resolve roles to concrete branch names via §7.
-
-Use `<source-branch>` and `<target-branch>` below as placeholders for the resolved names; use `<pr-required>` for the boolean from adapter §4A.
-
-#### INT (deploy to integration environment)
-
-Source/target roles from adapter §5: under `feature-branch` → push the feature branch itself; under `gitflow` → `feature → integration` (develop); under `trunk-based` → already on trunk.
-
-1. Ensure all changes on `<source-branch>` are committed.
-2. If `<pr-required>` is `true` for this transition (adapter §4A) and a PR is not yet completed, abort with: "PR `<source-branch> → <target-branch>` must be completed first. Open at <URL>." Show the open-PR command from adapter §4C.
-3. Push the source branch (or trunk under `trunk-based`):
-   ```bash
-   git push origin <source-branch>
-   ```
-4. The pipeline automatically triggers the INT stage (per the customer's CI/CD config).
-
-#### UAT (promote to UAT environment)
-
-Source/target roles from adapter §5: `feature-branch` → `feature → integration` (release); `gitflow` → `integration → release` (develop → release); `trunk-based` → tag-or-promote on trunk, no git transition.
-
-1. **For `feature-branch` and `gitflow`**:
-   - Verify the source branch is merged into the target branch (PR completed per adapter §4A). If not, abort and show the open-PR command.
-   - Checkout and pull the target branch:
-     ```bash
-     git checkout <target-branch>
-     git pull origin <target-branch>   # pull command per adapter §3
-     ```
-   - Ensure the commit message contains the story key (the customer's pipeline extracts it via the Jira project's key pattern):
-     ```bash
-     git add deployment/<story-key>
-     git commit -m "<story-key> [skip ci]"
-     git push origin <target-branch>
-     ```
-     Note: Remove `[skip ci]` to allow the pipeline to trigger, OR push the code change commit (without skip ci) separately.
-   - The pipeline automatically triggers: UAT stage (delta deploy + `RunLocalTests`) → any downstream sync stages.
-2. **For `trunk-based`**:
-   - No branch transition. Trigger the customer's tag-or-promote mechanism documented in `stack.config.md > ## Key Commands > Deployment` (typically `git tag uat/<version> <trunk-sha> && git push origin uat/<version>`, or a CI/CD API call).
-   - Show the resolved promotion command to the user and confirm before executing.
-
-#### PROD (validate / deploy to production)
-
-Source/target roles from adapter §5: `feature-branch` → `integration → trunk`; `gitflow` → `release → trunk`; `trunk-based` → tag-or-promote on trunk.
-
-1. Confirm with the user — this is a production deployment:
-   - Ask: "This will validate against PRODUCTION. Are you sure?"
-   - Option 1: "Yes, validate against PROD"
-   - Option 2: "No, abort"
-2. **For `feature-branch` and `gitflow`**:
-   - Verify the source branch is merged into the target branch (PR completed per adapter §4A). If not, abort and show the open-PR command.
-   - If the versioned release package exists at `deployment/<version>/package/package.xml`, push it:
-     ```bash
-     git checkout <target-branch>
-     git pull origin <target-branch>   # pull command per adapter §3
-     git push origin <target-branch>
-     ```
-   - The pipeline triggers: Generate PROD Package → Deploy Validate (with `RunLocalTests`).
-3. **For `trunk-based`**:
-   - No branch transition. Trigger the customer's PROD tag-or-promote mechanism (typically `git tag prod/<version> <trunk-sha> && git push origin prod/<version>`).
-4. **For `gitflow`** (post-deployment): surface the required back-merges in Step 6 — `release → develop`, and for any hotfix branches `hotfix → develop` — per adapter §5C.
-
-### Step 5: Monitor Pipeline
-
-1. **Check pipeline status** — use the **Azure DevOps** config from `customer.config.md` if available:
-   - **Primary (if Azure DevOps is configured):**
-     ```bash
-     az pipelines runs list --org "<Organization>" --project "<Project>" --branch <branch> --top 1 --output table
-     ```
-   - **Fallback (if `az` CLI is unavailable, not authenticated, or Azure DevOps is not configured):** Provide the user with a direct link to the pipeline run:
-     ```
-     <Organization>/<Project-URL-encoded>/_build
-     ```
-
-2. **Poll for completion** (if `az` CLI is available):
-   - Check every 30 seconds, up to 10 minutes
-   - Report the final status (succeeded, failed, cancelled)
-
-3. If the pipeline **fails**:
-   - Fetch the pipeline logs if possible
-   - Analyze the error and suggest fixes
-   - Offer to re-run after fixes are applied
-
-### Step 6: Post-Deployment Actions
-
-1. **Comment on the Jira story** with the deployment result:
-   - Environment deployed to
-   - Pipeline status (success/failure)
-   - Commit hash and branch
-
-2. **For UAT promotions**: Also validate against the **production org** (from config) as a dry run:
-   ```bash
-   sf project deploy validate -x deployment/<story-key>/package/package.xml -o <PROD-alias-from-config> --verbose -l RunLocalTests
-   ```
-   - Present the validation result separately
-   - This catches PROD-specific issues early
-
-3. **Present a deployment report**:
-
-   | Step | Status | Details |
-   |------|--------|---------|
-   | PMD Check | Pass/Fail | Violations by priority |
-   | Local Tests | Pass/Fail | Pass rate, coverage |
-   | Package Generated | Yes | Components count |
-   | Pipeline Triggered | Yes/No | Branch, commit hash |
-   | Pipeline Status | Success/Failed/Pending | Link to run |
-   | PROD Validation | Pass/Fail/Skipped | (UAT only) |
-
-4. **Surface manual deployment steps** — if `deployment/<version>/Release-<version>-Manual-Deployment-Steps.md` contains steps for this story, remind the user that manual steps are required after deployment
+Create `<YYYY-MM-DD>-<customer-short-name>-<story-key>-promote-us.json` in `.claude/skills/03-promote-us/logs/` per the CLAUDE.md JSON schema, with a `checks` object: `story-gate-close`, `pmd`, `apex-tests`, `e2e-tests` (or n/a), `ci-pipeline`, `prod-validation` (UAT only), each with pass / fail / unchecked and the evidence path or link. Status `success` only with every applicable check passed; `partial` on any `unchecked` or override; `failed` when nothing was promoted.
 
 ## Important Rules
-- Follow all conventions from CLAUDE.md
-- Always confirm the file list with the user before promoting
-- **Never push directly to master** without explicit user confirmation
-- Use the Atlassian adapter (`pipeline/atlassian-access.md`) for all Jira operations — branch on `Deployment Type` from `customer.config.md`; never hardcode URLs, Cloud IDs, or PAT env var names
-- Use the Git Strategy adapter (`pipeline/git-access.md`) for all branch/PR/promotion mechanics — branch on `Git Strategy` from `customer.config.md > ## Repository & CI/CD`; never hardcode `feature/<story>`, `release/<version>`, or `master` as branch names
-- Commit messages for pipeline-triggering pushes must contain the story key (`CRM-XXXX`) — the pipeline extracts it
-- When test classes are executed, always return the code coverage from the test run in a table
-- ALWAYS comment on the related user story in Jira on successful deployment and validation
-- ALWAYS write the execution log with `pipeline/bin/log-skill` — never hand-author the JSON. Run:
-  ```bash
-  pipeline/bin/log-skill --skill promote-us --identifier <story-key> --status <success|partial|failed> \
-    --preferred-runtime openai-codex \
-    --summary "<1–2 sentence result>" \
-    --artifact <path> \
-    --check "story-gate-close:<pass|fail>:<gate reason or override note>" \
-    --check "pmd:<pass|fail|unchecked>:deployment/<story-key>/pmd-report.txt" \
-    --check "apex-tests:<pass|fail|unchecked>:deployment/<story-key>/test-results" \
-    --check "e2e-tests:<pass|fail|unchecked>:<report path>" \
-    --check "ci-pipeline:<pass|fail|unchecked>:<pipeline run link>" \
-    --check "prod-validation:<pass|fail|unchecked>:<validation output path>" \
-    --output "<full run text>"
-  ```
-  It guarantees a schema-valid document and writes it to `pipeline/customers/<customer>/logs/<YYYY-MM-DD>-<customer-short-name>-<story-key>-promote-us.json` (customer, active runtime, and timestamp resolve from config automatically; pass `--artifact` once per created/modified file; the directory is created if needed).
-  - Record one `--check` per gate this promotion actually reached, each with the path (or link) of the artifact the verdict came from. **Green is an artifact, not a claim:** a gate whose evidence is not on disk — tool missing, step could not run — is `unchecked`, never `pass`, and per `CLAUDE.md > Quality Gate & Loop Engineering` rule 2a every `fail` and every `unchecked` on a mandatory check counts as at least one `--majors`.
-  - **Omit** a `--check` only for a gate that does not apply to this promotion at all (e.g. `prod-validation` outside UAT, `e2e-tests` when the stack configures no test framework). Not-applicable is omitted; could-not-run is `unchecked` — the two must never be conflated.
+
+- Always confirm the file list before promoting; always confirm PROD explicitly.
+- Never push source directly to the release or production branch; PRs are the gate.
+- CI skip pattern only on non-deployable commits (packages, notes).
+- Always pass `--org` to `az`; never rely on CLI defaults.
+- Green is an artefact: a gate without its output on disk is `unchecked`, never `pass`.
+- No AI attribution in commits, comments or reports.
 
 ## Error Handling
-- If the Jira issue cannot be fetched, inform the user with the error details and abort
-- If PMD is not available on the system, warn the user and skip the PMD step (do not fail the entire workflow) — and record `--check "pmd:unchecked:pmd not installed"` in the execution log: a check that could not run is unchecked, never pass
-- If local tests fail, stop before promoting — do not push broken code to trigger the pipeline
-- If the target branch does not exist, inform the user and suggest creating it
-- If the PR is not yet merged (for UAT/PROD), inform the user and abort — do not auto-merge
-- If the pipeline fails, display the error details and suggest fixes
-- If the `az` CLI is not available, skip pipeline monitoring and provide the manual link instead — and record `--check "ci-pipeline:unchecked:<manual link>"`: the pipeline result was not observed by this run
-- If the org alias is not recognized, list available orgs using `sf org list` and ask the user to pick one
+
+- Story not fetchable: show the error and abort.
+- PR not completed for UAT/PROD: abort with the create command.
+- PMD or rules file missing: warn, record `unchecked`, continue only if the user agrees.
+- Tests fail: stop before promoting.
+- Target branch missing: report and suggest creating it.
+- Pipeline fails: show the error, propose fixes, offer re-run.
+- Org alias unknown: `sf org list` and ask.

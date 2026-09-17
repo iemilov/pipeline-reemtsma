@@ -47,17 +47,17 @@ Customer config repos (`pipeline-<name>-config` on GitHub) are cloned into `pipe
 ### Transcript → User Story → Code workflow
 
 1. Place meeting transcripts (`.docx`, `.xlsx`) into the transcript input folder (see `customer.config.md`)
-2. `/create-story <epic-id>` — Reads all transcripts, synthesizes requirements, creates Jira user stories linked to the epic, and generates implementation notes
+2. `/create-us <epic-id> [--create-in-jira]` — Reads transcripts or a READY concept, synthesizes requirements, produces the story text for manual creation in Jira (creates issues only on explicit confirmation), and writes DRAFT implementation notes per story
 3. `/design-us <story-key>` — Reads the Jira story, analyzes the codebase, and creates implementation notes under `implementation-design/<story-key>/implementation-notes.md` using all customer-specific config files
 4. `/implement-us <story-key> [--skip-deploy] [--no-pr]` — Implements a story from its FINAL implementation notes (the Jira fetch is skipped when they exist), explores codebase patterns, generates the code and tests, runs an independent review loop, PMD, deploy and Apex tests against the DEV org, creates test data, writes the acceptance verification record, and opens the pull request
 5. `/promote-us <story-key> <target-env>` — Promotes a story through environments: validates locally, generates deployment packages, pushes to trigger the CI/CD pipeline, monitors the result
-6. `/document-us <epic-id>` — Fetches the epic and all linked stories from Jira, generates a Confluence page with business and technical documentation
-7. `/architecture-overview [space-key]` — Analyzes the full repository and publishes a comprehensive technical architecture overview to Confluence
+6. `/document-us <epic-id>` — Deprecated, forwards to `/document --type epic`
+7. `/architecture-overview` — Deprecated, forwards to `/document --type architecture`
 8. `/release-notes [version]` — Generates release notes from the latest merge commit by resolving all referenced Jira stories
-9. `/code-review [space-key]` — Performs a comprehensive code review based on the project's tech stack and publishes results to Confluence or as local Markdown
-10. `/build-knowledge <epic-id|topic>` — Builds comprehensive internal domain documentation as Markdown topic files, consolidating knowledge from Jira, Confluence, codebase, and existing docs
-11. `/create-testdata [org-alias] [story-key | preset]` — *(Salesforce only)* Creates test data records in a Salesforce org based on `testdata.config.md`. Supports story-based section recommendations, interactive selection, or preset-based auto-selection
-12. `/cleanup-testdata [org-alias] [preset | all | today]` — *(Salesforce only)* Deletes test data records from a Salesforce org interactively. Scans for records by StoreNumber suffix, groups by preset, and generates cleanup Apex
+9. `/code-review [--scope repo|branch|story <key>] [--publish]` — Comprehensive code review of the repository or one story's change set against stack conventions, platform baseline and domain pitfalls; verified, severity-classified Markdown report under `code-review/`, optionally published to Confluence
+10. `/build-knowledge <epic-id|topic> [--update-domain]` — Builds or refreshes one topic document under the customer's `docs/` folder from Jira, Confluence, codebase and existing docs, with mandatory sources, a cross-check against the domain knowledge file and an optional update of it
+11. `/create-testdata [org-alias] [preset] [--dry-run]` — *(Salesforce only)* Creates test data from `testdata.config.md` presets via the Composite Tree API, checks duplicates, verifies, and writes an ID-bound run manifest under `testdata/runs/`
+12. `/cleanup-testdata [org-alias] [run-id | today | all | --legacy]` — *(Salesforce only)* Deletes test data ID-bound via run manifests with preview and confirmation; suffix-based legacy fallback needs separate approval
 13. `/write-crm-doc <story-key>` — *(Salesforce only)* Creates or updates a Salesforce Knowledge article as a draft based on Jira stories, domain knowledge, and the repository
 14. `/onboard-pipeline-user <github-username> <project-repo>` — Adds a GitHub user as collaborator to the pipeline repo and the matching customer config repo, then generates setup instructions for working with Claude skills
 15. `/create-customer [customer-name]` — Interactively scaffolds a new customer config repo with all required configuration files, creates the GitHub repo, and clones it into the pipeline customers directory
