@@ -12,6 +12,8 @@ Interactively create a new customer configuration repository with all required c
 
 The `$ARGUMENTS` string is the customer folder name (lowercase, kebab-case). If empty, ask the user.
 
+**GitHub owner:** resolve `<owner>` from the pipeline repository's own remote — `git -C pipeline remote get-url origin` → the account or organisation segment (e.g. `iemilov`). Never hardcode an owner. Customer config repositories are named `pipeline-<name>-config` under that owner.
+
 ### Step 0: Parse Arguments & Validate
 
 1. If `$ARGUMENTS` is empty, ask the user for the customer name using `AskUserQuestion`
@@ -25,7 +27,7 @@ The `$ARGUMENTS` string is the customer folder name (lowercase, kebab-case). If 
 
 4. **Validate the GitHub repo doesn't already exist:**
    ```bash
-   gh repo view Lintlinger/pipeline-<name> --json name 2>/dev/null
+   gh repo view <owner>/pipeline-<name>-config --json name 2>/dev/null
    ```
    - If it exists, ask the user whether to reuse it or abort
 
@@ -73,7 +75,7 @@ Default locale mapping:
 #### 1e. Repository & CI/CD
 
 Ask using `AskUserQuestion`:
-- **Main project repo name** — e.g., `AcmeProject` (the GitHub repo name under `Lintlinger/`)
+- **Main project repo name** — e.g., `AcmeProject` (the main project repository name; it may live on GitHub or on the customer's VCS such as Azure DevOps)
 - **Submodule branch** — default: `main`
 - **CI Skip Pattern** — default: `[skip ci]`
 - **Azure DevOps** — "Does this customer use Azure DevOps for CI/CD?"
@@ -89,9 +91,9 @@ Ask using `AskUserQuestion` (free text table):
 
 ### Step 2: Create GitHub Repository
 
-1. **Create the repo** under the `Lintlinger` org:
+1. **Create the repo** under `<owner>` (resolved from the pipeline remote):
    ```bash
-   gh repo create Lintlinger/pipeline-<name> --private --description "Pipeline customer config: <full-name>"
+   gh repo create <owner>/pipeline-<name>-config --private --description "Pipeline customer config: <full-name>"
    ```
    - Must be **private** — customer configs contain sensitive workflow data
 
@@ -142,12 +144,12 @@ Read `pipeline/customers/_template/domain-knowledge.md` and replace:
 
 1. **Clone the empty repo** into a temp directory:
    ```bash
-   cd /tmp && git clone https://github.com/Lintlinger/pipeline-<name>.git
+   cd <scratch> && git clone https://github.com/<owner>/pipeline-<name>-config.git
    ```
 
 2. **Copy generated files** into the cloned repo:
    ```bash
-   cp config.md stack.config.md domain-knowledge.md [testdata.config.md] /tmp/pipeline-<name>/
+   cp config.md stack.config.md domain-knowledge.md [testdata.config.md] <scratch>/pipeline-<name>-config/
    ```
 
 3. **Commit and push**:
@@ -169,7 +171,7 @@ Clone the new customer config repo into the pipeline's customers directory:
 
 ```bash
 cd <pipeline-dir>
-git clone https://github.com/Lintlinger/pipeline-<name>.git customers/<name>
+git clone https://github.com/<owner>/pipeline-<name>-config.git customers/<name>
 ```
 
 The `customers/` directory is gitignored (except `_template/`), so this clone is local-only and does not affect the pipeline repo's git state. No commit needed.
@@ -183,7 +185,7 @@ NEW CUSTOMER CONFIGURATION
 ──────────────────────────────────────────────────
 Customer:     <Full Name> (<Short Name>)
 Platform:     <platform>
-Repo:         Lintlinger/pipeline-<name> (private)
+Repo:         <owner>/pipeline-<name>-config (private)
 Local clone:  pipeline/customers/<name>/
 Config files: config.md, stack.config.md, domain-knowledge.md[, testdata.config.md]
 
@@ -204,8 +206,8 @@ NEXT STEPS
 ## Important Rules
 
 - Follow all conventions from CLAUDE.md
-- The GitHub org is `Lintlinger` — all repos live under this account
-- Customer config repos follow the naming pattern `pipeline-<customer-folder-name>`
+- The GitHub owner is resolved from the pipeline remote — never hardcoded
+- Customer config repos follow the naming pattern `pipeline-<customer-folder-name>-config`
 - Customer folder names are **lowercase kebab-case**
 - Config repos must be **private** — they contain internal workflow configuration
 - **Never hardcode values** — read templates from `_template/` and replace placeholders
@@ -218,6 +220,6 @@ NEXT STEPS
 
 - **Customer already exists**: Inform the user and abort — do not overwrite existing config
 - **GitHub repo creation fails**: Report the error (likely insufficient permissions) and abort
-- **Clone fails**: Report the error. If the repo was created, inform the user that they can clone it manually with `git clone https://github.com/Lintlinger/pipeline-<name>.git customers/<name>`
+- **Clone fails**: Report the error. If the repo was created, inform the user that they can clone it manually with `git clone https://github.com/<owner>/pipeline-<name>-config.git customers/<name>`
 - **User skips Atlassian config**: Use `<not configured>` placeholders — skills will prompt for values when needed
 - **`gh` CLI not authenticated**: Inform the user to run `gh auth login` first

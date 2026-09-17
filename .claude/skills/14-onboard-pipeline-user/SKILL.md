@@ -6,7 +6,13 @@ argument-hint: <github-username> <project-repo>
 
 ## Configuration
 
-Before executing, read `pipeline/customer.config.md` for customer-specific values. Determine the active customer from the `pipeline/customer.config.md` symlink target (e.g., `customers/cloudrise/config.md` → customer name is `cloudrise`).
+Before executing, read `pipeline/customer.config.md` for customer-specific values. Determine the active customer from the `pipeline/customer.config.md` symlink target (e.g., `customers/reemtsma/config.md` → customer name is `reemtsma`).
+
+**Repositories and owner:** resolve from the checkout, never hardcode:
+- pipeline repo: `git -C pipeline remote get-url origin` (e.g. `<owner>/pipeline-<customer>` or a shared `<owner>/pipeline`)
+- customer config repo: `git -C pipeline/customers/<name> remote get-url origin`, expected pattern `<owner>/pipeline-<name>-config`
+- `<owner>` is the account or organisation segment of those URLs (e.g. `iemilov`)
+- the main project repo may live on GitHub or on the customer's VCS (`customer.config.md > Repository & CI/CD`); this skill only grants access to the two GitHub repos above.
 
 ## Workflow: Onboard GitHub User to Pipeline
 
@@ -29,20 +35,15 @@ The `$ARGUMENTS` string contains the GitHub username and the main project repo n
    ```
    - If the user does not exist, inform and abort
 
-2. **Validate the project repo exists and has a pipeline submodule:**
-   ```bash
-   gh api repos/Lintlinger/<project-repo>/contents/.gitmodules
-   ```
-   - Parse the response to confirm a `pipeline` submodule pointing to `Lintlinger/pipeline.git`
-   - If no pipeline submodule is found, inform the user that this project doesn't use the pipeline and abort
+2. **Validate the project uses the pipeline:** the main repository is expected to ignore a nested `pipeline/` folder (`.gitignore` contains `pipeline/`) and to be set up via `pipeline/setup.sh`. If the project is on GitHub, check `gh api repos/<owner>/<project-repo>/contents/.gitignore`; if it is on another VCS, check the local checkout. If no pipeline usage is found, inform the user and abort
 
 3. **Determine customer config repo** by resolving the active customer:
    - Read the symlink target of `pipeline/customer.config.md` to extract the customer name (e.g., `customers/cloudrise/config.md` → `cloudrise`)
    - OR list `pipeline/customers/*/` directories that contain a `.git` directory and ask the user which one
-   - The customer config repo name follows the pattern `pipeline-<name>` (e.g., `pipeline-cloudrise`, `pipeline-lotto-bw`)
+   - The customer config repo name follows the pattern `pipeline-<name>-config` (e.g., `pipeline-reemtsma-config`)
    - Verify the repo exists:
      ```bash
-     gh repo view Lintlinger/pipeline-<name> --json name
+     gh repo view <owner>/pipeline-<name>-config --json name
      ```
    - If no matching customer config repo is found, ask the user which customer to use
 
@@ -55,12 +56,12 @@ The `$ARGUMENTS` string contains the GitHub username and the main project repo n
 
 Add the user to **two repositories** in this order:
 
-1. **Central pipeline repo** (`Lintlinger/pipeline`) — skills, CLAUDE.md, workflow tooling
-2. **Customer config repo** (`Lintlinger/pipeline-<customer-name>`) — customer-specific configuration (config.md, domain-knowledge.md, stack.config.md)
+1. **Pipeline repo** (from the pipeline remote, e.g. `<owner>/pipeline-<customer-name>`) — skills, CLAUDE.md, workflow tooling
+2. **Customer config repo** (`<owner>/pipeline-<customer-name>-config`) — customer-specific configuration (config.md, domain-knowledge.md, stack.config.md)
 
 For each repo, add the collaborator:
 ```bash
-gh api repos/Lintlinger/<repo>/collaborators/<github-username> -X PUT -f permission=<level>
+gh api repos/<owner>/<repo>/collaborators/<github-username> -X PUT -f permission=<level>
 ```
 
 - If the user is already a collaborator, note it and continue (do not error)
@@ -68,7 +69,7 @@ gh api repos/Lintlinger/<repo>/collaborators/<github-username> -X PUT -f permiss
 
 Present a summary after each addition:
 ```
-Repo: Lintlinger/<repo>
+Repo: <owner>/<repo>
 Status: Invitation sent / Already a collaborator / Failed: <reason>
 Permission: <level>
 ```
@@ -83,18 +84,13 @@ Generate setup instructions that can be shared with the new collaborator. These 
 ## 1. Accept GitHub Invitations
 Check your email or https://github.com/notifications for repository access invitations.
 You need to accept invitations for:
-- Lintlinger/pipeline
-- Lintlinger/pipeline-<customer-name>
+- <owner>/<pipeline-repo>
+- <owner>/pipeline-<customer-name>-config
 
 ## 2. Initialize Pipeline
-If you have already cloned the main project repo:
+Clone the main project repo (from the customer's VCS) if not done yet, then clone the pipeline into it:
 cd <project-repo>
-git submodule update --init pipeline
-
-If not yet cloned:
-git clone https://github.com/Lintlinger/<project-repo>.git
-cd <project-repo>
-git submodule update --init pipeline
+git clone https://github.com/<owner>/<pipeline-repo>.git pipeline
 
 ## 3. Set Up Claude Code
 cd pipeline
@@ -127,9 +123,8 @@ Present a clear summary:
 ## Important Rules
 
 - Follow all conventions from CLAUDE.md
-- The GitHub org/user is `Lintlinger` — all repos live under this account
-- The central pipeline repo is always `Lintlinger/pipeline`
-- Customer config repos follow the naming pattern `pipeline-<customer-folder-name>`
+- The GitHub owner and repository names are resolved from the remotes of the checkout — never hardcoded
+- Customer config repos follow the naming pattern `pipeline-<customer-folder-name>-config`
 - Determine the active customer from the symlink target of `pipeline/customer.config.md` or by listing cloned directories in `pipeline/customers/`
 - Always confirm the permission level with the user before adding collaborators
 - **Pipeline first, then customer config** — always add to the pipeline repo before the customer config repo
@@ -139,7 +134,7 @@ Present a clear summary:
 ## Error Handling
 
 - **GitHub user not found**: Inform the user and abort — do not attempt to add a non-existent user
-- **Project repo has no pipeline submodule**: Inform the user that this project doesn't use the pipeline and abort
+- **Project does not use the pipeline**: Inform the user and abort
 - **Insufficient permissions**: If `gh api` returns a 403, inform the user that they need admin access to the repo
 - **Invitation already pending**: Note it and continue — this is not an error
 - **User already a collaborator**: Note it and continue — this is not an error
