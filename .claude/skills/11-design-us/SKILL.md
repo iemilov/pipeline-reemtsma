@@ -11,7 +11,7 @@ argument-hint: [story-key]
 
 Before executing, read the following customer-specific configuration files:
 - `pipeline/customer.config.md` — Atlassian settings (Cloud ID, Project Key, Epic Link Field), locale (**Story Language**, **UI Language** if set), **Folder Paths** (in particular **Implementation Design**), **Story Backend** / **Stories Path** if set, **Platform**, **Short Name**
-- `pipeline/stack.config.md` — Tech stack details (naming prefixes, API version, org aliases, functional domains, test data factory, code quality rules)
+- `pipeline/stack.config.md` — Tech stack details (naming conventions, API version, org aliases, functional domains, test data factory, code quality rules)
 - `pipeline/customer.domain.md` — Business logic, glossary, field name pitfalls, linked topic documentation files
 - `pipeline/customers/<customer>/testdata.config.md` — Test data templates and record structures (resolve the active customer from the symlink target of `pipeline/customer.config.md`)
 
@@ -60,13 +60,13 @@ Generate implementation notes for story **$ARGUMENTS**:
 
 Analyze the existing codebase to inform the implementation approach:
 
-1. **Naming conventions** — verify the correct **naming prefixes** from config (B2C vs B2B component)
+1. **Naming conventions** — apply the naming patterns from `stack.config.md > Naming Conventions` (class, object, field, LWC and flow patterns); if the stack config defines component-specific prefixes, resolve the prefix from the story's component
 2. **Existing similar implementations** — search for patterns matching the story's requirements (similar Flows, Apex classes, LWC, Validation Rules)
 3. **Affected sObjects** — for each object mentioned in the story:
    - List existing custom fields, validation rules, flows, and trigger actions
    - Identify potential conflicts or order-of-execution concerns
 4. **Existing metadata** — check what already exists that the implementation can build on or must integrate with
-5. **Test patterns** — if Apex is likely needed, check the **test data factory** class from config for existing test data methods
+5. **Test patterns** — if Apex is likely needed, read the **Test Data Factory** class named in `stack.config.md > Testing Standards` for existing test data methods
 6. **Test data templates** — analyze `testdata.config.md` presets and record sections relevant to this story's affected objects. Identify which existing presets/sections can be reused, and which custom records would need to be added
 7. **Domain knowledge** — cross-reference `pipeline/customer.domain.md` for business logic rules, field name pitfalls, and glossary terms relevant to this story
 8. **Documentation impact** — if topic documentation exists (`pipeline/customers/<customer>/docs/*.md` or the linked topic files from `customer.domain.md`), grep it for the components identified in points 2–4. Read every matching document before designing — they carry business rules, configuration and known issues the design must respect — and list them in the notes under `## Implementation Guidance` as *expected documentation impact*. No matches, or no documentation, means nothing to declare.
@@ -82,7 +82,7 @@ Before determining the implementation approach, identify and resolve ambiguities
 - Multiple valid implementation approaches exist and the trade-offs are significant
 - Field types, lengths, or labels are not specified in the story
 - It is unclear which object, record type, or page layout is affected
-- The naming prefix cannot be determined from the story's component
+- The naming pattern for a new component is ambiguous (e.g. service vs. helper, subflow vs. trigger flow)
 - Dependencies on other stories or existing metadata are unclear
 - Business rules from `customer.domain.md` conflict with or are not addressed by the story
 - Acceptance criteria are missing, incomplete, or contradictory
@@ -238,7 +238,7 @@ If any check fails, fix the content before writing the file. After writing, grep
 
 After writing the notes, dispatch **one independent, read-only review** of the design document via the `Agent` tool (a fresh general-purpose agent, not a fork) with this brief:
 
-> Review the implementation notes at `<notes-dir>/implementation-notes.md` for story `$ARGUMENTS`. Read the referenced source files, `pipeline/customer.domain.md` and `pipeline/stack.config.md`. Do not modify any file. Assess five dimensions: (1) factual correctness against the codebase — do the named classes, flows, fields and patterns exist and behave as described; (2) design soundness — order of execution, bulk safety, sharing, error paths; (3) completeness — every acceptance criterion mapped and tested, dependencies named; (4) internal consistency — no contradictions between sections; (5) convention compliance — naming prefixes, declarative-first, domain pitfalls. Return at most 4 KB: a list of findings, each with severity (Blocker / Major / Minor / Info), dimension, location (section or file:line) and a one-sentence fix; then a line `Status: reviewed` and, per dimension, whether it was assessed.
+> Review the implementation notes at `<notes-dir>/implementation-notes.md` for story `$ARGUMENTS`. Read the referenced source files, `pipeline/customer.domain.md` and `pipeline/stack.config.md`. Do not modify any file. Assess five dimensions: (1) factual correctness against the codebase — do the named classes, flows, fields and patterns exist and behave as described; (2) design soundness — order of execution, bulk safety, sharing, error paths; (3) completeness — every acceptance criterion mapped and tested, dependencies named; (4) internal consistency — no contradictions between sections; (5) convention compliance — naming conventions, declarative-first, domain pitfalls. Return at most 4 KB: a list of findings, each with severity (Blocker / Major / Minor / Info), dimension, location (section or file:line) and a one-sentence fix; then a line `Status: reviewed` and, per dimension, whether it was assessed.
 
 Then **triage every finding**:
 - **Accepted** — apply the fix to the notes now.
@@ -270,7 +270,7 @@ If the review agent errors (no output, crash): mark the review as errored in the
 - If `Story Backend` is `jira`: use the Atlassian MCP tools for all Jira operations and read the **Cloud ID** from config — never hardcode
 - If `Story Backend` is `markdown`: local file reads only
 - Prefer declarative solutions over code when both meet the requirement
-- Use the correct **naming prefixes** from config
+- Use the naming patterns from `stack.config.md`
 - Cross-reference `customer.domain.md` for every field name and business term
 - **NEVER include internal paths** (`pipeline/`, `.claude/`, skill names) in the implementation notes — they live in the customer-readable main repository. Use neutral references.
 - Never report an open review gate as a clean review
@@ -281,6 +281,6 @@ If the review agent errors (no output, crash): mark the review as errored in the
 - Story cannot be fetched (Jira) or story file missing (markdown): report the error, list alternatives where possible, and abort
 - Finalized notes already exist: ask whether to overwrite or abort
 - Story has no acceptance criteria: warn and ask whether to proceed with requirements only
-- Story component (B2C/B2B) cannot be determined: ask the user to clarify the naming prefix
+- The naming pattern for a new component cannot be derived from the stack config: ask the user
 - Review agent unavailable or errored: mark as errored, warn, continue — never skip silently
 - Review gate still open after two rounds: report the open findings, log `partial`, let the user decide
