@@ -1,0 +1,14 @@
+{
+  "skill": "test-loyalty",
+  "customer": "reemtsma",
+  "identifier": "JPS",
+  "timestamp": "2026-09-18T12:02:15",
+  "status": "success",
+  "summary": "[brand=JPS] [org=reemUAT] [switch=off] [pass=15] [fail=0] [manual=3] [switch-restored=n/a] All channels recorded without points and without LMT as the switch demands; redemption refused. Findings F1-F5 (unclean duplicate errors, profile completion writes 50 LP while off, identity re-activation, article id length, missing-array null pointer). Data kept.",
+  "artifacts": [
+    "testprotocols/2026-09-18-1151-loyalty-JPS-reemUAT/protocol.md",
+    "testprotocols/2026-09-18-1151-loyalty-JPS-reemUAT/requests/",
+    "testprotocols/2026-09-18-1151-loyalty-JPS-reemUAT/queries/"
+  ],
+  "output": "Consumer 5ed12ee3 registered via REST (Schufa positive), DOI by user click, 20 scenarios, test data kept on request."
+}

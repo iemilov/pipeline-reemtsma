@@ -162,3 +162,61 @@ Present: the result summary, failed scenarios with expected versus actual, known
 - Batch job does not finish within 5 minutes: mark `inactivity` as `manual` with the job ID.
 - Metadata deploy for the switch fails: skip the switch-off run, say so, and do not attempt a restore that was never needed.
 - Cleanup fails for a record: list the remaining IDs in the protocol and the manifest; never leave the switch flipped because cleanup failed.
+
+## Appendix: reference request bodies (verified on reemUAT, 2026-09-18)
+
+Use these shapes verbatim, replacing the placeholders. Values marked *per brand* are resolved in Step 0: `<identifier>` from `MapBrandURL__mdt` (`DeveloperName` whose `Brand__c` matches the brand), `<mainBrand>` from `BrandVariant__c.BrandVariantID__c` of a variant of the brand, `<regCampaign>` from an active campaign of type `Adressgenerierung` whose parent's `Client_Brand__c` is the brand, `<surveyCampaign>` from an active M11/M24 campaign of the brand, `<benefitId>` from the cheapest active loyalty prize.
+
+**Registration** — `POST /services/apexrest/registerConsumer` (a real identity is needed for the Schufa check on orgs without bypass; the sample person below passed on UAT)
+
+```json
+{"identifier":"<identifier>","campaign":"<regCampaign>","mainBrand":"<mainBrand>",
+ "gender":1,"first_name":"Dieter","last_name":"Frankenheimer",
+ "street":"SCHWACHHAUSER HEERSTR.","house_number":"2","address_additional":"More info...",
+ "zip":"28203","city":"BREMEN","birthday":"2000-12-27",
+ "email":"<email>","mobile":"+49555555","declaration_ip":"192.168.0.1",
+ "consent_all":true,"env":"test"}
+```
+
+Response codes: 1 created, 5 reactivated an existing account matched by **identity** (name, birthday, address, not e-mail) — check for such an account before registering (`SELECT Id FROM Account WHERE LastName = … AND PersonBirthdate = …`), 9 Schufa negative, 10 validation. Registration of an invitee adds `"invitedBy":"<TAFReferralCode of the inviter>"`.
+
+**Engagement service** — `POST /services/apexrest/engagementService`, always `{"ConsumerId":"<consumerId>","Brand":"<brand>","Category":…,"Data":{…}}`
+
+| Channel | Category | Data |
+|---|---|---|
+| login (counts) | `PW_Login` | `{"LoginEventTech__pc":"PWR_<yyyymmddhhmmss>_<brand>"}` |
+| login (newsletter, no points) | `NL_Login` | `{"LoginEventTech__pc":"NL_<yyyymmddhhmmss>_<brand>"}` |
+| like | `ContentLike` | `{"ArticleID__c":"<≤8 chars>","ArticleText__c":"https://<brand-site>/magazine/…","ContentLike":true}` |
+| text | `Text` | `{"ArticleID__c":"<≤8 chars>","ArticleText__c":"https://…"}` — the combination key is 20 characters, longer ids fail with STRING_TOO_LONG |
+| event | `Event` | `{"EventId__c":"<id>","EventUrl__c":"https://…"}` |
+| profile | `Profile_completion` | `{"MobileNumber":"+49555555","DurationOfConsumption":2,"FrequencyOfConsumption":1,"SideBrandId":"<BrandVariantID of another variant>","HasInterestInCombustiveAlternatives":true,"InterestInCombustiveAlternatives":[{"question":"E-Zigaretten","brand":["blu"]}]}` — the array is mandatory, its absence raises a null pointer |
+
+Repeats: login once per day, like/text/event once per item (repeat returns HTTP 400 `DUPLICATE_VALUE`), profile fields once each; a field already filled at registration (mobile) earns nothing.
+
+**Campaign participation** — `POST /services/apexrest/processResponse`
+
+```json
+{"consumerId":"<consumerId>","campaignId":"<surveyCampaign AVL code>","statusId":"10"}
+```
+
+`statusId` 10 = Participation for M11/M24 (see `ConsumerInteractionMapping__mdt.StatusId__c`). Repeat returns code 110.
+
+**Newsletter click** — DML, no endpoint: `sf data create record -s EngagementTracking__c -v "Contact__c=<contactId> Brand__c=<brand> Category__c=Newsletter Engagement_Type__c=Log-in"`.
+
+**Service contact** — DML: create the Case **without** contact (`CaseBrand__c=<Brand__c Id> Subject=… Origin=Web`), then update it with `ContactId=<contactId>`; the flow reacts to the contact change, not to creation.
+
+**Tell-a-friend** — needs an active M4 (Digital TAF Retrial) campaign member for the inviter and an M5 (Digital TAF Regs) campaign for the invitee; with any other registration campaign no referral is counted. Invitee by DML when Schufa blocks a synthetic person: insert the person account with `InvitedBy__pc=<inviter PersonContactId>`, replicate the opt-in fields, then `CampaignMemberService.handleRegistrationByInvitation(<campaignMemberId>)`.
+
+**Anniversary preparation** — `sf data update record -s Contact -i <contactId> -v "Login<Brand>TimestampEarliest__c=<today minus one year>T09:00:00.000Z"`; the birthday is the registration birthday. The scheduled flow runs at 02:00 UTC; verify the next day.
+
+**Inactivity** — anonymous Apex `Database.executeBatch(new LM_ReduceLoyaltyPointsBatch(), 50);` then poll `AsyncApexJob WHERE ApexClass.Name = 'LM_ReduceLoyaltyPointsBatch'`. Prepare by setting `LatestInteraction__pc` to 13 months ago on a consumer **with** a Loyalty Member Tier.
+
+**Redemption** — `POST /services/apexrest/redeemPoints`
+
+```json
+[{"consumerId":"<consumerId>","brand":"<brand>","benefitId":"<benefitId>","quantity":1}]
+```
+
+Codes: 105 not enough points, 106 no Loyalty Member Tier (switch off or never earned), 107 stock. Double submission: send the same body twice concurrently and count the cases.
+
+**Reads** — `GET /services/apexrest/LoyaltyPoints?id=<consumerId>&brand=<brand>`, `GET /services/apexrest/loyaltyPrizes`.
