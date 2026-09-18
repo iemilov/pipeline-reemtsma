@@ -103,7 +103,10 @@ Run in this order; each has a key for `--only`. Every REST body is saved before 
 | `profile` | Profile fields | Category `Profile_completion`, Data with MobileNumber, DurationOfConsumption, FrequencyOfConsumption, SideBrandId, HasInterestInCombustiveAlternatives | 10 per field (5 rules) + 100 % profile bonus as coded (50); note the rule says 0 — report the discrepancy | 0 |
 | `newsletter` | Newsletter click | insert `EngagementTracking__c(Contact__c, Brand__c, Category__c='Newsletter', Engagement_Type__c='Log-in')` via `sf data create record` | rule `Newsletter` written into the record and LMT | ET stays without LoyaltyPoints |
 | `campaign` | Campaign participation | `POST /processResponse` with the survey campaign's AVL code and `statusId` of "Participation"; repeat once | mapping points; repeat: 0 (once per campaign) | 0 |
-| `taf` | Tell-a-friend | register a second consumer with `invitedBy = <TAFReferralCode of the test consumer>` and confirm its DOI | rule `TellAFriend` on the inviter | 0 |
+| `taf` | Tell-a-friend | 1) inviter gets a CampaignMember on the brand's active **M4** retrial campaign (status Registration); 2) invitee registered with `invitedBy = <TAFReferralCode>` (or by DML with `InvitedBy__pc` when Schufa blocks it) and a CampaignMember on the **M5** regs campaign that shares the M4 campaign's **parent**, status "Registration by invitation"; 3) `CampaignMemberService.handleRegistrationByInvitation(<m5 member id>)` | inviter: referral counted, coupon issued when the campaign's reward threshold is reached, ET `TellAFriend` with LP | ET Tell-a-friend with EP only, coupon still issued |
+| `consent` | Register & give consent via profile | reset `Consent_<Brand>_Email__pc = false` (note: any change stamps `<Brand>EmailLastChangeTimestamp__pc`, so the grant is only reachable for consumers who never held the consent — use a consumer registered with `consent_all:false` for a positive test), then `Profile_completion` with `Consent<Brand>Email: true` | rule `RegisterGiveConsent` once | consent set, 0 |
+| `purchase` | Purchase intention | `Purchase_Intention` category | handler exists but is not routed: 200, nothing written — report as "not connected" | same |
+| `contactform` | Contact form | `Contact_Form` category | no writer exists for rule `ContactForm`: 200, nothing written — report as finding | same |
 | `service` | Service contact | insert a Case with ContactId, `CaseBrand__c` = brand, Type "Sonstiges" | 0 loyalty, rule `ServiceRequest` engagement points, ET created | ET created without LoyaltyPoints |
 | `tierup` | Tier change | if the total is below the tier-2 threshold, grant enough via campaign or newsletter inserts to cross it | `NewTierLevel__c = '2'`, `PreviousTier__c = '1'`, tier bonus added, `StatusChangeDatetime__c` set | no change |
 | `birthday` | Birthday / anniversary | set `Birthdate` to today (already), set `Login<Brand>TimestampEarliest__pc` to today minus one year and `Login<Brand>__pc = true`; then either wait for the 02:00 UTC scheduled flow or mark **manual**: the flow cannot be started on demand | rule `BirthdayMembership` (both) or `Birthday` | 0 |
@@ -208,7 +211,20 @@ Repeats: login once per day, like/text/event once per item (repeat returns HTTP 
 
 **Service contact** — DML: create the Case **without** contact (`CaseBrand__c=<Brand__c Id> Subject=… Origin=Web`), then update it with `ContactId=<contactId>`; the flow reacts to the contact change, not to creation.
 
-**Tell-a-friend** — needs an active M4 (Digital TAF Retrial) campaign member for the inviter and an M5 (Digital TAF Regs) campaign for the invitee; with any other registration campaign no referral is counted. Invitee by DML when Schufa blocks a synthetic person: insert the person account with `InvitedBy__pc=<inviter PersonContactId>`, replicate the opt-in fields, then `CampaignMemberService.handleRegistrationByInvitation(<campaignMemberId>)`.
+**Tell-a-friend** — verified sequence (anonymous Apex):
+
+```apex
+insert new CampaignMember(CampaignId = '<M4 retrial campaign>', ContactId = <inviterContact>, Status = 'Registration');
+CampaignMember cm = new CampaignMember(CampaignId = '<M5 regs campaign, same ParentId as the M4>', ContactId = <inviteeContact>, Status = 'Registration by invitation');
+insert cm;   // invitee account must carry InvitedBy__pc = inviterContact
+CampaignMemberService.handleRegistrationByInvitation(cm.Id);
+```
+
+Find the pair with `SELECT Id, Mechanic__c, ParentId FROM Campaign WHERE Mechanic__c IN ('M4','M5') AND Parent.Client_Brand__c = '<brand>' AND IsActive = true`; M4 and M5 must share `ParentId`. An M5 under a different parent, or a registration campaign of another mechanic, counts nothing.
+
+**Consent via profile** — `{"Category":"Profile_completion","Data":{"Consent<Brand>Email":true}}`; key names per `ProfileDataMapping__mdt` (`ConsentJPSEmail`, `ConsentGauloisesEmail`, …).
+
+**Not connected** — `Purchase_Intention` and any contact-form category return 200 and write nothing.
 
 **Anniversary preparation** — `sf data update record -s Contact -i <contactId> -v "Login<Brand>TimestampEarliest__c=<today minus one year>T09:00:00.000Z"`; the birthday is the registration birthday. The scheduled flow runs at 02:00 UTC; verify the next day.
 
