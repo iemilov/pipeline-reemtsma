@@ -1,7 +1,7 @@
 ---
 name: test-loyalty
 description: End-to-end functional test of the loyalty programme for one brand in a sandbox — creates a dedicated test consumer, simulates every points channel the website and the CRM use (registration, double opt-in, login, content, events, profile, newsletter, campaign participation, tell-a-friend, service contact, birthday and anniversary, inactivity reduction, redemption), asserts points, tiers and records after each step, optionally repeats the run with the brand's programme switched off, and writes a test protocol with every scenario and result
-argument-hint: <brand> [org-alias] [--switch-off-run] [--skip-cleanup] [--only <channel,...>] [--format md|html]
+argument-hint: [brand] [org-alias] [--email <address>] [--switch on|off|both] [--cleanup] [--only <channel,...>] [--format md|html]
 ---
 
 > **On start, before any other output, print this line verbatim:**
@@ -19,16 +19,21 @@ The result is a protocol with one row per scenario: what was sent, what was expe
 
 Read `pipeline/customer.config.md` (Platform, Short Name, Documentation Language), `pipeline/stack.config.md` (org aliases and purposes, API version, source path), `pipeline/customer.domain.md` (brand names, status codes), `pipeline/customers/<customer>/testdata.config.md` (consumer record template, brand and campaign references if present).
 
-Inputs from `$ARGUMENTS`:
+## Start dialog
 
-| Input | Resolution |
-|---|---|
-| **Brand** | first token; must be a brand with `LoyaltyTier__mdt` records (today JPS, Gauloises) |
-| **Org alias** | second token if present, else the first alias whose purpose contains "User Acceptance", else "Development" |
-| `--switch-off-run` | after the active run, set the brand's `LoyaltyProgram__mdt.IsActive__c` to false via a temporary metadata deploy, repeat the channels, then restore the original value. If the org already has the switch off, the order is reversed (off first, then on) |
-| `--skip-cleanup` | keep the test consumer and records |
-| `--only` | comma list of channel keys (see Step 3) to run a subset |
-| `--format` | protocol format, default `md`; `html` renders the same content as a self-contained page in the style of `documentation/` |
+Before anything else, ask with `AskUserQuestion` for every value not given as an argument:
+
+1. **Brand** — the brands with `LoyaltyTier__mdt` records, each option showing the current switch state on the org.
+2. **Switch** — `on`, `off`, or `both`. The skill compares the wish with the org: if they differ, it flips `LoyaltyProgram.<brand>.IsActive__c` via a temporary metadata deploy and **restores it at the end of the run in every exit path**. `both` runs two consumers, one per state.
+3. **E-mail** — free text; the registration and the double opt-in mail go there. With `both`, the second consumer gets the `+off` / `+on` plus-address variant.
+
+Inputs from `$ARGUMENTS` override the dialog: brand (first token), org alias (second token, default the first "User Acceptance" alias), `--email`, `--switch`, `--only <channels>`, `--format md|html`.
+
+**Test data is kept by default** so the user can inspect the consumer in the org. `--cleanup` deletes it by ID at the end; the run manifest `run.json` lists every created record either way.
+
+**Existing consumer with that e-mail:** the skill looks the address up on the org before registering. If a person account exists, it asks whether to delete it (with its loyalty, engagement, case and campaign records) so the registration path is exercised cleanly, or to reuse it and skip registration and double opt-in.
+
+**Double opt-in is done by the user:** after the registration call the skill stops and asks the user to click the confirmation link in the mail, then verifies the opt-in fields and continues. Only if the mail cannot be received is the controller logic replicated in anonymous Apex and the scenario marked `replicated`.
 
 All expected values are read at runtime from the org's configuration, never hard-coded: `EngagementTrackingRule__mdt` (points per channel), `LoyaltyTier__mdt` (thresholds, tier bonus, inactivity reduction), `ConsumerInteractionMapping__mdt` (campaign points), `LoyaltyProgram__mdt` (switch state).
 
@@ -109,7 +114,7 @@ Run in this order; each has a key for `--only`. Every REST body is saved before 
 
 Every step also checks that nothing was written for the **other** brand of the consumer.
 
-### Step 4: Switch-off run (`--switch-off-run`)
+### Step 4: Switch handling and second run (`--switch both`)
 
 1. Retrieve `LoyaltyProgram.<brand>` custom metadata into a scratch folder, flip `IsActive__c`, set `DeactivatedSince__c` to today and `DeactivationReason__c` to "test-loyalty run <run-id>", deploy to the sandbox, verify by query.
 2. Create a **second** test consumer and repeat Step 1 and Step 3 with the "switch off" expectations.
@@ -119,7 +124,7 @@ If the org already has the switch off at Step 0, run the off scenarios first wit
 
 ### Step 5: Cleanup
 
-Unless `--skip-cleanup`: delete, in order, Engagement Tracking, Case Shipping Products and Cases, Interaction Logs, Campaign Members, Coupons, Loyalty Member Tiers, then the test accounts (both consumers), all by the IDs in `run.json`; restore the prize stock by +1 per redeemed unit. Verify by re-querying each ID. The manifest stays in the run folder with a `cleaned` flag.
+Only with `--cleanup`: delete, in order, Engagement Tracking, Case Shipping Products and Cases, Interaction Logs, Campaign Members, Coupons, Loyalty Member Tiers, then the test accounts (both consumers), all by the IDs in `run.json`; restore the prize stock by +1 per redeemed unit. Verify by re-querying each ID. The manifest stays in the run folder with a `cleaned` flag.
 
 ### Step 6: Protocol
 
@@ -146,7 +151,7 @@ Present: the result summary, failed scenarios with expected versus actual, known
 - **Expected values from configuration**, read at run time, never typed into the skill.
 - **Every assertion has evidence on disk** — request, response, query result. A scenario without evidence is `manual`, never `pass`.
 - **Restore the switch** in every exit path of Step 4.
-- **Clean up by ID**, never by name pattern, and never touch records not in `run.json`.
+- **Clean up only on request and by ID**, never by name pattern, and never touch records not in `run.json`. Kept test consumers are listed in the protocol with their IDs.
 - Do not hide code-versus-configuration discrepancies; they are findings in the protocol.
 - No AI attribution in the protocol.
 
