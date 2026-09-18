@@ -29,6 +29,8 @@ Before anything else, ask with `AskUserQuestion` for every value not given as an
 
 Inputs from `$ARGUMENTS` override the dialog: brand (first token), org alias (second token, default the first "User Acceptance" alias), `--email`, `--switch`, `--only <channels>`, `--format md|html`.
 
+**Two users per run.** The org alias is the **admin** session used for verification queries, DML setup steps and metadata deploys. Every REST call that simulates the website (`registerConsumer`, `engagementService`, `processResponse`, `redeemPoints`, `LoyaltyPoints`, `loyaltyPrizes`) is sent with the **integration user alias** of the same environment — the `stack.config.md` sandbox row whose purpose contains "Integration user for <environment>" — because that is the identity the website uses, and its permissions, sharing context and record attribution differ from an admin. `<integration-alias>` below refers to it. If no such alias exists for the environment, send the calls with the admin alias and mark every REST scenario `pass (admin user)` in the protocol; both users are named in the protocol's *Run* table.
+
 **Test data is kept at the end by default** so the user can inspect the consumer in the org; the next run removes it in the pre-run cleanup. `--cleanup` deletes it already at the end of the run; the run manifest `run.json` lists every created record either way.
 
 **Pre-run cleanup (always, no question asked):** before registering, the skill removes every previous instance of the test person from the org so the registration path starts from zero. The registration matches consumers by **identity** (name, birthday, address), not by e-mail, so the lookup must use both:
@@ -72,7 +74,7 @@ Use a unique e-mail `loyaltytest+<run-id>@<test-domain from testdata.config.md, 
 
 1. **Registration** via REST:
    ```bash
-   sf api request rest "/services/apexrest/registerConsumer" -o <alias> -X POST --body @requests/01-register.json
+   sf api request rest "/services/apexrest/registerConsumer" -o <integration-alias> -X POST --body @requests/01-register.json
    ```
    Body per the register contract: identifier (from `MapBrandURL__mdt` for the brand), campaign (AVL code from Step 0), first_name, last_name, street, house_number, zip, city, birthday (today's day and month, year 1980 — makes the birthday channel testable), gender, email, mobile, consent_all true, declaration_ip.
    Assert: responseCode 1, consumerId returned, account exists with `WebsiteStatus__pc = 'E-Mail verification pending'`, no Loyalty Member Tier yet.
@@ -92,7 +94,7 @@ Record the consumer ID, account ID, contact ID and LMT ID in `run.json` (the cle
 After every channel, run the same three reads and store them:
 
 ```bash
-sf api request rest "/services/apexrest/LoyaltyPoints?id=<consumerId>&brand=<brand>" -o <alias>
+sf api request rest "/services/apexrest/LoyaltyPoints?id=<consumerId>&brand=<brand>" -o <integration-alias>
 sf data query -o <alias> -r csv -q "SELECT TotalBonusPoints__c, RedeemedBonusPoints__c, ReducedStatuspoints__c, BalanceBonusPoints__c, BalanceStatusPoints__c, CurrentTier__c, NewTierLevel__c, PreviousTier__c, PointsReason__c FROM LoyaltyMemberTier__c WHERE Contact__c = '<contactId>' AND Brand__c = '<brand>'"
 sf data query -o <alias> -r csv -q "SELECT Id, Category__c, Engagement_Type__c, LoyaltyPoints__c, EarnedEngagementPoints__c, CreatedDate FROM EngagementTracking__c WHERE Contact__c = '<contactId>' AND Brand__c = '<brand>' ORDER BY CreatedDate"
 ```
@@ -196,7 +198,7 @@ Use these shapes verbatim, replacing the placeholders. Values marked *per brand*
 
 Response codes: 1 created, 5 reactivated an existing account matched by **identity** (name, birthday, address, not e-mail) — check for such an account before registering (`SELECT Id FROM Account WHERE LastName = … AND PersonBirthdate = …`), 9 Schufa negative, 10 validation. Registration of an invitee adds `"invitedBy":"<TAFReferralCode of the inviter>"`.
 
-**Engagement service** — `POST /services/apexrest/engagementService`, always `{"ConsumerId":"<consumerId>","Brand":"<brand>","Category":…,"Data":{…}}`
+**Engagement service** — `POST /services/apexrest/engagementService` with `-o <integration-alias>`, always `{"ConsumerId":"<consumerId>","Brand":"<brand>","Category":…,"Data":{…}}`
 
 | Channel | Category | Data |
 |---|---|---|
