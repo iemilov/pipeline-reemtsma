@@ -25,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Contains CLAUDE.md, custom skills, and internal AI workflow documentation
 - This separation ensures sensitive workflows, prompts, and automation details remain confidential
 
-**Customer config:** `pipeline/customers/<name>/` (own repository `pipeline-<name>-config`, ignored by the pipeline)
+**Customer config:** `pipeline/customers/<name>/` (own repository `pipeline-<name>-config`, included in the pipeline as a git submodule)
 
 - Holds the customer-specific configuration, domain knowledge, test data config and skill logs
 
@@ -37,7 +37,7 @@ The tech stack and project details vary per customer. See `pipeline/stack.config
 
 ### Customer Switching
 
-Customer config repos (`pipeline-<name>-config` on GitHub) are cloned into `pipeline/customers/<name>/` by `setup.sh` (gitignored by the pipeline repo, versioned in their own repository). The pipeline itself is a nested repository ignored by the main project, not a submodule. All three config symlinks in `pipeline/` point to the active customer folder:
+Customer config repos (`pipeline-<name>-config` on GitHub) are **git submodules** of the pipeline at `pipeline/customers/<name>/`; `setup.sh` initialises them. A fresh clone needs `git clone --recurse-submodules` or `git submodule update --init`. The pipeline itself is a nested repository ignored by the main project, not a submodule. All three config symlinks in `pipeline/` point to the active customer folder:
 - `customer.config.md` → `customers/<name>/config.md`
 - `customer.domain.md` → `customers/<name>/domain-knowledge.md`
 - `stack.config.md` → `customers/<name>/stack.config.md`

@@ -9,7 +9,7 @@ argument-hint: [commit-message] [--no-push] [--repo config|pipeline|main]
 
 ## Repository model
 
-A checkout consists of three independent git repositories. None is a submodule of another; the outer ones ignore the inner ones via `.gitignore`.
+A checkout consists of three git repositories. The customer config is a submodule of the pipeline; the main project ignores `pipeline/` via `.gitignore`.
 
 | # | Repository | Location | Remote | Visibility | Commit order |
 |---|---|---|---|---|---|
@@ -17,7 +17,7 @@ A checkout consists of three independent git repositories. None is a submodule o
 | 2 | **Pipeline** | `pipeline/` | GitHub `pipeline-<customer>` or shared pipeline repo | internal | second |
 | 3 | **Main project** | repository root | customer's VCS (from `customer.config.md > Repository & CI/CD`) | **customer can read** | last |
 
-There is no pointer commit between them: committing the pipeline does not change the main repo, and committing the config does not change the pipeline.
+The customer config is a **git submodule** of the pipeline: after a config commit is pushed, the pipeline gets a pointer commit (`git -C pipeline add customers/<customer>` then commit `Update customer config`). The main repo ignores `pipeline/` entirely, so committing the pipeline never changes the main repo.
 
 ## Configuration
 
@@ -83,7 +83,7 @@ git -C pipeline/<C> commit -m "<message>"
 git -C pipeline/<C> pull --rebase origin main && git -C pipeline/<C> push origin main
 ```
 
-Direct push to `main`; no CI skip pattern.
+Direct push to `main`; no CI skip pattern. Then stage the pointer in the pipeline: `git -C pipeline add customers/<C>` — it is committed with the pipeline commit below, or as its own commit `Update customer config pointer` when nothing else changed in the pipeline.
 
 **Pipeline repository**
 
@@ -106,7 +106,7 @@ If the pipeline push fails, still continue with the main repository — the two 
 ## Important Rules
 
 - Order: customer config, pipeline, main — always.
-- No pointer commits: the main repository ignores `pipeline/`, the pipeline ignores `customers/*/`. Never `git add pipeline` in the main repository.
+- The only pointer commit is pipeline → customer config submodule. The main repository ignores `pipeline/`; never `git add pipeline` in the main repository.
 - CI skip pattern on every main-repository commit that contains no deployable source; never on commits that do. When a commit would mix both, split it; when unsure whether a file is deployable, ask.
 - No AI attribution and no `Co-Authored-By` in any repository.
 - Never create empty commits; never commit files the user did not select.

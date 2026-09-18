@@ -49,20 +49,23 @@ fi
 
 CUSTOMER_DIR="$SCRIPT_DIR/customers/$CUSTOMER"
 
-# Clone customer config repo if directory doesn't exist or is empty, otherwise pull latest
-if [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
+# Customer config repos are git submodules of the pipeline (customers/<name> -> pipeline-<name>-config).
+# Initialise or update the submodule; fall back to a plain clone when the folder is not registered as one.
+if git -C "$SCRIPT_DIR" config --file .gitmodules --get "submodule.customers/$CUSTOMER.url" >/dev/null 2>&1; then
+  echo "Initialising customer config submodule: customers/$CUSTOMER"
+  git -C "$SCRIPT_DIR" submodule update --init -- "customers/$CUSTOMER" || {
+    echo "Error: could not initialise the submodule customers/$CUSTOMER"
+    echo "You may not have access to the customer config repository."
+    exit 1
+  }
+  git -C "$CUSTOMER_DIR" checkout -q main 2>/dev/null || true
+  git -C "$CUSTOMER_DIR" pull --ff-only origin main 2>/dev/null || true
+elif [ -z "$(ls -A "$CUSTOMER_DIR" 2>/dev/null)" ]; then
   REPO_URL="${CUSTOMER_CONFIG_REPO_BASE:-https://github.com/iemilov}/pipeline-${CUSTOMER}-config.git"
   echo "Cloning customer config: $REPO_URL"
   git clone "$REPO_URL" "$CUSTOMER_DIR" || {
     echo "Error: Failed to clone $REPO_URL"
-    echo "You may not have access to this customer repository."
     exit 1
-  }
-elif [ -d "$CUSTOMER_DIR/.git" ]; then
-  echo "Updating customer config: $CUSTOMER"
-  git -C "$CUSTOMER_DIR" pull --ff-only || {
-    echo "Warning: Could not fast-forward customer config. You may have local changes."
-    echo "  Resolve manually: cd customers/$CUSTOMER && git pull"
   }
 fi
 

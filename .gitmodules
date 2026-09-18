@@ -1,0 +1,3 @@
+[submodule "customers/reemtsma"]
+	path = customers/reemtsma
+	url = https://github.com/iemilov/pipeline-reemtsma-config.git
