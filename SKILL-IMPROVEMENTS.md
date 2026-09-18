@@ -12,27 +12,9 @@ Written 2026-09-17 after the full rewrite of the pipeline for the Reemtsma insta
 
 Every skill now follows the same conventions: Atlassian MCP tools with the Cloud ID from config, Azure DevOps through `az` with an explicit `--org`, implementation notes at the repo-root `implementation-design/<key>/`, reviews as one read-only agent with mandatory triage and a three-round severity gate, logs hand-written per the CLAUDE.md JSON schema into `.claude/skills/<skill>/logs/`, English everywhere, no references to other customers.
 
-## 2. Skeletons still in place (decide: implement or delete)
+## 2. Removed on 2026-09-18
 
-The rewritten skills no longer call them, so they are harmless, but they are dead weight until implemented. `CLAUDE.md > Helper Scripts and Adapters` documents the fallback each skill applies.
-
-| Path | Purpose if implemented | Recommendation |
-|---|---|---|
-| `bin/config` | single config reader | **implemented** (reads customer/stack config tables, `--customer-dir`, placeholders count as not set); optional — skills read the files directly |
-| `bin/log-skill` | schema-valid log writer | **implemented** (writes to `customers/<customer>/logs/`); skills still hand-write logs into `.claude/skills/<skill>/logs/` — decide on one location and switch (see section 6.1) |
-| `bin/story-gate` | mechanical notes check | **implemented**; not called by any skill yet — wire it into design-us Step 5.5 and implement-us Step 1 if wanted |
-| `bin/quality-gate` | review exit decision | skeleton; the skills use the inline severity gate with max rounds |
-| `bin/score-rubric`, `rubrics/*.json`, `schemas/review-findings.schema.json` | numeric review scores | script present but expects rubric JSON with `schemaVersion 1.0.0` and a different category shape than the skeleton rubrics; delete unless a score KPI is wanted |
-| `bin/lib/common.sh` | shared prelude (`die`, `usage`, `require_value`, `config_value`, `harness_config`) | **implemented** |
-| `bin/review-runtime`, `bin/runtime-autoswitch`, `bin/runtimes`, `bin/review-progress`, `agent-runtime-access.md` | cross-runtime reviews with Codex | delete; Codex is not installed and the config says `claude-code` only |
-| `bin/knowledge-impact`, `bin/knowledge-debt`, `bin/chat-gaps`, `bin/concept-path` | knowledge-base tooling | delete; the grep fallback in build-knowledge and design-us is enough |
-| `bin/testdata-planner`, `bin/testdata-runner`, `bin/testdata-cleaner`, `bin/validate-testdata-impact`, `schemas/testdata-impact.schema.json` | catalog-driven test data | delete; the manifest approach in create/cleanup-testdata replaces them |
-| `bin/migrate-docs-layout` | one-off docs migration | delete |
-| `atlassian-access.md`, `git-access.md` | multi-provider adapters | keep as short reference docs or delete; skills inline the cloud/Azure case |
-| `briefs/*.md` | reviewer prompts | fill with the inline criteria from review-pr and code-review, or delete |
-| `coding-conventions.md`, `platforms/salesforce/best-practices.md` | rule sources for reviews | **fill these** — reviews currently rely on `stack.config.md` only |
-| `customers/_template/templates/*/default.md`, `_template/config.md`, `_template/init-sandbox.config.md` | scaffolding for new customers | fill when the next customer is onboarded |
-| `platforms/salesforce/scripts/*.sh` | format check, flow activation | delete; inlined |
+All skeleton helper scripts (`bin/`), adapters (`atlassian-access.md`, `agent-runtime-access.md`, `git-access.md`), `briefs/`, `schemas/`, `rubrics/`, `platforms/`, `coding-conventions.md`, the `.claude/plans` folder, the `architecture-overview` templates and the logs of other customers were removed from the pipeline. Every skill works from `customer.config.md`, `stack.config.md`, `customer.domain.md` and `testdata.config.md` alone. If a shared convention layer is wanted later, add a short `coding-conventions.md` with real rules and re-reference it from the review skills.
 
 ## 3. Missing inputs that block specific skills
 

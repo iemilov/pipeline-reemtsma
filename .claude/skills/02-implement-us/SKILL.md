@@ -13,7 +13,6 @@ Before executing, read:
 - `pipeline/customer.config.md` — `Platform`, `Short Name`, **UI Language** (every generated user-facing string, label, button text, page title and error message uses this language), **Validation Rule Messages** language, CI skip pattern, `## Folder Paths` (**Implementation Design**, **Deployment Packages**), `## Repository & CI/CD` (branch patterns, Azure DevOps URL, co-author and AI attribution policy), `## Story Backend`, `## Atlassian` (Cloud ID)
 - `pipeline/stack.config.md` — naming conventions, API version, `## Org Configuration > Sandboxes` (DEV target = first alias whose purpose contains "Development"), `## Static Analysis` (PMD rules file, Prettier and lint commands), test data factory, source path, Testing Standards
 - `pipeline/customer.domain.md` — business logic and field-name pitfalls
-- Optional, only if present and not empty skeletons: `pipeline/coding-conventions.md`, `pipeline/platforms/<Platform>/best-practices.md`
 
 **Notes location — `<notes-dir>`:** the **Implementation Design** path from `customer.config.md` with `<story-key>` replaced by `$ARGUMENTS`, relative to the main repository root (e.g. `implementation-design/AP2-1583/`). Never under `pipeline/`.
 
@@ -113,7 +112,6 @@ Before moving on, self-check the diff against this list and fix what you find; d
 Review the whole uncommitted change set before static analysis, tests and commit.
 
 1. **Collect the change set:** `git status --porcelain`, `git diff`, `git ls-files --others --exclude-standard`.
-2. **Dispatch one read-only review** via the `Agent` tool (fresh general-purpose agent) with: the story key, title and acceptance criteria; the path of the FINAL notes if present; the full diff and new-file list; the review criteria from `stack.config.md` (naming, code quality, testing standards), the rules in `coding-conventions.md` and `platforms/<Platform>/best-practices.md` if those files carry any, and the domain pitfalls. Instruct it: *report only — do not modify files; findings with severity (Blocker / Major / Minor / Nit), file:line, rule, concrete fix; prioritise security, correctness and acceptance-criteria coverage over style; verify each claim against the files, not only the diff; end with a per-dimension "assessed / not assessed" line.*
 3. **Triage every finding:** fix every Blocker and Major in the working tree; apply Minor/Nit when cheap, otherwise note them. Reject a finding only with an evidence anchor (`file:line`, a config section, the story) — a rejection without evidence stays open.
 4. **Gate:** if Blockers or Majors remain open after fixes, re-dispatch the review on the updated change set, up to **three rounds** in total. If still open after round three, do not proceed silently: list the open findings, and ask the user whether to iterate further or continue with the gap documented (`review-gate: fail (accepted by user: <items>)`).
 5. Save each round's raw output as `<notes-dir>/code-review-round-<n>.md` and record rounds, counts by severity, fixes and the gate outcome for the summary and the log.

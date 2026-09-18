@@ -27,7 +27,6 @@ Evidence sources, all read-only:
 | Code and PR review reports | `<Code Review>/*-review.md` | findings with severity, `file:line`, rule cited; "checked and rejected" tables |
 | Design review outputs | `implementation-design/*/design-review-*.md`, `implementation-design/*/code-review-round-*.md` | findings per round on notes and implementations |
 | Skills | `pipeline/.claude/skills/*/SKILL.md` | the instructions that produced the above |
-| Conventions and config | `pipeline/stack.config.md`, `pipeline/coding-conventions.md`, `pipeline/platforms/<Platform>/best-practices.md`, `pipeline/customer.domain.md` | the rules the findings cite |
 
 Output: `pipeline/improvements/<YYYY-MM-DD>-improve-skills.md` (create the folder if missing). Never write into a `logs/` folder.
 
@@ -67,12 +66,10 @@ Per cluster: one-line description, occurrence count, the specific evidence (log 
 | Symptom | Likely target |
 |---|---|
 | steps ambiguous, out of order, or a missing check | that skill's `SKILL.md` |
-| correct code in the wrong house style | `pipeline/coding-conventions.md` (or `stack.config.md > Naming Conventions` while the conventions file is a skeleton) |
-| wrong on correctness, security, limits or deployability | `pipeline/platforms/<Platform>/best-practices.md` |
 | a business rule or field pitfall missed | `pipeline/customer.domain.md` or a topic document under `customers/<customer>/docs/` |
 | a tool, command or alias wrong or missing | `pipeline/stack.config.md` |
 | a gate passed on work that should not have | `customer.config.md > Quality Gate` — as a question to the user, never as a silent proposal |
-| a helper is a skeleton and every run falls back | `pipeline/bin/<helper>` — propose implementing it, with the interface the skills expect |
+| a step is described but no tooling exists for it | the skill text — propose implementing it, with the interface the skills expect |
 
 Customer conventions win over platform practice on style and naming; platform practice wins on correctness, security, limits and deployability. Never propose a customer convention that waives a correctness or security rule; report it as a documentation bug instead.
 

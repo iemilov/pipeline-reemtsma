@@ -12,8 +12,6 @@ argument-hint: <pr-id-or-url> [--post-comment] [--base <branch>]
 Reviews one pull request against:
 
 1. **Stack conventions** — `pipeline/stack.config.md` (naming conventions, code quality standards, testing standards)
-2. **Customer coding conventions** — `pipeline/coding-conventions.md`, if it contains rules
-3. **Platform best practices** — `pipeline/platforms/<Platform>/best-practices.md`, if it contains rules
 4. **Domain knowledge** — `pipeline/customer.domain.md` (field-name pitfalls, business rules)
 
 Output: a Markdown findings report, severity-classified, every finding with `file:line`, description and fix, plus a list of candidate findings that were checked and rejected. Optionally the summary is posted as a PR comment after confirmation.
@@ -25,7 +23,6 @@ Read before running:
 - `pipeline/customer.config.md` — `Platform`, `Short Name`, `Documentation Language`, `UI Language`, `## Folder Paths > Code Review`, `## Repository & CI/CD` (`Azure DevOps URL` / `GitHub Repo` / `Bitbucket URL`, branch patterns, `Project Key`), `## Atlassian` (Cloud ID, for reading the story)
 - `pipeline/stack.config.md` — naming conventions, code quality standards, testing standards, test data factory, source path
 - `pipeline/customer.domain.md` — business rules and field pitfalls
-- `pipeline/coding-conventions.md` and `pipeline/platforms/<Platform>/best-practices.md` — read only if present and not empty skeletons; never cite section numbers that do not exist in these files
 
 ## Argument parsing
 

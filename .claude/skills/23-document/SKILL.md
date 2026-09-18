@@ -31,7 +31,6 @@ Read directly from the config tables (never guess values):
 | `pipeline/customer.config.md` | `Platform`, `Short Name`, `Full Name`, `Documentation Language`, `UI Language`, `## Atlassian` (Cloud ID, Confluence Space Key, Confluence Parent Page, Project Key), `## Folder Paths` (Architecture, Manuals, Implementation Design, Documentation if present — default `documentation/`), `## Concepts` path if present |
 | `pipeline/stack.config.md` | naming conventions, API version, source path, functional domains, org aliases, `## Knowledge Articles` section if present (object API name, details field, record type developer name, style template article numbers, hub articles) |
 | `pipeline/customer.domain.md` | glossary and business terminology — the source of truth for translating technical names into business language |
-| `pipeline/coding-conventions.md`, `pipeline/platforms/<Platform>/best-practices.md` | only if present and not skeletons |
 
 `<customer>` is the folder name from the symlink target of `pipeline/customer.config.md`. Configured paths may carry a `<story-key>` segment: cut the value at the first `<…>` before using it as a folder.
 

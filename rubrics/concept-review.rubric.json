@@ -1,6 +1,0 @@
-{ "name": "concept-review", "bands": { "green": 90, "yellow": 70 },
-  "categories": [
-    { "slug": "anforderungstreue", "label": "Requirement fidelity", "weight": 30, "blocker": 15, "major": 5 },
-    { "slug": "codebase-analyse", "label": "Codebase analysis", "weight": 25, "blocker": 12, "major": 5 },
-    { "slug": "story-split-qualitaet", "label": "Story split quality", "weight": 25, "blocker": 12, "major": 5 },
-    { "slug": "vollstaendigkeit", "label": "Completeness", "weight": 20, "blocker": 10, "major": 4 } ] }

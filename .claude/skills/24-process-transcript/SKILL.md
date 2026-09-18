@@ -56,7 +56,6 @@ Create the file with defaults when missing.
 Read, and keep for task execution:
 
 - `pipeline/customer.config.md`, `pipeline/stack.config.md`, `pipeline/customer.domain.md`
-- `pipeline/coding-conventions.md` and `pipeline/platforms/<Platform>/best-practices.md` — only if they contain rules
 - `pipeline/CLAUDE.md` for the global rules (no AI attribution, no pipeline references in customer-visible output)
 - the main repository's `README.md` if present
 - `pipeline/customers/<customer>/docs/INDEX.md` and the topic documents whose titles match a task's keywords

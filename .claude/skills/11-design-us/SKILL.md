@@ -15,7 +15,6 @@ Before executing, read the following customer-specific configuration files:
 - `pipeline/customer.domain.md` — Business logic, glossary, field name pitfalls, linked topic documentation files
 - `pipeline/customers/<customer>/testdata.config.md` — Test data templates and record structures (resolve the active customer from the symlink target of `pipeline/customer.config.md`)
 
-Optional, read only if present: `pipeline/coding-conventions.md`, `pipeline/platforms/<Platform>/best-practices.md`, `pipeline/customers/<customer>/docs/*.md` (topic documentation).
 
 **Notes location — `<notes-dir>`:** take the **Implementation Design** path from `customer.config.md > ## Folder Paths` and substitute `<story-key>` with `$ARGUMENTS`. The path is relative to the **main repository root** (e.g. `implementation-design/AP2-1583/`). If the key is empty, use `implementation-design/$ARGUMENTS/`. Never write notes under `pipeline/`.
 

@@ -16,7 +16,6 @@ argument-hint: "<topic-slug> [--from-transcript <path>]..."
 
 ## Configuration
 
-Read `pipeline/customer.domain.md` (business rules, glossary, field pitfalls), `pipeline/stack.config.md` (source path, naming conventions, org aliases, functional domains), `pipeline/customer.config.md` (`Platform`, `Short Name`, `Documentation Language`, `Story Language`, `Project Key`, `## Folder Paths > Concepts`, `Meetings Folder`, `Transcript Input`). Read `pipeline/coding-conventions.md` and `pipeline/platforms/<Platform>/best-practices.md` only if they contain rules.
 
 **Platform Adaptation:** Salesforce analysis may need SOQL and metadata reads with the `sf` CLI (read-only, `sf data query`, `sf project retrieve start` into a scratch folder). Other platforms use the equivalents from `stack.config.md`. This skill never deploys, never runs DML, never creates tickets.
 

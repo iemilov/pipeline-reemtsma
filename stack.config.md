@@ -1,1 +1,0 @@
-customers/reemtsma/stack.config.md

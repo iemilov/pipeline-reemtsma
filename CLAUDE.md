@@ -79,28 +79,6 @@ Customer config repos (`pipeline-<name>-config` on GitHub) are **git submodules*
 31. `/project-update [date] [--from-previous] [--jql "<JQL>"]` — Interactive status one-pager for a customer meeting: asks for the meeting date and each item (story key, title, current status, open questions for the meeting), optionally prefilled from the previous update and Jira, and writes a self-contained HTML page in the fixed layout to the meetings folder
 32. `/test-loyalty <brand> [org-alias] [--switch-off-run] [--skip-cleanup] [--only <channels>] [--format md|html]` — *(Salesforce only, sandbox only)* End-to-end functional test of the loyalty programme for one brand: creates a test consumer, simulates every points channel via the Apex REST endpoints, DML and anonymous Apex, asserts points, tiers and records against the org's configuration, optionally repeats with the brand's programme switched off and restores the switch, cleans up by ID, and writes a test protocol with every scenario, result and evidence
 
-## Helper Scripts and Adapters (fallback rule)
-
-Skills reference helper scripts under `pipeline/bin/` and adapter documents (`atlassian-access.md`, `agent-runtime-access.md`, `git-access.md`, `briefs/`, `schemas/`, `rubrics/`). In this installation these are **skeletons**: the scripts exit with code 3 and the documents contain only section headings. Until they are implemented, every skill applies this fallback instead of stopping:
-
-| Reference | Fallback |
-|---|---|
-| `pipeline/bin/config "<Key>"` | read the value from the table in `customer.config.md` / `stack.config.md` directly |
-| `pipeline/bin/log-skill ...` | write the JSON log by hand per *Additional Skill Remarks* into `.claude/skills/<skill>/logs/`, mapping `--check`, `--iterations`, `--exit-reason` into a `checks` / `loop` object |
-| `pipeline/bin/story-gate` | check the notes manually: DRAFT marker, `<...>` placeholders, non-empty open questions, empty test table; `decision=block` on any hit |
-| `pipeline/bin/quality-gate` | severity gate: open Blocker or Major → `continue`; max rounds from `customer.config.md > Quality Gate > Review Max Rounds` (default 3), then `stop`; no score threshold |
-| `pipeline/bin/review-runtime`, `runtime-autoswitch`, `runtimes`, `review-progress` | active runtime is `claude-code`; reviews run as a fresh read-only `Agent`; no cross-runtime dispatch |
-| `pipeline/bin/score-rubric`, `rubrics/*.json`, `schemas/review-findings.schema.json` | report finding counts by severity; no numeric score |
-| `pipeline/bin/knowledge-impact`, `knowledge-debt`, `chat-gaps`, `concept-path` | grep `customers/<customer>/docs/*.md` for the component names; no queue; concept path = `Concepts` folder from config |
-| `pipeline/bin/testdata-planner`, `testdata-runner`, `testdata-cleaner`, `validate-testdata-impact`, `testdata.catalog.json` | not available: test data skills work from `testdata.config.md` (Markdown presets) with the Composite Tree API and manual cleanup Apex; the testdata-impact gate is skipped |
-| `atlassian-access.md` §n | Atlassian MCP tools with the Cloud ID from config (`Deployment Type` is `cloud`) |
-| `git-access.md` §n | `Git Strategy` from config; feature → release → production branch patterns from config; PR required for release and production branches |
-| `agent-runtime-access.md` §1a / §2a | print no runtime warning; dispatch reviews as `Agent` |
-| `briefs/*.md` | compose the reviewer prompt from the criteria the skill lists inline |
-| `platforms/salesforce/scripts/*.sh` | Prettier / xmllint directly; flow activation checked via a Tooling API query, never activated automatically |
-
-A skill must state in its summary and log which fallbacks it used, and record a check as `unchecked` when a fallback could not produce evidence.
-
 ## Creating New Skills (CRITICAL)
 
 New skills MUST be **platform-agnostic** and **customer-agnostic** from the start. This pipeline serves multiple customers with different tech stacks (Salesforce, Node.js/Cloudflare, etc.). Follow these rules:

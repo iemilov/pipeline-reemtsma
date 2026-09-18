@@ -27,7 +27,6 @@ Read before running:
 - `pipeline/customer.config.md` — `Platform`, `Short Name`, `Documentation Language`, `UI Language` (flag user-facing strings not in this language), `## Folder Paths > Code Review`, `## Atlassian` (Cloud ID, Confluence Space Key, Confluence Parent Page), `## Quality Gate > Review Max Rounds` (informational here; this skill runs one round)
 - `pipeline/stack.config.md` — source path, `## Naming Conventions`, `## Code Quality Standards`, `## Testing Standards`, `## Static Analysis` (PMD rules file, Prettier and lint commands), `## Security Best Practices`, functional domains
 - `pipeline/customer.domain.md` — business rules and field-name pitfalls
-- `pipeline/coding-conventions.md` and `pipeline/platforms/<Platform>/best-practices.md` — read only if present and not empty skeletons; never cite section numbers that do not exist in them
 
 ## Argument parsing
 

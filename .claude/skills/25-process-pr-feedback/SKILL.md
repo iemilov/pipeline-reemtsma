@@ -20,7 +20,6 @@ Read before running:
 - `pipeline/customer.config.md` — `Platform`, `Short Name`, `Documentation Language`, `## Folder Paths > Code Review`, `## Repository & CI/CD` (`Azure DevOps URL` / `GitHub Repo` / `Bitbucket URL`, feature branch pattern, `Project Key`)
 - `pipeline/stack.config.md` — naming conventions, code quality and testing standards, source path (tells which fix patterns are idiomatic)
 - `pipeline/customer.domain.md` — business rules and field-name pitfalls (a remark may object to a domain-incorrect field)
-- `pipeline/coding-conventions.md`, `pipeline/platforms/<Platform>/best-practices.md` — only if present and not skeletons; never cite section numbers that do not exist
 
 ## Argument parsing
 
@@ -108,7 +107,6 @@ For every thread that is not PRAISE:
 
 **Proposed resolution:** <file:line, what to add, remove or rename; inline snippet when under ~15 lines>
 
-**Rule reference:** <only an existing rule: "stack.config.md > Naming Conventions — Service Class pattern", a customer.domain.md pitfall, or a rule that actually exists in coding-conventions.md / best-practices.md; omit otherwise>
 
 **Effort / risk:** <trivial | small | medium | large> · <isolated | cross-cutting>
 
