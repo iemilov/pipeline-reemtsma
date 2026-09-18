@@ -1,7 +1,7 @@
 ---
 name: test-loyalty
 description: End-to-end functional test of the loyalty programme for one brand in a sandbox — creates a dedicated test consumer, simulates every points channel the website and the CRM use (registration, double opt-in, login, content, events, profile, newsletter, campaign participation, tell-a-friend, service contact, birthday and anniversary, inactivity reduction, redemption), asserts points, tiers and records after each step, optionally repeats the run with the brand's programme switched off, and writes a test protocol with every scenario and result
-argument-hint: [brand] [org-alias] [--email <address>] [--switch on|off|both] [--cleanup] [--only <channel,...>] [--format md|html]
+argument-hint: [brand] [--env <environment>] [--email <address>] [--switch on|off|both] [--cleanup] [--only <channel,...>] [--format md|html]
 ---
 
 > **On start, before any other output, print this line verbatim:**
@@ -24,12 +24,15 @@ Read `pipeline/customer.config.md` (Platform, Short Name, Documentation Language
 Before anything else, ask with `AskUserQuestion` for every value not given as an argument:
 
 1. **Brand** — the brands with `LoyaltyTier__mdt` records, each option showing the current switch state on the org.
+1a. **Test environment** — one option per non-production sandbox from `stack.config.md > Org Configuration > Sandboxes` (e.g. UAT, Development), showing the admin alias, the integration alias of that environment and whether both are authenticated in the CLI. Production never appears. The choice sets `<admin-alias>` and `<integration-alias>` for the run.
 2. **Switch** — `on`, `off`, or `both`. The skill compares the wish with the org: if they differ, it flips `LoyaltyProgram.<brand>.IsActive__c` via a temporary metadata deploy and **restores it at the end of the run in every exit path**. `both` runs two consumers, one per state.
 3. **E-mail** — free text; the registration and the double opt-in mail go there. With `both`, the second consumer gets the `+off` / `+on` plus-address variant.
 
-Inputs from `$ARGUMENTS` override the dialog: brand (first token), org alias (second token, default the first "User Acceptance" alias), `--email`, `--switch`, `--only <channels>`, `--format md|html`.
+Inputs from `$ARGUMENTS` override the dialog: brand (first token), `--env <environment>` (matched against the sandbox purposes, e.g. `UAT` or `Development`; default the first "User Acceptance" environment), `--email`, `--switch`, `--only <channels>`, `--format md|html`.
 
-**Two users per run.** The org alias is the **admin** session used for verification queries, DML setup steps and metadata deploys. Every REST call that simulates the website (`registerConsumer`, `engagementService`, `processResponse`, `redeemPoints`, `LoyaltyPoints`, `loyaltyPrizes`) is sent with the **integration user alias** of the same environment — the `stack.config.md` sandbox row whose purpose contains "Integration user for <environment>" — because that is the identity the website uses, and its permissions, sharing context and record attribution differ from an admin. `<integration-alias>` below refers to it. If no such alias exists for the environment, send the calls with the admin alias and mark every REST scenario `pass (admin user)` in the protocol; both users are named in the protocol's *Run* table.
+**Two users per run.** `<admin-alias>` is the admin session of the chosen environment, used for verification queries, DML setup steps and metadata deploys. Every REST call that simulates the website (`registerConsumer`, `engagementService`, `processResponse`, `redeemPoints`, `LoyaltyPoints`, `loyaltyPrizes`) is sent with `<integration-alias>` — the `stack.config.md` sandbox row whose purpose contains "Integration user for <environment>". **Only the website's own user qualifies**: for this customer that is the Umbraco integration user (`integration@umbraco.com` with the sandbox suffix, e.g. `integration@umbraco.com.uat`), the account behind every engagement record and loyalty case the website creates in production. Other integration accounts in the org (e.g. `integration@reemtsma.de`, `webintegration@…`) are not the website and must not be used.
+
+Before the first REST call, verify the alias: `sf org display -o <integration-alias> --json` must show that username and a connected status. If the alias is missing or not authenticated, **stop and ask** the user to authenticate it (`sf org login web --alias <integration-alias>` with the Umbraco user's credentials, or the JWT flow for an API-only user); do not fall back to the admin silently. Only when the user explicitly chooses to continue without it are the calls sent with `<admin-alias>` and every REST scenario marked `pass (admin user)`. Both users are named in the protocol's *Run* table.
 
 **Test data is kept at the end by default** so the user can inspect the consumer in the org; the next run removes it in the pre-run cleanup. `--cleanup` deletes it already at the end of the run; the run manifest `run.json` lists every created record either way.
 
@@ -54,7 +57,8 @@ All expected values are read at runtime from the org's configuration, never hard
 ### Step 0: Preconditions
 
 ```bash
-sf org display -o <alias> --json                      # instance URL, user; abort if production
+sf org display -o <admin-alias> --json                # instance URL, user; abort if production
+sf org display -o <integration-alias> --json          # must be the website's user (integration@umbraco.com.<sandbox>) and connected
 sf data query -o <alias> -r csv -q "SELECT DeveloperName, Brand__c, IsActive__c FROM LoyaltyProgram__mdt"
 sf data query -o <alias> -r csv -q "SELECT DeveloperName, Brand__c, Sequence__c, QualifyingPoints__c, BonusPointsRewarding__c, ReducePointsByInactivity__c, QRResetPeriod__c FROM LoyaltyTier__mdt WHERE Brand__c = '<brand>' ORDER BY Sequence__c"
 sf data query -o <alias> -r csv -q "SELECT DeveloperName, EngagementType__c, EngagementCategory__c, LoyaltyPoints__c, EngagementPoints__c, Rule__c FROM EngagementTrackingRule__mdt"
