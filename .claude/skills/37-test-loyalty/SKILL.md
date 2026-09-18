@@ -29,9 +29,17 @@ Before anything else, ask with `AskUserQuestion` for every value not given as an
 
 Inputs from `$ARGUMENTS` override the dialog: brand (first token), org alias (second token, default the first "User Acceptance" alias), `--email`, `--switch`, `--only <channels>`, `--format md|html`.
 
-**Test data is kept by default** so the user can inspect the consumer in the org. `--cleanup` deletes it by ID at the end; the run manifest `run.json` lists every created record either way.
+**Test data is kept at the end by default** so the user can inspect the consumer in the org; the next run removes it in the pre-run cleanup. `--cleanup` deletes it already at the end of the run; the run manifest `run.json` lists every created record either way.
 
-**Existing consumer with that e-mail:** the skill looks the address up on the org before registering. If a person account exists, it asks whether to delete it (with its loyalty, engagement, case and campaign records) so the registration path is exercised cleanly, or to reuse it and skip registration and double opt-in.
+**Pre-run cleanup (always, no question asked):** before registering, the skill removes every previous instance of the test person from the org so the registration path starts from zero. The registration matches consumers by **identity** (name, birthday, address), not by e-mail, so the lookup must use both:
+
+```bash
+sf data query -o <alias> -r csv -q "SELECT Id, PersonContactId, PersonEmail, CreatedDate FROM Account WHERE IsPersonAccount = true AND ((FirstName = '<first_name>' AND LastName = '<last_name>' AND PersonBirthdate = <birthday>) OR PersonEmail = '<email>' OR PersonEmail LIKE '<email local part>+%@<domain>')"
+```
+
+For every account found (main consumer and plus-address variants such as the invitee), delete in this order by the contact id, then the account: `EngagementTracking__c`, `CaseShippingProduct__c` and `Case`, `InteractionLog__c`, `Coupon__c`, `CampaignMember`, `LoyaltyMemberTier__c`, then `Account`. Verify each count is 0 afterwards and list the deleted ids in the protocol's *Test consumers* table. Records the main consumer created on **other** records (e.g. the inviter coupon on a campaign) are covered by the contact-based deletes. The default test identity is the one in the appendix (Dieter Frankenheimer); with `--email` the cleanup still runs for that identity and the given address.
+
+Only when the org is not a sandbox is this step, like everything else, refused.
 
 **Double opt-in is done by the user:** after the registration call the skill stops and asks the user to click the confirmation link in the mail, then verifies the opt-in fields and continues. Only if the mail cannot be received is the controller logic replicated in anonymous Apex and the scenario marked `replicated`.
 
