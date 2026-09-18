@@ -61,7 +61,8 @@ Use a unique e-mail `loyaltytest+<run-id>@<test-domain from testdata.config.md, 
    ```
    Body per the register contract: identifier (from `MapBrandURL__mdt` for the brand), campaign (AVL code from Step 0), first_name, last_name, street, house_number, zip, city, birthday (today's day and month, year 1980 — makes the birthday channel testable), gender, email, mobile, consent_all true, declaration_ip.
    Assert: responseCode 1, consumerId returned, account exists with `WebsiteStatus__pc = 'E-Mail verification pending'`, no Loyalty Member Tier yet.
-2. **Double opt-in** — the confirmation is a Visualforce controller, run it via anonymous Apex:
+   **Known limitation:** on sandboxes where `SchufaSetting__mdt.BypassSchufaRequest__c` is false the identity check runs for real and rejects synthetic persons (response 9). Record the registration scenario as `fail (environment)` and create the consumer with anonymous Apex in the exact shape the registration produces (ConsumerId, HashConsumerId, SourceCampaign, verification-pending status, single opt-in, ConsentAll). Never change the Schufa setting from this skill.
+2. **Double opt-in** — the confirmation is a Visualforce controller. `ApexPages.currentPage()` is null in anonymous Apex, so do **not** instantiate the controller there. Either request the Visualforce page URL with the CLI session (`sf org open --url-only` to get the instance, then `curl -H "Authorization: Bearer $(sf org display --json | jq -r .result.accessToken)" "<instance>/apex/LM_EmailConfirmation?id=<base64 consumerId>"`) or, if that is blocked, replicate the controller's grant verbatim in anonymous Apex (flags, consents, `LoyaltyPointsService.upsertLoyaltyMemberTier`, `validateBrandIsLoyalty` + Engagement Tracking) and mark the scenario `replicated`. Original text kept for reference:
    ```bash
    sf apex run -o <alias> --file requests/02-doi.apex
    ```
@@ -91,7 +92,7 @@ Run in this order; each has a key for `--only`. Every REST body is saved before 
 |---|---|---|---|---|
 | `login` | Website login | `POST /engagementService` `{ConsumerId, Brand, Category:"PW_Login", Data:{LoginEventTech__pc:"PWR_<timestamp>_<brand>"}}` | rule `Normal_Login`; second call same day: 0 | 0, account login flags still set |
 | `login-nl` | Newsletter login | same with token `NL_<timestamp>_<brand>` | 0 (only Normal/PWR tokens count) | 0 |
-| `like` | Content like | Category `ContentLike`, Data `{ArticleID__c:"T<run>", ArticleText__c:"https://…", ContentLike:true}`; repeat once | rule `ContentLike`; repeat: 0 | 0 |
+| `like` | Content like | Category `ContentLike`, Data `{ArticleID__c:"T<run>", ArticleText__c:"https://…", ContentLike:true}`; repeat once | rule `ContentLike`; repeat: rejected — today as HTTP 400 `DUPLICATE_VALUE` (report as finding, dedup itself passes) | 0 |
 | `text` | Text read | Category `Text`, Data `{ArticleID__c:"T<run>2", ArticleText__c:"…"}` | rule `Text` | 0 |
 | `event` | Event | Category `Event`, Data `{EventId__c:"E<run>", EventUrl__c:"…"}` | rule `Event` | 0 |
 | `profile` | Profile fields | Category `Profile_completion`, Data with MobileNumber, DurationOfConsumption, FrequencyOfConsumption, SideBrandId, HasInterestInCombustiveAlternatives | 10 per field (5 rules) + 100 % profile bonus as coded (50); note the rule says 0 — report the discrepancy | 0 |

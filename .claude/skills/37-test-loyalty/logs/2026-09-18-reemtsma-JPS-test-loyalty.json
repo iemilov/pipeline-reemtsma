@@ -1,0 +1,14 @@
+{
+  "skill": "test-loyalty",
+  "customer": "reemtsma",
+  "identifier": "JPS",
+  "timestamp": "2026-09-18T11:38:28",
+  "status": "partial",
+  "summary": "[brand=JPS] [org=reemUAT] [pass=7] [fail=1] [manual=1] [switch-restored=n/a] Switch-off behaviour confirmed for login, like, campaign, redeem; registration fails on real Schufa check in UAT (environment); DOI replicated via Apex. Finding F1: repeated like returns raw 400 DUPLICATE_VALUE.",
+  "artifacts": [
+    "testprotocols/2026-09-18-1133-loyalty-JPS-reemUAT/protocol.md",
+    "testprotocols/2026-09-18-1133-loyalty-JPS-reemUAT/requests/",
+    "testprotocols/2026-09-18-1133-loyalty-JPS-reemUAT/queries/"
+  ],
+  "output": "Scope --only login,like,campaign,redeem; JPS switch off on UAT; all test records deleted by ID."
+}
