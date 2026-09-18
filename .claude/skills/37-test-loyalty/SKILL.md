@@ -128,16 +128,19 @@ Only with `--cleanup`: delete, in order, Engagement Tracking, Case Shipping Prod
 
 ### Step 6: Protocol
 
-Write `testprotocols/<run-folder>/protocol.<md|html>` in the Documentation Language:
+Write `testprotocols/<run-folder>/protocol.<md|html>` in the Documentation Language. **Everything is a table** so results can be scanned and compared between runs:
 
-1. **Header** — brand, org, date, switch state(s) tested, test consumers (IDs), expected-value sources (tier table, rule table, mapping rows used, prize used).
-2. **Result summary** — scenarios run, passed, failed, manual, known defects.
-3. **Scenario table** — one row per channel and run mode: key, what was sent (link to the request file), expected, actual (points delta, tier, ET row, response code), status `pass | fail | manual | known-defect`, evidence (record IDs, query file).
-4. **Timeline** — every step with timestamp and the Loyalty Member Tier values after it.
-5. **Deviations** — configuration versus code (e.g. the 100 % profile bonus of 50 versus rule 0), defects found (double redemption), anything unverifiable (scheduled flow).
-6. **Cleanup** — what was deleted, what remains, switch restored yes/no.
+1. **Run** — brand, switch state under test, org, date/time, data kept or cleaned, evidence folders.
+2. **Test consumers** — role, name, e-mail, ConsumerId, Account, Contact, created via, state (kept/deleted); include any pre-existing account that was matched and what happened to it.
+3. **Expected values** — one row per configuration source with the values used, plus the rule that applies to the tested switch state.
+4. **Result summary** — total / pass / fail / manual / with finding, and a one-sentence verdict.
+5. **What was tested** — one row per scenario: #, channel, how simulated, expected, observed, status (✅ pass · ❌ fail · ⚠️ manual · "pass (finding)"), evidence file.
+6. **State of the consumer after the run** — Loyalty Member Tier, engagement records, campaign members, logs, cases, account flags, points endpoint.
+7. **Findings** — ID, severity (High/Medium/Low), channel, finding, impact, evidence, suggested action. Design notes that are not defects go below the table.
+8. **Not verifiable in this run** — channel, reason, how to verify.
+9. **Cleanup** — records deleted, switch modified, stock changed, each yes/no.
 
-`html` format uses the `documentation/` page style; `md` is a plain table document.
+`html` renders the same tables in the `documentation/` page style.
 
 ### Step 7: Log and summary
 
