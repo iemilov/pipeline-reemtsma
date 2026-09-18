@@ -1,0 +1,15 @@
+{
+  "skill": "test-loyalty",
+  "customer": "reemtsma",
+  "identifier": "JPS",
+  "timestamp": "2026-09-18T13:00:24",
+  "status": "partial",
+  "summary": "[brand=JPS] [org=reemUAT] [switch=on-temporary] [pass=20] [fail=2] [manual=1] [switch-restored=yes] JPS on behaves like Gauloises; F7 and F9 reproduced. Side effect F10: org-wide inactivity batch started and aborted, 5,250 UAT JPS tier records reduced, revert pending decision. Fraud-check cleanup needed for repeated registrations (F11).",
+  "artifacts": [
+    "testprotocols/2026-09-18-1249-loyalty-JPS-on-reemUAT/protocol.md",
+    "testprotocols/2026-09-18-1249-loyalty-JPS-on-reemUAT/requests/",
+    "testprotocols/2026-09-18-1249-loyalty-JPS-on-reemUAT/queries/",
+    "testprotocols/2026-09-18-1249-loyalty-JPS-on-reemUAT/switch/"
+  ],
+  "output": "Consumer 16b3a190; 27 scenarios incl. switch on/restore."
+}

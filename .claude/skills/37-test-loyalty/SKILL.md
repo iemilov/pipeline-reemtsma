@@ -37,6 +37,8 @@ Inputs from `$ARGUMENTS` override the dialog: brand (first token), org alias (se
 sf data query -o <alias> -r csv -q "SELECT Id, PersonContactId, PersonEmail, CreatedDate FROM Account WHERE IsPersonAccount = true AND ((FirstName = '<first_name>' AND LastName = '<last_name>' AND PersonBirthdate = <birthday>) OR PersonEmail = '<email>' OR PersonEmail LIKE '<email local part>+%@<domain>')"
 ```
 
+Also delete today's `Fraud_Check__c` records for the identity (`WHERE LastName__c = '<last_name>' AND Email__c = '<email>' AND CreatedDate = TODAY`): the fraud rule blocks a fourth registration of the same person within its window with response 7. Restore the test prize's stock to its value from the previous run's manifest if the previous run redeemed it.
+
 For every account found (main consumer and plus-address variants such as the invitee), delete in this order by the contact id, then the account: `EngagementTracking__c`, `CaseShippingProduct__c` and `Case`, `InteractionLog__c`, `Coupon__c`, `CampaignMember`, `LoyaltyMemberTier__c`, then `Account`. Verify each count is 0 afterwards and list the deleted ids in the protocol's *Test consumers* table. Records the main consumer created on **other** records (e.g. the inviter coupon on a campaign) are covered by the contact-based deletes. The default test identity is the one in the appendix (Dieter Frankenheimer); with `--email` the cleanup still runs for that identity and the given address.
 
 Only when the org is not a sandbox is this step, like everything else, refused.
@@ -118,7 +120,7 @@ Run in this order; each has a key for `--only`. Every REST body is saved before 
 | `service` | Service contact | insert a Case with ContactId, `CaseBrand__c` = brand, Type "Sonstiges" | 0 loyalty, rule `ServiceRequest` engagement points, ET created | ET created without LoyaltyPoints |
 | `tierup` | Tier change | if the total is below the tier-2 threshold, grant enough via campaign or newsletter inserts to cross it | `NewTierLevel__c = '2'`, `PreviousTier__c = '1'`, tier bonus added, `StatusChangeDatetime__c` set | no change |
 | `birthday` | Birthday / anniversary | set `Birthdate` to today (already), set `Login<Brand>TimestampEarliest__pc` to today minus one year and `Login<Brand>__pc = true`; then either wait for the 02:00 UTC scheduled flow or mark **manual**: the flow cannot be started on demand | rule `BirthdayMembership` (both) or `Birthday` | 0 |
-| `inactivity` | Inactivity reduction | set `LatestInteraction__pc` to today minus 13 months on the contact, then `sf apex run` with `Database.executeBatch(new LM_ReduceLoyaltyPointsBatch(), 50);` and wait for the job (`AsyncApexJob` polling) | `ReducedStatuspoints__c` += min(reduce value, status balance), tier drops if below threshold | untouched |
+| `inactivity` | Inactivity reduction | set `LatestInteraction__pc` to today minus 13 months on the contact, then run the batch logic **on the test record only**: `new LM_ReduceLoyaltyPointsBatch().execute(null, [SELECT … FROM LoyaltyMemberTier__c WHERE Contact__c = '<contactId>'])` in anonymous Apex. **Never start `Database.executeBatch` for this test** — with the brand switched on it reduces every inactive consumer of the brand in the org (5,250 records on one UAT run) | `ReducedStatuspoints__c` += min(reduce value, status balance), tier drops if below threshold | untouched |
 | `redeem` | Redemption | `POST /redeemPoints` `[{consumerId, brand, benefitId:<cheapest prize>, quantity:1}]` | case of type Loyalty Program created, one CaseShippingProduct, `RedeemedBonusPoints__c` += price, prize stock −1, InteractionLog "Redeemed" | same — redemption is not gated by the switch; report it as such |
 | `redeem-dup` | Double submission | send the same redeem body twice within one second (`&` in shell) | **today: two cases** — report as known defect, not as pass | same |
 | `read` | Read endpoints | `GET /LoyaltyPoints`, `GET /loyaltyPrizes` | values consistent with the LMT | tier from Sequence 1, zeros when no LMT |
@@ -236,7 +238,14 @@ Find the pair with `SELECT Id, Mechanic__c, ParentId FROM Campaign WHERE Mechani
 
 **Anniversary preparation** — `sf data update record -s Contact -i <contactId> -v "Login<Brand>TimestampEarliest__c=<today minus one year>T09:00:00.000Z"`; the birthday is the registration birthday. The scheduled flow runs at 02:00 UTC; verify the next day.
 
-**Inactivity** — anonymous Apex `Database.executeBatch(new LM_ReduceLoyaltyPointsBatch(), 50);` then poll `AsyncApexJob WHERE ApexClass.Name = 'LM_ReduceLoyaltyPointsBatch'`. Prepare by setting `LatestInteraction__pc` to 13 months ago on a consumer **with** a Loyalty Member Tier.
+**Inactivity** — prepare by setting `LatestInteraction__pc` to 13 months ago on a consumer **with** a Loyalty Member Tier, then anonymous Apex:
+
+```apex
+LoyaltyMemberTier__c lmt = [SELECT Id, Brand__c, BalanceStatusPoints__c, ReducedStatuspoints__c, ReduceByInactivity__c FROM LoyaltyMemberTier__c WHERE Contact__c = '<contactId>'];
+new LM_ReduceLoyaltyPointsBatch().execute(null, new List<LoyaltyMemberTier__c>{lmt});
+```
+
+Do not use `Database.executeBatch` here: it processes the whole org.
 
 **Redemption** — `POST /services/apexrest/redeemPoints`
 

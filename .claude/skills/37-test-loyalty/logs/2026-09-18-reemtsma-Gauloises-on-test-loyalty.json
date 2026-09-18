@@ -1,0 +1,14 @@
+{
+  "skill": "test-loyalty",
+  "customer": "reemtsma",
+  "identifier": "Gauloises",
+  "timestamp": "2026-09-18T12:41:27",
+  "status": "success",
+  "summary": "[brand=Gauloises] [org=reemUAT] [switch=on] [pass=19] [fail=2] [manual=1] [switch-restored=n/a] Points accrue per configuration on all channels; tier-up, inactivity and redemption work. Defects: F7 newsletter flow pays wrong tier bonus (200 instead of 100), F8 profile 100% bonus recorded but not credited, F9 double redemption processed twice. Data kept.",
+  "artifacts": [
+    "testprotocols/2026-09-18-1233-loyalty-Gauloises-reemUAT/protocol.md",
+    "testprotocols/2026-09-18-1233-loyalty-Gauloises-reemUAT/requests/",
+    "testprotocols/2026-09-18-1233-loyalty-Gauloises-reemUAT/queries/"
+  ],
+  "output": "Consumer 8f889493, 25 scenarios."
+}
